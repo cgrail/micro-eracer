@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-import type { Room } from '@colyseus/sdk';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
   type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
@@ -18,7 +17,7 @@ import type { Controls } from './input.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeCar, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
-import { AIRLIFT, type BoltState, type CarState, DRIVING, type List, type RaceState, STRANDED, type Spot } from './state.ts';
+import { AIRLIFT, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
 
 interface CarView {
   mesh: THREE.Group; tag: THREE.Sprite; drone: THREE.Group; name: string; kind: BodyKind; mine: boolean; car: Car;
@@ -53,7 +52,7 @@ function dispose(obj: THREE.Object3D) {
 }
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
-export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound): () => void {
+export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: Sound): () => void {
   const ui = createHud(hud, sound);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));

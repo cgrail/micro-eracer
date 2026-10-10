@@ -1,7 +1,8 @@
 import { Room, type Client } from '@colyseus/core';
 import { schema, t, type SchemaType } from '@colyseus/schema';
-import { BODY_KINDS, DT, type BodyKind, yawOfBody } from '../../shared/src/car.ts';
+import { BODY_KINDS, DT, type BodyKind } from '../../shared/src/car.ts';
 import { type PoseReport, RaceSim, SEATS } from '../../shared/src/race.ts';
+import { seatState } from '../../shared/src/snapshot.ts';
 
 const CarState = schema({
   name: t.string(), body: t.string(), owner: t.string(),
@@ -89,13 +90,6 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     }
     const boxes = combat.boxes.map((at) => at <= sim.time);
     if (state.boxes.join() !== boxes.join()) { state.boxes.clear(); state.boxes.push(...boxes); }
-    sim.seats.forEach((s, i) => {
-      const c = state.cars[i], p = s.car.rb.translation();
-      Object.assign(c, {
-        name: s.name, body: s.kind, owner: s.owner, x: p.x, y: p.y, z: p.z, yaw: yawOfBody(s.car.rb), vx: s.vx, vz: s.vz,
-        lap: sim.lap(s), position: s.position, finished: s.finished, spawn: s.spawn,
-        energy: Math.ceil(s.energy), mode: sim.isStranded(s) ? 1 : sim.isAirlifted(s) ? 2 : 0, item: s.item, shield: s.shield,
-      });
-    });
+    sim.seats.forEach((s, i) => Object.assign(state.cars[i], seatState(sim, s)));
   }
 }

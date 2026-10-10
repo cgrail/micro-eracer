@@ -1,5 +1,5 @@
 import type { BodyKind } from '../../shared/src/car.ts';
-import type { Phase } from '../../shared/src/race.ts';
+import type { Phase, RaceEvent } from '../../shared/src/race.ts';
 
 /** Mirrors server/src/RaceRoom.ts. */
 export interface CarState {
@@ -16,3 +16,14 @@ export interface RaceState {
 
 /** `CarState.mode` */
 export const DRIVING = 0, STRANDED = 1, AIRLIFT = 2;
+
+/** What the game needs of a Race: the online room, or an Offline Race in this browser (`offline.ts`). */
+export interface RaceLink {
+  sessionId: string;
+  onStateChange(cb: (state: RaceState) => void): void;
+  onMessage(type: 'events', cb: (list: RaceEvent[]) => void): void;
+  onDrop(cb: () => void): void;
+  onReconnect(cb: () => void): void;
+  onLeave(cb: () => void): void;
+  send(type: 'pose' | 'shoot' | 'item', msg?: unknown): void;
+}

@@ -5,10 +5,12 @@ import { type BodyKind, BODY_KINDS, initPhysics } from '../../shared/src/car.ts'
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createInput, isTouch } from './input.ts';
+import { offlineRace } from './offline.ts';
+import type { RaceLink } from './state.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const form = $<HTMLFormElement>('start'), nameInput = $<HTMLInputElement>('name'), play = $<HTMLButtonElement>('play');
-const error = $('error'), hudEl = $('hud'), touch = $('touch'), mute = $<HTMLButtonElement>('mute');
+const error = $('error'), hudEl = $('hud'), touch = $('touch'), mute = $<HTMLButtonElement>('mute'), offline = $('offline');
 const hud = {
   pos: $('pos'), lap: $('lap'), msg: $('msg'), results: $<HTMLOListElement>('results'),
   energy: $('energy'), energyFill: $('energy-fill'), popups: $('popups'), item: $('item'), danger: $('danger'),
@@ -33,6 +35,8 @@ showMute();
 mute.addEventListener('click', () => { sound.setMuted(!sound.muted); save('muted', sound.muted ? '1' : '0'); showMute(); mute.blur(); });
 const physics = initPhysics();
 const serverUrl = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
+// waiting longer than this for the server, Play starts an Offline Race instead
+const JOIN_TIMEOUT = 5000;
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -45,7 +49,16 @@ form.addEventListener('submit', async (e) => {
   try {
     // name tags and the banner are drawn on canvases, which need the comic font loaded first
     await Promise.all([physics, document.fonts.load('40px Bangers').catch(() => undefined)]);
-    const room = await new Client(serverUrl).joinOrCreate('race', { name, body });
+    const join = new Client(serverUrl).joinOrCreate('race', { name, body });
+    let room: RaceLink;
+    try {
+      room = await Promise.race([join, new Promise<never>((_, fail) => setTimeout(() => fail(new Error('timeout')), JOIN_TIMEOUT))]);
+    } catch {
+      // no server to be reached: race the Bots right here
+      join.then((late) => late.leave(), () => {});
+      room = offlineRace(name, body);
+      offline.hidden = false;
+    }
     form.hidden = true;
     hudEl.hidden = mute.hidden = false;
     touch.hidden = !isTouch;
@@ -59,8 +72,7 @@ form.addEventListener('submit', async (e) => {
       error.textContent = 'Connection lost.';
     });
   } catch {
-    // shortcut: no Offline Race yet, that fallback is build step 5
-    error.textContent = "Can't reach the server right now. Try again in a moment.";
+    error.textContent = "The game couldn't start. Try reloading the page.";
   } finally {
     play.disabled = false;
   }
