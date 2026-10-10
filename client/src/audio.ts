@@ -20,7 +20,7 @@ export class Sound {
   private mus!: GainNode;
   private noise!: AudioBuffer;
   private voices: Partial<Record<Mood, AudioBuffer[]>> = {};
-  private engine?: { osc: OscillatorNode; osc2: OscillatorNode; filter: BiquadFilterNode; gain: GainNode };
+  private engine?: { rumble: BiquadFilterNode; rush: BiquadFilterNode; gain: GainNode };
   private skid?: GainNode;
   private drone?: { osc: OscillatorNode; gain: GainNode };
   private lastCry: number[] = [];
@@ -95,39 +95,34 @@ export class Sound {
     src.stop(this.t + length + 0.05);
   }
 
-  /** Our own E-Car's motor hum and tyre skid, updated every frame. */
+  /** The airflow and tyre skid of our own E-Car, updated every frame: no motor hum, just wind that rises with speed. */
   drive(speed: number, throttle: number, skid: number) {
     if (!this.ctx) return;
     if (!this.engine) {
-      const osc = this.ctx.createOscillator(), osc2 = this.ctx.createOscillator(), filter = this.ctx.createBiquadFilter(), gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc2.type = 'square';
-      filter.type = 'lowpass';
-      filter.frequency.value = 600;
+      const ctx = this.ctx, gain = ctx.createGain(), rumble = ctx.createBiquadFilter(), rush = ctx.createBiquadFilter();
+      const noise = (rate: number) => { const src = ctx.createBufferSource(); src.buffer = this.noise; src.loop = true; src.playbackRate.value = rate; src.start(); return src; };
+      // two loops of the noise at different rates, so its repeat is never heard
+      rumble.type = 'lowpass';
+      rush.type = 'bandpass';
+      rush.Q.value = 0.8;
+      noise(1).connect(rumble).connect(gain);
+      noise(0.83).connect(rush).connect(gain);
       gain.gain.value = 0;
-      osc.connect(filter);
-      osc2.connect(filter);
-      filter.connect(gain).connect(this.master);
-      osc.start();
-      osc2.start();
-      this.engine = { osc, osc2, filter, gain };
-      const src = this.ctx.createBufferSource(), band = this.ctx.createBiquadFilter();
-      src.buffer = this.noise;
-      src.loop = true;
+      gain.connect(this.master);
+      this.engine = { rumble, rush, gain };
+      const src = noise(1), band = ctx.createBiquadFilter();
       band.type = 'bandpass';
       band.frequency.value = 1400;
       band.Q.value = 2;
-      this.skid = this.ctx.createGain();
+      this.skid = ctx.createGain();
       this.skid.gain.value = 0;
       src.connect(band).connect(this.skid).connect(this.master);
-      src.start();
     }
-    // an electric motor: a rising whine rather than a combustion rumble
-    const pitch = 70 + Math.abs(speed) * 14;
-    this.engine.osc.frequency.setTargetAtTime(pitch, this.t, 0.05);
-    this.engine.osc2.frequency.setTargetAtTime(pitch * 1.505, this.t, 0.05);
-    this.engine.filter.frequency.setTargetAtTime(400 + Math.abs(speed) * 60, this.t, 0.05);
-    this.engine.gain.gain.setTargetAtTime(0.05 + Math.min(1, Math.abs(throttle)) * 0.07, this.t, 0.08);
+    // the wind opens up and gets louder with speed (roughly with its square, like real drag), a little more under power
+    const k = Math.min(1, Math.abs(speed) / 22);
+    this.engine.rumble.frequency.setTargetAtTime(180 + k * 520, this.t, 0.12);
+    this.engine.rush.frequency.setTargetAtTime(500 + k * 1700, this.t, 0.12);
+    this.engine.gain.gain.setTargetAtTime(0.01 + k * k * 0.3 + Math.max(0, throttle) * k * 0.04, this.t, 0.15);
     this.skid!.gain.setTargetAtTime(Math.min(1, skid) * 0.25, this.t, 0.05);
   }
 

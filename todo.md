@@ -8,4 +8,4 @@
 [x] if you're really up front first slow down the car so that other can catch up. if you're first and run out of energy, at least 2-3 player should overtake you until you're fully charged.
 [x] on mobile the drive back button should appear if you're stuck. 
 [x] leader board on the end should be center and not in the right outer corner. it should be obious that the race has ended
-[ ] the humming sound on high speed is really annoying. replace it with a lufstrom which gets louder the faster you go
+[x] the humming sound on high speed is really annoying. replace it with a lufstrom which gets louder the faster you go

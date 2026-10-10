@@ -56,7 +56,7 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 - **Events:** `RaceEvent` (`ram`, `hit`, `boom`, `block`, `battery`, `shot`, `stranded`, `recharge`, `box`, `item`, `join`, `leave`) is what happened in one tick. It exists only to drive sounds and effects in the browsers; the state is the truth.
 - **Look:** cel shading (`MeshToonMaterial` with a 3-tone gradient) with black outlines (`OutlineEffect`; `userData.outlineParameters = { visible: false }` turns one material's outline off), static scenery merged per material, canvas textures, a halftone overlay and comic HUD lettering.
 - **Sound:** all WebAudio, started by the Play button (a user gesture, which mobile browsers need).
-  - effects, and the motor whine and skid of the Player's own E-Car
+  - effects, and the airflow (filtered noise rising with speed; no motor hum) and skid of the Player's own E-Car
   - voices (`cry(mood, seat)`): CC0 recordings per mood (`CLIPS` in `audio.ts`, files `public/voices/<mood>-<name>.mp3`), played at a per-Seat rate so each Racer sounds different. Cries about other E-Cars are rationed, and ones about your own always play. A new clip must be CC0, trimmed, loudness-matched (about −18 dB mean, peaks under −1 dB) and listed in `CREDITS.md`
   - one chiptune song per Track, from Electro Car Racer (github.com/cgrail/e-racer)
   - one mute switch for everything
