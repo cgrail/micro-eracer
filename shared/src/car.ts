@@ -1,20 +1,27 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { type Pose, type Track, HALF_WIDTH, right } from './track.ts';
 
-export type BodyKind = 'microbus' | 'roadster';
-export const BODY_KINDS: BodyKind[] = ['microbus', 'roadster'];
+export type BodyKind = 'roadster' | 'suv' | 'microbus' | 'pickup' | 'semi';
+export const BODY_KINDS: BodyKind[] = ['roadster', 'suv', 'microbus', 'pickup', 'semi'];
 
 /**
- * How each Body drives. The Microbus is slower and turns wider, and pays it back: `mass` wins Rams and softens Hits,
- * `grip` keeps it on the Track, and `tank` (battery size, times the Roadster's) means fewer Recharges.
+ * How each Body drives, from the quick Roadster to the slow Semi. The bigger ones pay their speed back: `mass` wins Rams and
+ * softens Hits, `grip` keeps them on the Track, and `tank` (battery size, times the Roadster's) means fewer Recharges.
+ * `length` is half the body's length; the start grid's rows are 5 m apart, so two of them must stay under 5.
  */
-export const BODIES: Record<BodyKind, { maxSpeed: number; accel: number; steer: number; mass: number; grip: number; tank: number }> = {
-  microbus: { maxSpeed: 19, accel: 15, steer: 2.1, mass: 2.2, grip: 12, tank: 1.3 },
-  roadster: { maxSpeed: 22, accel: 26, steer: 2.7, mass: 1, grip: 8, tank: 1 },
+export const BODIES: Record<BodyKind, { maxSpeed: number; accel: number; steer: number; mass: number; grip: number; tank: number; length: number }> = {
+  roadster: { maxSpeed: 22, accel: 26, steer: 2.7, mass: 1, grip: 8, tank: 1, length: 1.8 },
+  suv: { maxSpeed: 20.7, accel: 21, steer: 2.5, mass: 1.5, grip: 10, tank: 1.1, length: 1.9 },
+  microbus: { maxSpeed: 19.3, accel: 16, steer: 2.1, mass: 2.2, grip: 12, tank: 1.3, length: 1.8 },
+  // a big electric pickup: heavy, but with all that torque it pulls away hard
+  pickup: { maxSpeed: 19.2, accel: 20, steer: 2.1, mass: 2.4, grip: 10, tank: 1.35, length: 2.1 },
+  // a truck with its trailer: the heaviest, slowest and biggest battery of all
+  semi: { maxSpeed: 18.5, accel: 13, steer: 1.9, mass: 3.4, grip: 13, tank: 1.7, length: 2.4 },
 };
 
 export const DT = 1 / 60;
-export const HALF = { x: 0.9, y: 0.45, z: 1.8 };
+/** Half width and height of every body; the length is per Body. */
+export const HALF = { x: 0.9, y: 0.45 };
 const BRAKE = 30, REVERSE_MAX = 6, DRIFT_IN = 4, DRIFT_OUT = 2.5;
 
 export interface Input { throttle: number; steer: number }
@@ -62,7 +69,7 @@ export function createCar(world: RAPIER.World, kind: BodyKind, pose: Pose, dynam
   const desc = dynamic ? RAPIER.RigidBodyDesc.dynamic() : RAPIER.RigidBodyDesc.kinematicPositionBased();
   const rb = world.createRigidBody(desc.setTranslation(pose.x, pose.y, pose.z).setRotation(yawQuat(pose.yaw)).enabledRotations(false, true, false));
   const r = 0.15;
-  world.createCollider(RAPIER.ColliderDesc.roundCuboid(HALF.x - r, HALF.y - r, HALF.z - r, r)
+  world.createCollider(RAPIER.ColliderDesc.roundCuboid(HALF.x - r, HALF.y - r, BODIES[kind].length - r, r)
     .setMass(BODIES[kind].mass).setFriction(0).setRestitution(0.3)
     // Players' E-Cars are kinematic on the server; their contacts are still needed to judge Rams
     .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.DEFAULT | RAPIER.ActiveCollisionTypes.KINEMATIC_KINEMATIC), rb);

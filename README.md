@@ -18,7 +18,7 @@ npm run typecheck
 
 To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same network.
 
-Bodies: the Roadster is fast, quick off the line and drifts easily. The Microbus is slower and turns wider, but it's heavy (it wins Rams and gets thrown around less by Hits), grips better and has a bigger battery, so it runs dry less often.
+Bodies: five generic electric look-alikes that drive differently, from quick to heavy. The Roadster is fast and drifts easily, the SUV is the all-rounder, the Microbus grips well and has a big battery, the Pickup is heavy but pulls away hard, and the Semi (a truck with its trailer) is the slowest, heaviest and has the biggest battery. Heavier Bodies win Rams and get thrown around less by Hits, and a bigger battery means running dry less often, so each of them can win.
 
 Leading is meant to be hard: every Bot behind a Player in first place shoots at them, about once a second between them. A Shield, a dodge or a Battery is how you hold on.
 

@@ -69,19 +69,20 @@ for (const def of TRACKS) {
   });
 }
 
-test('either Body can win: half the field in Microbuses, half in Roadsters', async () => {
+// the slowest Body against the quickest: if the Semi can beat Roadsters, the Bodies in between can too
+test('every Body can win: half the field in Semis, half in Roadsters', async () => {
   await initPhysics();
-  const wins = { microbus: 0, roadster: 0 };
+  const wins: Record<string, number> = { semi: 0, roadster: 0 };
   for (let k = 0; k < 12; k++) {
     const id = TRACKS[k % TRACKS.length].id, sim = new RaceSim(id);
-    sim.seats.forEach((s, i) => (s.kind = (i + k) % 2 ? 'microbus' : 'roadster'));
+    sim.seats.forEach((s, i) => (s.kind = (i + k) % 2 ? 'semi' : 'roadster'));
     sim.newRace(FIRST_GRID_TIME, id);
     for (let t = 0; t < 240 && sim.results.length === 0; t += DT) sim.step(DT);
     // by now the next Race is set up; its Seats keep their names and Bodies
     wins[sim.seats.find((s) => s.name === sim.results[0])!.kind]++;
   }
   console.log('wins by Body:', wins);
-  assert.ok(wins.microbus > 0 && wins.roadster > 0);
+  assert.ok(wins.semi > 0 && wins.roadster > 0);
 });
 
 test('an empty E-Car is Stranded, then Recharged where it stands to full Energy', async () => {

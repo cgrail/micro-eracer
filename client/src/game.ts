@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
+  BODIES, type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
 import { RECHARGE_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
@@ -11,11 +11,12 @@ import {
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
+import { makeCar } from './cars.ts';
 import { Particles } from './effects.ts';
 import { type Hud, ITEM_ICONS, createHud } from './hud.ts';
 import type { Controls } from './input.ts';
 import {
-  SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeCar, makeDrone, makeItemBox, makeMine, makeNameTag,
+  SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
 import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
 
@@ -402,7 +403,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       v.roadY = s.y;
       // the bodies stay level, so on a ramp tilt the model along it and set it down onto the road
       const along = p.y - s.y < HALF.y + 0.8 ? clamp(gradeAt(track!, i), -0.4, 0.4) * (Math.sin(yaw) * s.dx + Math.cos(yaw) * s.dz) : 0;
-      v.mesh.position.set(p.x, p.y - Math.abs(along) * HALF.z, p.z);
+      v.mesh.position.set(p.x, p.y - Math.abs(along) * BODIES[v.kind].length, p.z);
       v.mesh.rotation.set(-Math.atan(along), yaw, 0, 'YXZ');
     }
     animate(dt, now / 1000);

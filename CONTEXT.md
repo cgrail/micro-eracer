@@ -35,7 +35,7 @@ The electric car a Racer drives.
 _Avoid_: Kart, vehicle
 
 **Body**:
-Which kind of E-Car a Racer drives, a Microbus or a Roadster; the two drive differently, but either can win.
+Which kind of E-Car a Racer drives: a Roadster, SUV, Microbus, Pickup or Semi. Each drives differently, from quick and light to slow and heavy with a big battery, but any of them can win.
 _Avoid_: Model, class, skin
 
 **Offline Race**:

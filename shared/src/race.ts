@@ -1,6 +1,6 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  BODIES, type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
+  BODIES, BODY_KINDS, type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from './car.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
@@ -104,7 +104,7 @@ export class RaceSim {
     const slots = [...Array(SEATS).keys()].sort(() => Math.random() - 0.5);
     this.seats = slots.map((slot, i) => {
       const prev = this.seats[i];
-      const kind = prev?.kind ?? (Math.random() < 0.5 ? 'microbus' : 'roadster');
+      const kind = prev?.kind ?? BODY_KINDS[Math.floor(Math.random() * BODY_KINDS.length)];
       const owner = prev?.owner ?? '';
       const pose = gridPose(this.track, slot);
       return {

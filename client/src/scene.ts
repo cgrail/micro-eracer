@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { BodyKind } from '../../shared/src/car.ts';
 import { type Theme, type Track, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
 
 export const SEAT_COLORS = [0xff4d4d, 0x2f9bff, 0xffa62b, 0x1fd1b2, 0xa66cff, 0xffd60a, 0x5ad45a, 0xff6fb5];
@@ -18,15 +17,15 @@ export function toon(color: number, { outline = true, map, opacity }: { outline?
   return m;
 }
 
-const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => {
+export const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => {
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   return m;
 };
-const rbox = (w: number, h: number, d: number, r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new RoundedBoxGeometry(w, h, d, 2, r), mat, x, y, z);
-const cyl = (rt: number, rb: number, h: number, mat: THREE.Material, x = 0, y = 0, z = 0, seg = 16) => mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat, x, y, z);
-const sph = (r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new THREE.SphereGeometry(r, 16, 12), mat, x, y, z);
-const group = (...children: THREE.Object3D[]) => new THREE.Group().add(...children);
+export const rbox = (w: number, h: number, d: number, r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new RoundedBoxGeometry(w, h, d, 2, r), mat, x, y, z);
+export const cyl = (rt: number, rb: number, h: number, mat: THREE.Material, x = 0, y = 0, z = 0, seg = 16) => mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat, x, y, z);
+export const sph = (r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new THREE.SphereGeometry(r, 16, 12), mat, x, y, z);
+export const group = (...children: THREE.Object3D[]) => new THREE.Group().add(...children);
 
 function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, repeat = 1) {
   const c = document.createElement('canvas');
@@ -345,51 +344,6 @@ export function buildTrackScene(track: Track): TrackScene {
     ctx.fillStyle = grad; ctx.fillRect(0, 0, 2, 256);
   });
   return { group: g, update: (t) => animated.forEach((f) => f(t)), water: !!look.water, groundY: look.groundY, background };
-}
-
-/** Generic retro Microbus or low Roadster, facing +z, origin at the physics body's centre. */
-export function makeCar(kind: BodyKind, color: number): THREE.Group {
-  const paint = toon(color), glass = toon(0x1d2b45), white = toon(0xfafafa), tyre = toon(0x1a1a1a), rim = toon(0xc9ced6), lamp = toon(0xfff6b0, { outline: false });
-  const g = new THREE.Group();
-  if (kind === 'microbus') {
-    g.add(rbox(1.9, 0.8, 3.7, 0.3, paint, 0, -0.02, 0), rbox(1.85, 0.95, 3.3, 0.35, white, 0, 0.78, -0.12), rbox(1.92, 0.42, 2.9, 0.15, glass, 0, 0.86, -0.15));
-    g.add(rbox(1.2, 0.5, 0.2, 0.1, paint, 0, 0.32, 1.85));
-  } else {
-    g.add(rbox(1.9, 0.5, 3.9, 0.22, paint, 0, -0.12, 0), rbox(1.45, 0.42, 1.3, 0.2, glass, 0, 0.3, -0.35), rbox(1.6, 0.12, 0.5, 0.05, paint, 0, 0.42, -1.75));
-    g.add(cyl(0.08, 0.08, 0.4, paint, 0.6, 0.25, -1.75), cyl(0.08, 0.08, 0.4, paint, -0.6, 0.25, -1.75));
-  }
-  g.add(sph(0.2, lamp, 0.6, 0.08, 1.88), sph(0.2, lamp, -0.6, 0.08, 1.88));
-  // red warning light on the roof, flashing while the battery runs low
-  const roof = kind === 'microbus' ? 1.3 : 0.55;
-  const lampOn = new THREE.MeshBasicMaterial({ color: 0xff2020 });
-  const beacon = group(cyl(0.18, 0.22, 0.12, toon(0x333333), 0, roof, 0, 10), sph(0.2, lampOn, 0, roof + 0.15, 0));
-  const halo = mesh(new THREE.SphereGeometry(0.9, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.35, depthWrite: false }), 0, roof + 0.15, 0);
-  for (const m of [lampOn, halo.material]) m.userData.outlineParameters = { visible: false };
-  beacon.add(halo);
-  beacon.visible = false;
-  g.add(beacon);
-  const bubble = mesh(new THREE.SphereGeometry(2.4, 20, 14), toon(0x7fd6ff, { outline: false, opacity: 0.3 }), 0, 0.2, 0);
-  bubble.scale.set(0.9, 0.75, 1.25);
-  bubble.visible = false;
-  g.add(bubble);
-  g.userData.beacon = beacon;
-  g.userData.halo = halo;
-  g.userData.shield = bubble;
-  const wheels: THREE.Object3D[] = [];
-  for (const [x, z] of [[0.88, 1.2], [-0.88, 1.2], [0.88, -1.2], [-0.88, -1.2]]) {
-    const w = group(cyl(0.44, 0.44, 0.34, tyre, 0, 0, 0, 14), cyl(0.22, 0.22, 0.36, rim, 0, 0, 0, 8));
-    w.rotation.z = Math.PI / 2;
-    w.position.set(x, -0.3, z);
-    wheels.push(w);
-    g.add(w);
-  }
-  const shadow = mesh(new THREE.CircleGeometry(2.2, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false }), 0, -0.43, 0);
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.scale.set(0.55, 1, 1);
-  shadow.material.userData.outlineParameters = { visible: false };
-  g.add(shadow);
-  g.userData.wheels = wheels;
-  return g;
 }
 
 export function makeBattery(): THREE.Group {

@@ -30,10 +30,10 @@ canvas { display: block; touch-action: none; }
 #start h1 { margin: 0 0 4px; font: 52px/1 var(--comic); letter-spacing: 1px; color: var(--yellow); -webkit-text-stroke: 2px var(--ink); text-shadow: 4px 4px 0 var(--ink); }
 #start label, .bodies legend { font: 20px var(--comic); letter-spacing: 0.5px; }
 #start input { font: inherit; font-size: 18px; padding: 12px; border-radius: 10px; border: 3px solid var(--ink); background: transparent; color: inherit; }
-.bodies { display: flex; gap: 10px; border: 0; padding: 0; margin: 0; }
+.bodies { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
 .bodies legend { margin-bottom: 4px; }
 button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; border-radius: 12px; border: 3px solid var(--ink); cursor: pointer; color: var(--ink); }
-.bodies button { flex: 1; background: transparent; color: inherit; }
+.bodies button { flex: 1 1 28%; padding: 8px 6px; font-size: 19px; background: transparent; color: inherit; }
 .bodies small { display: block; font: 13px/1.2 system-ui, sans-serif; letter-spacing: 0; opacity: 0.8; }
 .bodies button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
 #play { background: var(--yellow); font-size: 30px; box-shadow: 5px 5px 0 var(--ink); }
