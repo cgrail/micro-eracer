@@ -12,9 +12,12 @@ export interface Hud {
 
 export const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
 
-/** The HUD over the game: Position, Lap, Energy, messages and results. It touches the DOM only when something changed. */
-export function createHud(hud: Hud, sound: Sound) {
-  let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined, lastCount = -1;
+/**
+ * The HUD over the game: Position, Lap, Energy, messages and results. It touches the DOM only when something changed.
+ * Running dry turns the game view (`view`) black and white, and the colour comes back as the drone Recharges the battery.
+ */
+export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
+  let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined, lastCount = -1, lastFilter = '';
   return {
     /** `me` is our own E-Car; `status` a connection message that wins over everything else. */
     update(now: number, state: RaceState | undefined, me: CarState | undefined, status: string) {
@@ -43,6 +46,10 @@ export function createHud(hud: Hud, sound: Sound) {
       if (hud.energy.getAttribute('aria-valuenow') !== String(energy)) hud.energy.setAttribute('aria-valuenow', String(energy));
       hud.energy.dataset.level = energy < 25 ? 'limp' : energy < 50 ? 'low' : 'ok';
       hud.danger.hidden = !(me && state.phase !== 'grid' && (energy < 15 || me.mode === STRANDED));
+      const grey = me?.mode === STRANDED ? 1 : me?.mode === RECHARGE ? 1 - energy / MAX_ENERGY : 0;
+      // no filter at all otherwise: a full-screen filter costs phones a pass every frame
+      const filter = grey > 0.02 ? `grayscale(${grey.toFixed(2)}) contrast(${(1 + grey * 0.2).toFixed(2)})` : '';
+      if (filter !== lastFilter) view.style.filter = lastFilter = filter;
       const shown = state.phase === 'grid' ? names.join('\n') : '';
       if (shown !== lastResults) {
         lastResults = shown;

@@ -54,10 +54,10 @@ function dispose(obj: THREE.Object3D) {
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
 export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: Sound): () => void {
-  const ui = createHud(hud, sound);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   document.body.prepend(renderer.domElement);
+  const ui = createHud(hud, sound, renderer.domElement);
   const effect = new OutlineEffect(renderer, { defaultThickness: 0.0042, defaultColor: [0.07, 0.05, 0.05] });
   const scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x9a7a5a, 1.9));

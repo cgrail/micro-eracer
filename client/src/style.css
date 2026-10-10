@@ -13,7 +13,7 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, sans-serif; }
-canvas { display: block; touch-action: none; }
+canvas { display: block; touch-action: none; transition: filter 0.25s; }
 [hidden] { display: none !important; }
 
 /* comic print: a faint halftone dot screen over the whole game */
