@@ -47,7 +47,7 @@ A Racer's current rank in the Race, from first to last.
 _Avoid_: Place, rank
 
 **Leader**:
-The Racer in first Position.
+The Racer in first Position. A Leader far ahead of the rest is slowed down a little so the others can catch up.
 _Avoid_: Pole position, first place
 
 ### Track
@@ -99,7 +99,7 @@ The moment after an E-Car's Energy runs out: it jerks to a halt on the spot, una
 _Avoid_: Dead, broken down
 
 **Recharge**:
-What follows being Stranded: a drone hovers over the E-Car and charges it to full Energy where it stands; it can't drive until the drone is done. The time lost standing is the price of running dry.
+What follows being Stranded: a drone hovers over the E-Car and charges it to full Energy where it stands; it can't drive until the drone is done. The time lost standing is the price of running dry; near the front the drone takes until a few Racers have got past (three for the Leader).
 _Avoid_: Airlift, respawn, reset
 
 **Ram**:

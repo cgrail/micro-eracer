@@ -7,6 +7,6 @@ export function seatState(sim: RaceSim, s: Seat) {
   return {
     name: s.name, body: s.kind, owner: s.owner, x: p.x, y: p.y, z: p.z, yaw: yawOfBody(s.car.rb), vx: s.vx, vz: s.vz,
     lap: sim.lap(s), position: s.position, finished: s.finished, spawn: s.spawn,
-    energy: Math.ceil(s.energy), mode: sim.isStranded(s) ? 1 : sim.isRecharging(s) ? 2 : 0, item: s.item, ammo: s.ammo, shield: s.shield,
+    energy: Math.ceil(s.energy), mode: sim.isStranded(s) ? 1 : sim.isRecharging(s) ? 2 : 0, item: s.item, ammo: s.ammo, shield: s.shield, pace: Math.round(s.pace * 100),
   };
 }

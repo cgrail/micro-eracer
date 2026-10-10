@@ -1,9 +1,12 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  BODIES, BODY_KINDS, type Car, type BodyKind, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
+  BODIES, BODY_KINDS, type Car, type BodyKind, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from './car.ts';
 import { botInput } from './bots.ts';
+import { RECHARGE_TIME, leadPace, rechargeLength, updateBatteries } from './energy.ts';
+
+export { BATTERY_CHARGE, RECHARGE_TIME } from './energy.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
 import {
   type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, PIT_SPEED, TRACKS, buildTrack, gridPose, inPuddle, inStation, lapOf, nearestSample,
@@ -18,16 +21,11 @@ export const GRID_TIME = 5;
 export const FINISH_TIME = 7;
 /** Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands. */
 export const STRANDED_TIME = 1.6;
-export const RECHARGE_TIME = 1.6;
 const RESPAWN_LOCK = 1;
 /** A full Roadster battery lasts this many Laps of driving, on every Track. */
 const TANK_LAPS = 1.6;
-export const BATTERY_CHARGE = 30;
 /** Energy per second in the Charging Station. */
 const STATION_RATE = 35;
-const BATTERY_EVERY = 1.4, MAX_BATTERIES = 7, BATTERY_LIFE = 25, PICKUP_RADIUS = 2.4;
-/** For each Position (1st first), how likely the next Battery is to appear just ahead of that Racer. */
-const BATTERY_ODDS = [0.03, 0.06, 0.1, 0.12, 0.17, 0.17, 0.17, 0.18];
 const RAM_MIN_SPEED = 3, RAM_ENERGY_PER_MS = 3, RAM_MAX = 25, RAM_COOLDOWN = 1;
 
 /** grid: E-Cars wait on the start grid; finishing: someone has won and the Race ends soon. */
@@ -53,6 +51,10 @@ export interface Seat {
   lockedUntil: number;
   strandedUntil: number;
   rechargeUntil: number;
+  /** How long the current Recharge takes (`rechargeLength`). */
+  rechargeLength: number;
+  /** Times the top speed; below 1 for a Leader far ahead (`leadPace`). */
+  pace: number;
   /** Bumped whenever the E-Car is moved by the race itself, so its driver knows to jump there. */
   spawn: number;
   vx: number;
@@ -98,8 +100,9 @@ export class RaceSim {
   stats = { recharges: 0, leaderRecharges: 0, pickups: 0, rams: 0, hits: 0 };
   /** Multiplies the Energy drain; only for trying out running dry. */
   drainScale = 1;
-  private nextBatteryAt = 0;
-  private batteryId = 0;
+  /** Kept by `energy.ts`. */
+  nextBatteryAt = 0;
+  batteryId = 0;
   private ramCooldown = new Map<number, number>();
 
   constructor(trackId?: string) {
@@ -125,7 +128,7 @@ export class RaceSim {
         car: createCar(this.world, kind, pose, !owner),
         progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
         position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, ammo: 0, shield: false, nextShotAt: 0,
-        lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0,
+        lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0, rechargeLength: RECHARGE_TIME, pace: 1,
         spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
       };
     });
@@ -179,9 +182,9 @@ export class RaceSim {
       if (s.owner) continue;
       const t = s.car.rb.translation();
       const locked = !live || this.time < s.lockedUntil || this.isRecharging(s);
-      const input = this.isStranded(s) ? haltInput(s.car) : locked ? NO_INPUT : botInput(this, s);
+      const input = this.isStranded(s) || this.isRecharging(s) ? HALT : locked ? NO_INPUT : botInput(this, s);
       const pit = inStation(this.track, s.progress.idx, t) ? PIT_SPEED : 1;
-      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) * pit : 1, inPuddle(this.track, t));
+      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(this.track, t));
       if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
     this.world.step();
@@ -217,16 +220,18 @@ export class RaceSim {
       a.finished !== b.finished ? (a.finished ? -1 : 1) : a.finished ? a.finishTime - b.finishTime : b.progress.u - a.progress.u);
     ranked.forEach((s, i) => (s.position = i + 1));
     if (live) {
-      this.updateBatteries(ranked);
+      updateBatteries(this, ranked);
+      leadPace(ranked);
       for (const s of this.seats) {
         if (s.strandedUntil && !this.isStranded(s)) {
           s.strandedUntil = 0;
-          s.rechargeUntil = this.time + RECHARGE_TIME;
+          s.rechargeLength = rechargeLength(s, ranked);
+          s.rechargeUntil = this.time + s.rechargeLength;
           this.stats.recharges++;
           this.emit({ t: 'recharge', s: s.index });
         }
         // the drone fills the battery up over the Recharge, so the Energy bar can be seen filling
-        if (this.isRecharging(s)) s.energy = MAX_ENERGY * (1 - (s.rechargeUntil - this.time) / RECHARGE_TIME);
+        if (this.isRecharging(s)) s.energy = MAX_ENERGY * (1 - (s.rechargeUntil - this.time) / s.rechargeLength);
         else if (s.energy <= 0 && !s.finished && !s.strandedUntil && !this.isRecharging(s)) {
           s.strandedUntil = this.time + STRANDED_TIME;
           if (s.position === 1) this.stats.leaderRecharges++;
@@ -243,36 +248,6 @@ export class RaceSim {
   }
 
   lap = (s: Seat) => clamp(lapOf(this.track, s.progress), 1, LAPS);
-
-  private updateBatteries(ranked: Seat[]) {
-    this.batteries = this.batteries.filter((b) => b.until > this.time);
-    if (this.time >= this.nextBatteryAt && this.batteries.length < MAX_BATTERIES) {
-      // a Battery appears just ahead of one Racer, picked by Position: plenty at the back, fought over in the middle,
-      // scarce at the front, where the Charging Station is the way to keep going
-      let roll = Math.random(), k = 0;
-      while (k < SEATS - 1 && (roll -= BATTERY_ODDS[k]) > 0) k++;
-      const s = ranked[k];
-      if (!s.finished) {
-        // between that Racer and the one in front: further ahead, someone in front would get to it first
-        const gap = k ? ranked[k - 1].progress.u - s.progress.u : Infinity, reach = Math.max(6, Math.min(30, gap - 4));
-        const idx = (s.progress.idx + 6 + Math.floor(Math.random() * (reach - 5))) % this.track.n;
-        const pose = poseAt(this.track, idx, (Math.random() * 2 - 1) * (HALF_WIDTH - 1.2));
-        // never inside an Item Box; the next spawn tries elsewhere
-        if (!this.track.itemBoxes.some((b) => (b.x - pose.x) ** 2 + (b.z - pose.z) ** 2 < 3 ** 2)) this.batteries.push({ id: ++this.batteryId, x: pose.x, y: this.track.samples[idx].y, z: pose.z, idx, until: this.time + BATTERY_LIFE });
-      }
-      this.nextBatteryAt = this.time + BATTERY_EVERY;
-    }
-    for (const s of this.seats) {
-      if (this.isRecharging(s)) continue;
-      const t = s.car.rb.translation();
-      const hit = this.batteries.find((b) => (b.x - t.x) ** 2 + (b.z - t.z) ** 2 < PICKUP_RADIUS ** 2 && sameLevel(b.y, t.y));
-      if (!hit) continue;
-      s.energy = Math.min(MAX_ENERGY, s.energy + BATTERY_CHARGE);
-      this.batteries = this.batteries.filter((b) => b !== hit);
-      this.stats.pickups++;
-      this.emit({ t: 'battery', s: s.index });
-    }
-  }
 
   /** A Ram moves Energy from the hit E-Car to the one that drove into the contact harder (speed times weight). */
   private judgeRams() {

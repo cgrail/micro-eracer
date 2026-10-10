@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
+  type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
-import { RECHARGE_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
+import { type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
 import {
   type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
@@ -256,12 +256,13 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     if (own && me) {
       const t = own.view.car.rb.translation();
       const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
-      const input = me.mode === STRANDED ? haltInput(own.view.car) : locked ? NO_INPUT : controls.drive();
+      const input = me.mode !== DRIVING ? HALT : locked ? NO_INPUT : controls.drive();
       // the Charging Station has a speed limit; a chime says it's charging
       const pit = inStation(track, own.progress.idx, t);
       if (pit && !inPit) sound.battery();
       inPit = pit;
-      driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1), inPuddle(track, t));
+      // the server slows a Leader who is far ahead (`pace`, in percent)
+      driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1) * ((me.pace || 100) / 100), inPuddle(track, t));
       // one key or button uses the Item; held down, a Zap keeps firing (the server allows three Shots a second)
       const press = controls.takeItemPress();
       if (!locked && me.item && (press || (me.item === 'zap' && controls.firing())) && now >= nextShot) { room.send('item'); nextShot = now + 340; }

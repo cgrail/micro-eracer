@@ -114,8 +114,8 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   sim.phase = 'racing';
   for (let i = 0; i < 120; i++) sim.step(DT);
   const leader = sim.seats.find((s) => s.position === 1)!;
-  // alone, so no Ram gives it Energy back or takes some away
-  sim.seats.forEach((s, i) => { if (s !== leader) teleport(s.car, poseAt(sim.track, 120 + i * 15)); });
+  // alone, so no Ram gives it Energy back, takes some away or shoves it along: the others are parked far away
+  sim.seats.forEach((s, i) => { if (s !== leader) { teleport(s.car, poseAt(sim.track, 120 + i * 15)); s.lockedUntil = Infinity; } });
   leader.energy = 0;
   sim.step(DT);
   assert.ok(sim.isStranded(leader));
@@ -123,7 +123,8 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   for (let t = 0; t <= STRANDED_TIME; t += DT) sim.step(DT);
   assert.ok(sim.isRecharging(leader));
   assert.ok(leader.energy < MAX_ENERGY / 2, 'the battery fills up during the Recharge');
-  for (let t = 0; t <= RECHARGE_TIME; t += DT) sim.step(DT);
+  // at least RECHARGE_TIME; a Leader waits on the drone until the Racers behind could get past
+  for (let t = 0; t < 10 && sim.isRecharging(leader); t += DT) sim.step(DT);
   assert.ok(!sim.isRecharging(leader) && leader.energy > MAX_ENERGY - 1);
   // no trip to the back and no reversing: it brakes to a halt just past where it ran dry
   const moved = leader.progress.u - at.u;
@@ -204,6 +205,28 @@ test('Item Boxes are only for Racers from fourth place back, and a Zap holds fiv
   for (let i = 0; i < 20; i++) { sim.time += 0.4; sim.combat.useItem(s); shots += sim.events.filter((e) => e.t === 'shot').length; sim.events = []; }
   assert.equal(shots, ZAP_SHOTS);
   assert.equal(s.item, '');
+});
+
+test('a Leader who runs dry stays on the drone until three Racers have got past', async () => {
+  await initPhysics();
+  const sim = new RaceSim('kitchen');
+  sim.phase = 'racing';
+  for (let i = 0; i < 240; i++) sim.step(DT);
+  const leader = sim.seats.find((s) => s.position === 1)!;
+  leader.energy = 0;
+  sim.step(DT);
+  while (sim.isStranded(leader) || sim.isRecharging(leader)) sim.step(DT);
+  assert.ok(leader.position >= 4, `back in P${leader.position} after its Recharge`);
+});
+
+test('a Leader far ahead is slowed so the others can catch up', async () => {
+  await initPhysics();
+  const sim = new RaceSim('kitchen');
+  sim.phase = 'racing';
+  sim.seats.forEach((s, i) => (s.progress = startProgress(sim.track, i ? 10 : 120)));
+  sim.step(DT);
+  const leader = sim.seats.find((s) => s.position === 1)!;
+  assert.ok(leader.pace < 0.9 && sim.seats.every((s) => s === leader || s.pace === 1));
 });
 
 test('a Shield blocks the next Hit, then the Hit after it lands', async () => {

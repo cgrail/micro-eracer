@@ -4,7 +4,7 @@ import type { Phase, RaceEvent } from '../../shared/src/race.ts';
 /** Mirrors server/src/RaceRoom.ts. */
 export interface CarState {
   name: string; body: BodyKind; owner: string; x: number; y: number; z: number; yaw: number; vx: number; vz: number;
-  lap: number; position: number; finished: boolean; spawn: number; energy: number; mode: number; item: string; ammo: number; shield: boolean;
+  lap: number; position: number; finished: boolean; spawn: number; energy: number; mode: number; item: string; ammo: number; shield: boolean; pace: number;
 }
 export interface Spot { id: number; x: number; y: number; z: number }
 export interface BoltState extends Spot { kind: string; vx: number; vz: number }

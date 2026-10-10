@@ -24,7 +24,8 @@ export const DT = 1 / 60;
 export const HALF = { x: 0.9, y: 0.45 };
 const BRAKE = 30, REVERSE_MAX = 6, DRIFT_IN = 4, DRIFT_OUT = 2.5;
 
-export interface Input { throttle: number; steer: number }
+/** `hold`: brake to a halt and then stay put, even on a ramp (Stranded or being Recharged). */
+export interface Input { throttle: number; steer: number; hold?: boolean }
 export const NO_INPUT: Input = { throttle: 0, steer: 0 };
 /** `spin`: yaw rate (rad/s) of a spin-out after a Hit, fading away; the driver has no control meanwhile. */
 export interface Car { rb: RAPIER.RigidBody; kind: BodyKind; drifting: boolean; spin: number }
@@ -40,11 +41,8 @@ const yawPitchQuat = (yaw: number, pitch: number) => {
 export const yawOfBody = (rb: RAPIER.RigidBody) => { const q = rb.rotation(); return 2 * Math.atan2(q.y, q.w); };
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Brakes hard to a halt without reversing: how a Stranded E-Car stops where it ran dry. */
-export function haltInput(car: Car): Input {
-  const v = car.rb.linvel(), yaw = yawOfBody(car.rb);
-  return { throttle: v.x * Math.sin(yaw) + v.z * Math.cos(yaw) > 0.5 ? -1 : 0, steer: 0 };
-}
+/** How an E-Car out of Energy stops where it ran dry: hard braking, then held still. */
+export const HALT: Input = { throttle: 0, steer: 0, hold: true };
 
 export function createTrackWorld(track: Track): RAPIER.World {
   const world = new RAPIER.World({ x: 0, y: -20, z: 0 });
@@ -108,7 +106,9 @@ export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale
   const v = rb.linvel();
   let fs = v.x * fx + v.z * fz, ls = v.x * r.x + v.z * r.z;
 
-  if (input.throttle > 0) { if (fs < maxSpeed) fs += p.accel * input.throttle * DT; }
+  // held: brake either way until nearly stopped, then stand still (gravity would roll it off a slope)
+  if (input.hold) { fs = Math.abs(fs) < 1 ? 0 : fs - Math.sign(fs) * BRAKE * DT; ls = Math.abs(ls) < 1 ? 0 : ls; }
+  else if (input.throttle > 0) { if (fs < maxSpeed) fs += p.accel * input.throttle * DT; }
   else if (input.throttle < 0) fs += (fs > 0.5 ? BRAKE : p.accel * 0.5) * input.throttle * DT;
   else fs *= 1 - 0.8 * DT;
   if (wet) fs *= 1 - 1.2 * DT;

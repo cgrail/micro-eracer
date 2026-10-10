@@ -10,6 +10,8 @@ const CarState = schema({
   lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(), energy: t.uint8(),
   /** 0 driving, 1 Stranded (out of Energy), 2 being Recharged by the drone */
   mode: t.uint8(), item: t.string(), ammo: t.uint8(), shield: t.boolean(),
+  /** Percent of top speed: a Leader far ahead is slowed so the others can catch up */
+  pace: t.uint8(),
 }, 'CarState');
 
 const BatteryState = schema({ id: t.uint32(), x: t.float32(), y: t.float32(), z: t.float32() }, 'BatteryState');
