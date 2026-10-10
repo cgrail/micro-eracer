@@ -50,7 +50,8 @@ export class Sound {
       this.master.gain.value = this.muted ? 0 : 0.6;
       this.master.connect(comp);
       this.mus = this.ctx.createGain();
-      this.mus.gain.value = 0.35;
+      // about as loud as the voices and above the effects (measured offline)
+      this.mus.gain.value = 0.7;
       this.mus.connect(this.master);
       this.noise = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
       const data = this.noise.getChannelData(0);

@@ -10,6 +10,7 @@
 [x] add more cars like a a  suv, a truck like the f150 lightinign, an electric trailer
 [x] add a recharge gas station near the finish line with a detour if you can't find battery.
 [x] if you run empty, the whole screen should turn grey or black and white. it should be real obvious that something is wrong
-[ ] the voices are not great. replace them with something real. the music is not loud enough in comparison
+[x] the music is not loud enough in comparison (split off the next line)
+[ ] the voices are not great. replace them with something real. needs your call: where the recordings come from (a CC0 pack, recording your own, or a voice service), since it means bundling audio files
 [ ] in the track some things overlay each which doesn't look good. check the map and separate things which should be separated
 [ ] give the bots some fun names. but make it opvious that they are bots. when a human replaces a bot it should be obvius that a human has replaced them
