@@ -64,6 +64,10 @@ _Avoid_: Round
 A marked point on the Track that every Lap must pass, in order, so that shortcuts don't count.
 _Avoid_: Gate, waypoint
 
+**Puddle**:
+A patch of water (or spilled coffee) on the Track that splashes, slows E-Cars down and makes them slide.
+_Avoid_: Water hazard, oil slick
+
 **Drift**:
 A sideways slide when an E-Car turns hard at speed; its only reward is a faster line through the corner.
 _Avoid_: Powerslide

@@ -20,9 +20,12 @@
     <p id="error" role="alert"></p>
   </form>
 
+  <div id="halftone" aria-hidden="true"></div>
   <div id="hud" hidden>
     <div id="pos"></div>
     <div id="lap"></div>
+    <div id="energy" data-level="ok" role="meter" aria-label="Energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span aria-hidden="true">⚡</span><div class="bar"><div id="energy-fill"></div><div class="limp"></div></div></div>
+    <div id="popups"></div>
     <div id="msg" aria-live="polite"></div>
     <ol id="results"></ol>
   </div>

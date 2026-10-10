@@ -14,6 +14,8 @@ npm test           # Track checks plus a headless Race where 8 Bots must finish
 npm run typecheck
 ```
 
+`TRACK=garden npm run dev` starts the first Race on one Track (`kitchen`, `garden`, `desk`, `bathtub`), which is handy while working on its look.
+
 To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same network.
 
 Controls: arrows or WASD on desktop. On mobile the E-Car accelerates by itself: drag the left pad to steer, and hold Brake to brake.
@@ -24,7 +26,9 @@ Controls: arrows or WASD on desktop. On mobile the E-Car accelerates by itself: 
 - `server/`: a Colyseus room that wraps `RaceSim` and syncs it to the browsers.
 - `client/`: the Vite + Three.js browser app. It drives your own E-Car locally and shows the others as the server reports them.
 
-Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), where a trailing `*` adds walls. `npm test` checks that every Track closes.
+Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), where a trailing `*` adds walls. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
+
+The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `OutlineEffect`), a halftone overlay and the Bangers font, bundled locally so no request goes to Google Fonts.
 
 ## Deploy (VPS)
 

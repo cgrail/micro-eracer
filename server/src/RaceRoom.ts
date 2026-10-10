@@ -6,12 +6,14 @@ import { type PoseReport, RaceSim, SEATS } from '../../shared/src/race.ts';
 const CarState = schema({
   name: t.string(), body: t.string(), owner: t.string(),
   x: t.float32(), y: t.float32(), z: t.float32(), yaw: t.float32(), vx: t.float32(), vz: t.float32(),
-  lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(),
+  lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(), energy: t.uint8(), airlifted: t.boolean(),
 }, 'CarState');
+
+const BatteryState = schema({ id: t.uint32(), x: t.float32(), z: t.float32() }, 'BatteryState');
 
 const RaceState = schema({
   phase: t.string(), timer: t.float32(), trackId: t.string(),
-  cars: t.array(CarState), results: t.array('string'),
+  cars: t.array(CarState), results: t.array('string'), batteries: t.array(BatteryState),
 }, 'RaceState');
 type RaceState = SchemaType<typeof RaceState>;
 
@@ -22,7 +24,8 @@ const isPose = (m: any): m is PoseReport =>
 export class RaceRoom extends Room<{ state: RaceState }> {
   maxClients = SEATS;
   maxMessagesPerSecond = 60;
-  private sim = new RaceSim();
+  // TRACK=garden picks the first Race's Track, handy while working on one
+  private sim = new RaceSim(process.env.TRACK);
 
   onCreate() {
     const state = new RaceState();
@@ -55,11 +58,16 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     state.timer = Math.max(0, sim.timer);
     state.trackId = sim.track.def.id;
     if (state.results.join() !== sim.results.join()) { state.results.clear(); state.results.push(...sim.results); }
+    if (state.batteries.map((b) => b.id).join() !== sim.batteries.map((b) => b.id).join()) {
+      state.batteries.clear();
+      state.batteries.push(...sim.batteries.map(({ id, x, z }) => Object.assign(new BatteryState(), { id, x, z })));
+    }
     sim.seats.forEach((s, i) => {
       const c = state.cars[i], p = s.car.rb.translation();
       Object.assign(c, {
         name: s.name, body: s.kind, owner: s.owner, x: p.x, y: p.y, z: p.z, yaw: yawOfBody(s.car.rb), vx: s.vx, vz: s.vz,
         lap: sim.lap(s), position: s.position, finished: s.finished, spawn: s.spawn,
+        energy: Math.ceil(s.energy), airlifted: sim.isAirlifted(s),
       });
     });
   }

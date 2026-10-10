@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import '@fontsource/bangers';
 import { Client } from '@colyseus/sdk';
 import { type BodyKind, BODY_KINDS, initPhysics } from '../../shared/src/car.ts';
 import { startGame } from './game.ts';
@@ -7,7 +8,10 @@ import { createInput, isTouch } from './input.ts';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const form = $<HTMLFormElement>('start'), nameInput = $<HTMLInputElement>('name'), play = $<HTMLButtonElement>('play');
 const error = $('error'), hudEl = $('hud'), touch = $('touch');
-const hud = { pos: $('pos'), lap: $('lap'), msg: $('msg'), results: $<HTMLOListElement>('results') };
+const hud = {
+  pos: $('pos'), lap: $('lap'), msg: $('msg'), results: $<HTMLOListElement>('results'),
+  energy: $('energy'), energyFill: $('energy-fill'), popups: $('popups'),
+};
 
 // remembered per browser so the next visit is one tap; storage can be unavailable (private mode)
 const load = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -32,7 +36,8 @@ form.addEventListener('submit', async (e) => {
   error.textContent = '';
   play.disabled = true;
   try {
-    await physics;
+    // name tags and the banner are drawn on canvases, which need the comic font loaded first
+    await Promise.all([physics, document.fonts.load('40px Bangers').catch(() => undefined)]);
     const room = await new Client(serverUrl).joinOrCreate('race', { name, body });
     form.hidden = true;
     hudEl.hidden = false;

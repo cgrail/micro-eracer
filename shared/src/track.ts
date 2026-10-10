@@ -1,15 +1,24 @@
+import { bathtub } from './tracks/bathtub.ts';
+import { desk } from './tracks/desk.ts';
+import { garden } from './tracks/garden.ts';
 import { kitchen } from './tracks/kitchen.ts';
+
+export type Theme = 'kitchen' | 'garden' | 'desk' | 'bathtub';
 
 /** A Track as authored: pieces laid like a turtle walk on a grid of TILE-sized tiles. */
 export interface TrackDef {
   id: string;
   name: string;
+  /** Sets the scenery around the Track. */
+  theme: Theme;
   /** S = straight, L/R = 90° turn; a trailing `*` gives the piece walls. Must start and end with two straights (start grid). */
   pieces: string;
-  props: { kind: 'plate' | 'mug' | 'toaster'; x: number; z: number }[];
+  /** Indexes of the pieces with a Puddle in their middle. */
+  puddles: number[];
 }
 
-export interface Sample { x: number; z: number; dx: number; dz: number; walls: boolean }
+export interface Sample { x: number; z: number; dx: number; dz: number; walls: boolean; turn: boolean }
+export interface Circle { x: number; z: number; r: number }
 export interface Pose { x: number; y: number; z: number; yaw: number }
 export interface WallSegment { x: number; z: number; yaw: number; length: number }
 
@@ -21,9 +30,12 @@ export interface Track {
   /** Sample index where each piece starts — the Checkpoints, in order. */
   checkpoints: number[];
   walls: WallSegment[];
+  /** Centre of every tile the road runs through, so scenery can avoid them. */
+  tiles: { x: number; z: number }[];
+  puddles: Circle[];
 }
 
-export const TRACKS: TrackDef[] = [kitchen];
+export const TRACKS: TrackDef[] = [kitchen, garden, desk, bathtub];
 export const TILE = 16;
 export const HALF_WIDTH = 4.5;
 export const ROAD_Y = 0;
@@ -36,12 +48,14 @@ export const yawOf = (dx: number, dz: number) => Math.atan2(dx, dz);
 export function buildTrack(def: TrackDef): Track {
   const samples: Sample[] = [];
   const checkpoints: number[] = [];
+  const tiles: { x: number; z: number }[] = [];
   let px = 0, pz = 0, dx = 0, dz = 1;
   for (const [, kind, star] of def.pieces.matchAll(/([SLR])(\*?)/g)) {
     checkpoints.push(samples.length);
-    const walls = star === '*';
+    tiles.push({ x: px + (dx * TILE) / 2, z: pz + (dz * TILE) / 2 });
+    const walls = star === '*', turn = kind !== 'S';
     if (kind === 'S') {
-      for (let i = 0; i < TILE; i++) samples.push({ x: px + dx * i, z: pz + dz * i, dx, dz, walls });
+      for (let i = 0; i < TILE; i++) samples.push({ x: px + dx * i, z: pz + dz * i, dx, dz, walls, turn });
       px += dx * TILE; pz += dz * TILE;
     } else {
       const r = TILE / 2;
@@ -50,7 +64,7 @@ export function buildTrack(def: TrackDef): Track {
       const steps = Math.round((Math.PI / 2) * r);
       for (let i = 0; i < steps; i++) {
         const a = (i / steps) * (Math.PI / 2), c = Math.cos(a), s = Math.sin(a);
-        samples.push({ x: cx - side.x * r * c + dx * r * s, z: cz - side.z * r * c + dz * r * s, dx: dx * c + side.x * s, dz: dz * c + side.z * s, walls });
+        samples.push({ x: cx - side.x * r * c + dx * r * s, z: cz - side.z * r * c + dz * r * s, dx: dx * c + side.x * s, dz: dz * c + side.z * s, walls, turn });
       }
       px = cx + dx * r; pz = cz + dz * r; dx = side.x; dz = side.z;
     }
@@ -69,7 +83,19 @@ export function buildTrack(def: TrackDef): Track {
       walls.push({ x: (ax + bx) / 2, z: (az + bz) / 2, yaw: yawOf(bx - ax, bz - az), length: Math.hypot(bx - ax, bz - az) });
     }
   }
-  return { def, samples, n, checkpoints, walls };
+  const puddles = def.puddles.map((piece) => {
+    const mid = Math.floor((checkpoints[piece] + (checkpoints[piece + 1] ?? n)) / 2);
+    return { x: samples[mid].x, z: samples[mid].z, r: 3.2 };
+  });
+  return { def, samples, n, checkpoints, walls, tiles, puddles };
+}
+
+export const inPuddle = (track: Track, x: number, z: number) => track.puddles.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < p.r ** 2);
+
+/** Sideways distance of a point from the centreline at sample `idx` (positive = right). */
+export function lateralOf(track: Track, idx: number, x: number, z: number) {
+  const s = track.samples[((idx % track.n) + track.n) % track.n], r = right(s.dx, s.dz);
+  return (x - s.x) * r.x + (z - s.z) * r.z;
 }
 
 /** Pose on the centreline at sample `i`, shifted sideways by `lateral` metres (positive = right). */

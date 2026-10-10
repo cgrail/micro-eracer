@@ -48,7 +48,9 @@ export function createCar(world: RAPIER.World, kind: BodyKind, pose: Pose, dynam
   const rb = world.createRigidBody(desc.setTranslation(pose.x, pose.y, pose.z).setRotation(yawQuat(pose.yaw)).enabledRotations(false, true, false));
   const r = 0.15;
   world.createCollider(RAPIER.ColliderDesc.roundCuboid(HALF.x - r, HALF.y - r, HALF.z - r, r)
-    .setMass(BODIES[kind].mass).setFriction(0).setRestitution(0.3), rb);
+    .setMass(BODIES[kind].mass).setFriction(0).setRestitution(0.3)
+    // Players' E-Cars are kinematic on the server; their contacts are still needed to judge Rams
+    .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.DEFAULT | RAPIER.ActiveCollisionTypes.KINEMATIC_KINEMATIC), rb);
   return { rb, kind, drifting: false };
 }
 
@@ -66,8 +68,13 @@ export function setKinematicPose(car: Car, pose: Pose) {
   else { car.rb.setNextKinematicTranslation(pose); car.rb.setNextKinematicRotation(yawQuat(pose.yaw)); }
 }
 
-/** Arcade driving: we own the velocity in the car's plane; Rapier does gravity and collisions. */
-export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale = 1) {
+export const MAX_ENERGY = 100;
+const LIMP_BELOW = 25;
+/** Limp Mode: below a quarter of the Energy, top speed falls gradually to half at empty. */
+export const limpScale = (energy: number) => (energy >= LIMP_BELOW ? 1 : 0.5 + (0.5 * Math.max(0, energy)) / LIMP_BELOW);
+
+/** Arcade driving: we own the velocity in the car's plane; Rapier does gravity and collisions. `wet` = in a Puddle. */
+export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale = 1, wet = false) {
   const { rb } = car;
   const t = rb.translation();
   const grounded = world.castRay(new RAPIER.Ray(t, { x: 0, y: -1, z: 0 }), HALF.y + 0.3, true, undefined, undefined, undefined, rb);
@@ -80,10 +87,11 @@ export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale
   if (input.throttle > 0) { if (fs < maxSpeed) fs += p.accel * input.throttle * DT; }
   else if (input.throttle < 0) fs += (fs > 0.5 ? BRAKE : p.accel * 0.5) * input.throttle * DT;
   else fs *= 1 - 0.8 * DT;
+  if (wet) fs *= 1 - 1.2 * DT;
   fs = clamp(fs, -REVERSE_MAX, Math.max(maxSpeed, fs - 10 * DT));
 
   car.drifting = Math.abs(ls) > (car.drifting ? DRIFT_OUT : DRIFT_IN);
-  ls *= Math.max(0, 1 - (car.drifting ? DRIFT_GRIP : GRIP) * DT);
+  ls *= Math.max(0, 1 - (car.drifting ? DRIFT_GRIP : GRIP) * (wet ? 0.5 : 1) * DT);
   // a Drift rotates the car faster: that is the tighter line through the corner
   const yawRate = -input.steer * p.steer * (car.drifting ? 1.3 : 1) * clamp(fs / 8, -1, 1);
 
