@@ -2,16 +2,17 @@ import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  BODIES, type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
+  type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
 import { RECHARGE_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
 import {
-  type Pose, type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
+  type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
 import { makeCar } from './cars.ts';
+import { type CarView, angleDiff, glide, place } from './motion.ts';
 import { Particles } from './effects.ts';
 import { type Hud, ITEM_ICONS, createHud } from './hud.ts';
 import type { Controls } from './input.ts';
@@ -20,28 +21,8 @@ import {
 } from './scene.ts';
 import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
 
-interface CarView {
-  mesh: THREE.Group; tag: THREE.Sprite; drone: THREE.Group; name: string; kind: BodyKind; mine: boolean; car: Car;
-  target: Pose & { vx: number; vz: number; at: number };
-  shown: Pose;
-  energy: number;
-  mode: number;
-  prevMode: number;
-  modeSince: number;
-  lastY: number;
-  /** Height of the road under the E-Car. */
-  roadY: number;
-  wet: boolean;
-}
 
-const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 const smooth = (k: number) => k * k * (3 - 2 * k);
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-/** Rise of the road per metre along the Track at sample `i`. */
-const gradeAt = (track: Track, i: number) => {
-  const a = track.samples[(i - 1 + track.n) % track.n], b = track.samples[(i + 1) % track.n];
-  return (b.y - a.y) / Math.hypot(b.x - a.x, b.z - a.z);
-};
 
 function dispose(obj: THREE.Object3D) {
   obj.traverse((o) => {
@@ -120,7 +101,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       v = views[i] = {
         mesh, tag, drone, name: c.name, kind: c.body, mine, car: createCar(world!, c.body, pose, mine),
         target: { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }, shown: { ...pose },
-        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, roadY: 0, wet: false,
+        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, roadY: 0, tilt: 0, wet: false,
       };
       if (mine) own = { view: v, seat: i, progress: startProgress(track!, 0), spawn: -1, lockedUntil: 0 };
     }
@@ -271,17 +252,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
   function tick() {
     if (!world || !track || !state) return;
     const now = performance.now();
-    for (const v of views) {
-      if (v.mine) continue;
-      const age = Math.min((now - v.target.at) / 1000, 0.25);
-      const x = v.target.x + v.target.vx * age, z = v.target.z + v.target.vz * age;
-      const k = Math.hypot(x - v.shown.x, z - v.shown.z) > 5 ? 1 : 0.3;
-      v.shown.x += (x - v.shown.x) * k;
-      v.shown.y += (v.target.y - v.shown.y) * k;
-      v.shown.z += (z - v.shown.z) * k;
-      v.shown.yaw += angleDiff(v.shown.yaw, v.target.yaw) * k;
-      setKinematicPose(v.car, v.shown);
-    }
+    for (const v of views) if (!v.mine) setKinematicPose(v.car, v.shown);
     if (own && me) {
       const t = own.view.car.rb.translation();
       const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
@@ -305,7 +276,8 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       teleport(own.view.car, resetToCheckpoint(track, own.progress, views.filter((v) => v !== own!.view).map((v) => v.shown)));
       own.lockedUntil = clock + 1;
     } else updateProgress(track, own.progress, t.x, t.z);
-    if (++ticks % 3 === 0) {
+    // 30 times a second, as often as the server sends its state
+    if (++ticks % 2 === 0) {
       const v = rb.linvel();
       room.send('pose', { x: t.x, y: t.y, z: t.z, yaw: yawOfBody(rb), vx: v.x, vz: v.z, spawn: own.spawn });
     }
@@ -397,20 +369,26 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     }
   }
 
-  let raf = 0, acc = 0, last = performance.now();
+  let raf = 0, acc = 0, last = performance.now(), ownBeforeYaw = 0;
+  const ownBefore = new THREE.Vector3(1e9, 0, 0);
   const focus = new THREE.Vector3(), lastTarget = new THREE.Vector3();
   function frame(now: number) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
-    for (acc += dt; acc >= DT; acc -= DT) tick();
+    for (acc += dt; acc >= DT; acc -= DT) {
+      if (own) { const t = own.view.car.rb.translation(); ownBefore.set(t.x, t.y, t.z); ownBeforeYaw = yawOfBody(own.view.car.rb); }
+      tick();
+    }
+    glide(views, dt);
     for (const v of views) {
-      const p = v.mine ? v.car.rb.translation() : v.shown, yaw = v.mine ? yawOfBody(v.car.rb) : v.shown.yaw;
-      const i = v.mine ? own!.progress.idx : nearestSample(track!, p.x, p.y, p.z), s = track!.samples[i];
-      v.roadY = s.y;
-      // the bodies stay level, so on a ramp tilt the model along it and set it down onto the road
-      const along = p.y - s.y < HALF.y + 0.8 ? clamp(gradeAt(track!, i), -0.4, 0.4) * (Math.sin(yaw) * s.dx + Math.cos(yaw) * s.dz) : 0;
-      v.mesh.position.set(p.x, p.y - Math.abs(along) * BODIES[v.kind].length, p.z);
-      v.mesh.rotation.set(-Math.atan(along), yaw, 0, 'YXZ');
+      let p: { x: number; y: number; z: number } = v.shown, yaw = v.shown.yaw;
+      if (v.mine) {
+        // drawn between its last two physics steps, so it moves evenly at any frame rate (a jump isn't blended)
+        const t = v.car.rb.translation(), k = ownBefore.distanceTo(t) < 5 ? acc / DT : 1;
+        p = { x: ownBefore.x + (t.x - ownBefore.x) * k, y: ownBefore.y + (t.y - ownBefore.y) * k, z: ownBefore.z + (t.z - ownBefore.z) * k };
+        yaw = ownBeforeYaw + angleDiff(ownBeforeYaw, yawOfBody(v.car.rb)) * k;
+      }
+      place(v, track!, v.mine ? own!.progress.idx : nearestSample(track!, p.x, p.y, p.z), p, yaw, dt);
     }
     animate(dt, now / 1000);
     for (const p of allParticles) p.update(dt);

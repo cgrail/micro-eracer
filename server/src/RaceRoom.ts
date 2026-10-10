@@ -36,6 +36,8 @@ export class RaceRoom extends Room<{ state: RaceState }> {
   onCreate() {
     // DRAIN_SCALE=10 makes batteries run dry fast, for trying out Stranded and the Recharge
     this.sim.drainScale = Number(process.env.DRAIN_SCALE) || 1;
+    // 30 updates a second (the default is 20), so the other E-Cars need less guessing between them
+    this.setPatchRate(1000 / 30);
     const state = new RaceState();
     for (let i = 0; i < SEATS; i++) state.cars.push(new CarState());
     this.setState(state);
