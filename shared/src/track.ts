@@ -23,8 +23,8 @@ export interface TrackDef {
   items: number[];
 }
 
-/** `y` is the road surface; `kick` marks the ramp of a jump. */
-export interface Sample { x: number; y: number; z: number; dx: number; dz: number; walls: boolean; turn: boolean; kick: boolean }
+/** `y` is the road surface; `kick` marks the ramp of a jump; `bay` is how far the Charging Station widens the road on the right. */
+export interface Sample { x: number; y: number; z: number; dx: number; dz: number; walls: boolean; turn: boolean; kick: boolean; bay: number }
 export interface Circle { x: number; y: number; z: number; r: number }
 export interface Pose { x: number; y: number; z: number; yaw: number }
 export interface WallSegment { x: number; y: number; z: number; yaw: number; pitch: number; length: number }
@@ -38,7 +38,7 @@ export interface Track {
   /** Sample index where each piece starts — the Checkpoints, in order. */
   checkpoints: number[];
   walls: WallSegment[];
-  /** Centre of every tile the road runs through, so scenery can avoid them. */
+  /** Centre of every tile the road (or the Charging Station beside it) uses, so scenery can avoid them. */
   tiles: { x: number; z: number }[];
   puddles: Circle[];
   itemBoxes: Pose[];
@@ -52,6 +52,11 @@ export const FALL_Y = -2.5;
 /** Height of a ramp, so a bridge clears the road it crosses. */
 export const RISE = 3.5;
 const KICK = 1.2, KICK_LEN = 10, WINDOW = 25;
+/** The Charging Station: a bay this wide on the right of the last straights, from BAY_FROM to BAY_TO samples before the finish line. */
+export const BAY_WIDTH = 5;
+/** Speed limit in the Charging Station, times the top speed: charging there costs time, so it's a detour. */
+export const PIT_SPEED = 0.45;
+const BAY_FROM = 30, BAY_TO = 5, BAY_TAPER = 4;
 /** Whether two heights are on the same part of a Track that crosses itself. */
 export const sameLevel = (a: number, b: number) => Math.abs(a - b) < RISE * 0.7;
 
@@ -73,7 +78,7 @@ export function buildTrack(def: TrackDef): Track {
       for (let i = 0; i < TILE; i++) {
         const kick = kind === 'J' && i < KICK_LEN;
         const y = h + (rise * (1 - Math.cos((Math.PI * i) / TILE))) / 2 + (kick ? KICK * (i / (KICK_LEN - 1)) ** 2 : 0);
-        samples.push({ x: px + dx * i, y, z: pz + dz * i, dx, dz, walls, turn, kick });
+        samples.push({ x: px + dx * i, y, z: pz + dz * i, dx, dz, walls, turn, kick, bay: 0 });
       }
       px += dx * TILE; pz += dz * TILE; h += rise;
     } else {
@@ -83,18 +88,30 @@ export function buildTrack(def: TrackDef): Track {
       const steps = Math.round((Math.PI / 2) * r);
       for (let i = 0; i < steps; i++) {
         const a = (i / steps) * (Math.PI / 2), c = Math.cos(a), s = Math.sin(a);
-        samples.push({ x: cx - side.x * r * c + dx * r * s, y: h, z: cz - side.z * r * c + dz * r * s, dx: dx * c + side.x * s, dz: dz * c + side.z * s, walls, turn, kick: false });
+        samples.push({ x: cx - side.x * r * c + dx * r * s, y: h, z: cz - side.z * r * c + dz * r * s, dx: dx * c + side.x * s, dz: dz * c + side.z * s, walls, turn, kick: false, bay: 0 });
       }
       px = cx + dx * r; pz = cz + dz * r; dx = side.x; dz = side.z;
     }
   }
   if (Math.hypot(px, pz) > 1e-6 || Math.abs(dz - 1) > 1e-6 || h !== 0) throw new Error(`Track ${def.id} does not close`);
   const n = samples.length;
+  // the bay eases in and out at its ends, so E-Cars can drive in and out anywhere along it
+  for (let i = n - BAY_FROM; i <= n - BAY_TO; i++) samples[i].bay = BAY_WIDTH * Math.min(1, (i - (n - BAY_FROM)) / BAY_TAPER, (n - BAY_TO - i) / BAY_TAPER);
+  for (const piece of [tiles.length - 2, tiles.length - 1]) {
+    const s = samples[checkpoints[piece]], r = right(s.dx, s.dz);
+    tiles.push({ x: tiles[piece].x + r.x * TILE, z: tiles[piece].z + r.z * TILE });
+  }
   // where the Track meets itself it must pass over, never through: a crossing on one level would be a shortcut
   for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     const a = samples[i], b = samples[j];
     if (Math.min(j - i, n - j + i) > 2 * WINDOW && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 < (2 * HALF_WIDTH + 1) ** 2 && sameLevel(a.y, b.y)) {
       throw new Error(`Track ${def.id} runs into itself at samples ${i} and ${j}`);
+    }
+  }
+  for (let i = n - BAY_FROM; i <= n - BAY_TO; i++) {
+    const s = samples[i], r = right(s.dx, s.dz), bx = s.x + r.x * (HALF_WIDTH + BAY_WIDTH), bz = s.z + r.z * (HALF_WIDTH + BAY_WIDTH);
+    if (samples.some((o, j) => Math.min(Math.abs(i - j), n - Math.abs(i - j)) > 2 * WINDOW && (o.x - bx) ** 2 + (o.z - bz) ** 2 < (HALF_WIDTH + 1) ** 2 && sameLevel(o.y, s.y))) {
+      throw new Error(`Track ${def.id} has no room for the Charging Station at sample ${i}`);
     }
   }
 
@@ -118,6 +135,9 @@ export function buildTrack(def: TrackDef): Track {
 }
 
 export const inPuddle = (track: Track, t: Point) => track.puddles.some((p) => (p.x - t.x) ** 2 + (p.z - t.z) ** 2 < p.r ** 2 && sameLevel(p.y, t.y));
+
+/** Whether an E-Car at sample `idx` (its progress) is in the Charging Station's bay. */
+export const inStation = (track: Track, idx: number, t: Point) => track.samples[idx].bay > 1 && lateralOf(track, idx, t.x, t.z) > HALF_WIDTH - 0.5;
 
 /** Sideways distance of a point from the centreline at sample `idx` (positive = right). */
 export function lateralOf(track: Track, idx: number, x: number, z: number) {
@@ -155,7 +175,7 @@ export function updateProgress(track: Track, p: Progress, x: number, z: number):
     const d = (track.samples[i].x - x) ** 2 + (track.samples[i].z - z) ** 2;
     if (d < bestD) { bestD = d; best = i; }
   }
-  if (bestD > (HALF_WIDTH + 1.5) ** 2) return false;
+  if (bestD > (HALF_WIDTH + 1.5 + track.samples[best].bay) ** 2) return false;
   let delta = best - p.idx;
   if (delta > track.n / 2) delta -= track.n;
   if (delta < -track.n / 2) delta += track.n;

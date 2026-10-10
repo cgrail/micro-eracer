@@ -90,6 +90,10 @@ _Avoid_: Low battery, slowdown
 A pickup that instantly adds Energy; Batteries keep appearing on the Track just ahead of the trailing Racers.
 _Avoid_: Power-up, coin, item
 
+**Charging Station**:
+A bay beside the road on the last straights before the finish line where an E-Car charges quickly while it drives through, under a speed limit; a detour that costs time, for a Racer who can't find a Battery.
+_Avoid_: Pit stop, gas station, charger
+
 **Stranded**:
 The moment after an E-Car's Energy runs out: it jerks to a halt on the spot, unable to drive, while a drone flies in to Recharge it.
 _Avoid_: Dead, broken down

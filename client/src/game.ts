@@ -7,7 +7,7 @@ import {
 } from '../../shared/src/car.ts';
 import { RECHARGE_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
 import {
-  type Pose, type Progress, type Track, FALL_Y, TRACKS, buildTrack, inPuddle, nearestSample, resetToCheckpoint, right, startProgress,
+  type Pose, type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
@@ -86,7 +86,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
   const batteries = new Map<number, THREE.Group>(), mines = new Map<number, THREE.Group>();
   const bolts = new Map<number, { mesh: THREE.Group; s: BoltState; at: number }>();
   let boxes: THREE.Group[] = [];
-  let clock = 0, ticks = 0, status = '', shake = 0, nextShot = 0, nextBeep = 0, roulette = 0;
+  let clock = 0, ticks = 0, status = '', shake = 0, nextShot = 0, nextBeep = 0, roulette = 0, inPit = false;
 
   function loadTrack(id: string) {
     for (const v of views) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); }
@@ -284,7 +284,11 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       const t = own.view.car.rb.translation();
       const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
       const input = me.mode === STRANDED ? haltInput(own.view.car) : locked ? NO_INPUT : controls.drive();
-      driveCar(world, own.view.car, input, limpScale(me.energy), inPuddle(track, t));
+      // the Charging Station has a speed limit; a chime says it's charging
+      const pit = inStation(track, own.progress.idx, t);
+      if (pit && !inPit) sound.battery();
+      inPit = pit;
+      driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1), inPuddle(track, t));
       if (!locked) {
         // a press uses the Item when there is one, and only shoots otherwise (on touch both come from one button)
         if (controls.takeItemPress() && me.item) { room.send('item'); nextShot = now + 600; }

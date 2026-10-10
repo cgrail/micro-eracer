@@ -16,7 +16,7 @@ export const BODIES: Record<BodyKind, { maxSpeed: number; accel: number; steer: 
   // a big electric pickup: heavy, but with all that torque it pulls away hard
   pickup: { maxSpeed: 19.2, accel: 20, steer: 2.1, mass: 2.4, grip: 10, tank: 1.35, length: 2.1 },
   // a truck with its trailer: the heaviest, slowest and biggest battery of all
-  semi: { maxSpeed: 18.5, accel: 13, steer: 1.9, mass: 3.4, grip: 13, tank: 1.7, length: 2.4 },
+  semi: { maxSpeed: 19, accel: 14, steer: 1.9, mass: 3.4, grip: 13, tank: 1.7, length: 2.4 },
 };
 
 export const DT = 1 / 60;
@@ -52,7 +52,8 @@ export function createTrackWorld(track: Track): RAPIER.World {
   const verts = new Float32Array(track.n * 6), idx = new Uint32Array(track.n * 6);
   track.samples.forEach((s, i) => {
     const r = right(s.dx, s.dz);
-    verts.set([s.x - r.x * HALF_WIDTH, s.y, s.z - r.z * HALF_WIDTH, s.x + r.x * HALF_WIDTH, s.y, s.z + r.z * HALF_WIDTH], i * 6);
+    const outer = HALF_WIDTH + s.bay;
+    verts.set([s.x - r.x * HALF_WIDTH, s.y, s.z - r.z * HALF_WIDTH, s.x + r.x * outer, s.y, s.z + r.z * outer], i * 6);
     const j = (i + 1) % track.n;
     idx.set([2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j], i * 6);
   });

@@ -1,12 +1,13 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  BODIES, BODY_KINDS, type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
+  BODIES, BODY_KINDS, type Car, type BodyKind, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from './car.ts';
+import { botInput } from './bots.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
 import {
-  type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, TRACKS, buildTrack, gridPose, inPuddle, lapOf, lateralOf, nearestSample, sameLevel,
-  poseAt, resetToCheckpoint, right, startProgress, updateProgress,
+  type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, PIT_SPEED, TRACKS, buildTrack, gridPose, inPuddle, inStation, lapOf, nearestSample,
+  sameLevel, poseAt, resetToCheckpoint, startProgress, updateProgress,
 } from './track.ts';
 
 export const SEATS = 8;
@@ -21,6 +22,8 @@ const RESPAWN_LOCK = 1;
 /** A full Roadster battery lasts this many Laps of driving, on every Track. */
 const TANK_LAPS = 2.2;
 export const BATTERY_CHARGE = 30;
+/** Energy per second in the Charging Station. */
+const STATION_RATE = 35;
 const BATTERY_EVERY = 1.4, MAX_BATTERIES = 7, BATTERY_LIFE = 25, PICKUP_RADIUS = 2.4;
 const RAM_MIN_SPEED = 3, RAM_ENERGY_PER_MS = 3, RAM_MAX = 25, RAM_COOLDOWN = 1;
 
@@ -163,7 +166,8 @@ export class RaceSim {
       const t = s.car.rb.translation();
       const locked = !live || this.time < s.lockedUntil || this.isRecharging(s);
       const input = this.isStranded(s) ? haltInput(s.car) : locked ? NO_INPUT : botInput(this, s);
-      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) : 1, inPuddle(this.track, t));
+      const pit = inStation(this.track, s.progress.idx, t) ? PIT_SPEED : 1;
+      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) * pit : 1, inPuddle(this.track, t));
       if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
     this.world.step();
@@ -185,6 +189,7 @@ export class RaceSim {
       const moved = Math.hypot(t.x - s.lastX, t.z - s.lastZ);
       // jumps (Fall-off resets) are not driving
       if (live && !s.finished && moved < 2) s.energy = Math.max(0, s.energy - (moved * MAX_ENERGY * this.drainScale) / (TANK_LAPS * BODIES[s.kind].tank * this.track.n));
+      if (live && inStation(this.track, s.progress.idx, t)) s.energy = Math.min(MAX_ENERGY, s.energy + STATION_RATE * dt);
       s.lastX = t.x; s.lastZ = t.z;
       updateProgress(this.track, s.progress, t.x, t.z);
       if (live && !s.finished && s.progress.u >= LAPS * this.track.n) {
@@ -290,29 +295,4 @@ export class RaceSim {
     if (dynamic) teleport(seat.car, pose, seat.vx, seat.vz);
     seat.spawn++;
   }
-}
-
-/** Follow the centreline in a per-Seat lane, swerve for a Battery just ahead, else try to Ram the Racer just ahead. */
-export function botInput(sim: RaceSim, s: Seat): Input {
-  const { track } = sim, { rb } = s.car;
-  const t = rb.translation(), v = rb.linvel();
-  const yaw = yawOfBody(rb), fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
-  const speed = Math.hypot(v.x, v.z);
-  const look = Math.round(4 + speed * 0.4);
-  const ahead = (idx: number) => (idx - s.progress.idx + track.n) % track.n;
-
-  let lane = ((s.index % 3) - 1) * 1.6;
-  const battery = sim.batteries.filter((b) => ahead(b.idx) > 4 && ahead(b.idx) < 30).sort((a, b) => ahead(a.idx) - ahead(b.idx))[0];
-  const prey = !sim.botsAttack() ? undefined : sim.seats
-    .filter((o) => o !== s && o.progress.u - s.progress.u > 3 && o.progress.u - s.progress.u < 14)
-    .sort((a, b) => Number(!!b.owner) - Number(!!a.owner))[0];
-  if (battery) lane = lateralOf(track, battery.idx, battery.x, battery.z);
-  else if (prey) { const p = prey.car.rb.translation(); lane = lateralOf(track, prey.progress.idx, p.x, p.z); }
-
-  const target = poseAt(track, s.progress.idx + look, clamp(lane, -HALF_WIDTH + 1, HALF_WIDTH - 1));
-  const tx = target.x - t.x, tz = target.z - t.z;
-  const angle = Math.atan2(tx * r.x + tz * r.z, tx * fx + tz * fz);
-  const far = track.samples[(s.progress.idx + look * 2) % track.n];
-  const bend = Math.acos(clamp(far.dx * fx + far.dz * fz, -1, 1));
-  return { throttle: bend > 0.9 && speed > 13 ? -0.4 : 1, steer: clamp(angle * 2.2, -1, 1) };
 }

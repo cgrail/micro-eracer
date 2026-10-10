@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
 import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
-import { RISE, TRACKS, buildTrack, lapOf, nearestSample, poseAt, startProgress, updateProgress } from './track.ts';
+import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, startProgress, updateProgress } from './track.ts';
 
 test('every Track closes and its start grid sits behind the finish line', () => {
   for (const def of TRACKS) {
@@ -73,7 +73,8 @@ for (const def of TRACKS) {
 test('every Body can win: half the field in Semis, half in Roadsters', async () => {
   await initPhysics();
   const wins: Record<string, number> = { semi: 0, roadster: 0 };
-  for (let k = 0; k < 12; k++) {
+  // the Semi wins about 30% of these, so 20 Races leave it no win less than once in a thousand runs
+  for (let k = 0; k < 20; k++) {
     const id = TRACKS[k % TRACKS.length].id, sim = new RaceSim(id);
     sim.seats.forEach((s, i) => (s.kind = (i + k) % 2 ? 'semi' : 'roadster'));
     sim.newRace(FIRST_GRID_TIME, id);
@@ -91,6 +92,8 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   sim.phase = 'racing';
   for (let i = 0; i < 120; i++) sim.step(DT);
   const leader = sim.seats.find((s) => s.position === 1)!;
+  // alone, so no Ram gives it Energy back or takes some away
+  sim.seats.forEach((s, i) => { if (s !== leader) teleport(s.car, poseAt(sim.track, 120 + i * 15)); });
   leader.energy = 0;
   sim.step(DT);
   assert.ok(sim.isStranded(leader));
@@ -100,9 +103,32 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   assert.ok(leader.energy < MAX_ENERGY / 2, 'the battery fills up during the Recharge');
   for (let t = 0; t <= RECHARGE_TIME; t += DT) sim.step(DT);
   assert.ok(!sim.isRecharging(leader) && leader.energy > MAX_ENERGY - 1);
-  // no trip to the back and no reversing; it brakes to a halt, though the pack behind may Ram it along a bit
+  // no trip to the back and no reversing: it brakes to a halt just past where it ran dry
   const moved = leader.progress.u - at.u;
-  assert.ok(moved >= 0 && moved < 60, `moved ${moved} samples`);
+  assert.ok(moved >= 0 && moved < 12, `moved ${moved} samples`);
+});
+
+test('a Bot low on Energy pulls into the Charging Station and leaves charged', async () => {
+  await initPhysics();
+  const sim = new RaceSim('desk');
+  sim.phase = 'racing';
+  const { n } = sim.track, [bot, ...others] = sim.seats;
+  // alone on the last straights, with a fifth of a battery left
+  others.forEach((s, i) => teleport(s.car, poseAt(sim.track, 60 + i * 15)));
+  const pose = poseAt(sim.track, n - 50);
+  teleport(bot.car, pose, Math.sin(pose.yaw) * 15, Math.cos(pose.yaw) * 15);
+  bot.progress = startProgress(sim.track, n - 50);
+  bot.energy = 20;
+  let charged = false;
+  for (let t = 0; t < 6 && bot.progress.u < 0; t += DT) {
+    sim.step(DT);
+    // a Battery on the way would charge it enough to skip the station
+    sim.batteries = [];
+    charged ||= inStation(sim.track, bot.progress.idx, bot.car.rb.translation());
+  }
+  assert.ok(charged, 'went through the bay');
+  // how full depends on where along the bay it got in; it always gains a lot more than a Battery's worth of driving
+  assert.ok(bot.energy > 45, `left with ${bot.energy.toFixed(0)} Energy`);
 });
 
 test('Bots keep shooting at a Player in the lead', async () => {

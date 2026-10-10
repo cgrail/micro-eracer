@@ -20,6 +20,8 @@ To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same ne
 
 Bodies: five generic electric look-alikes that drive differently, from quick to heavy. The Roadster is fast and drifts easily, the SUV is the all-rounder, the Microbus grips well and has a big battery, the Pickup is heavy but pulls away hard, and the Semi (a truck with its trailer) is the slowest, heaviest and has the biggest battery. Heavier Bodies win Rams and get thrown around less by Hits, and a bigger battery means running dry less often, so each of them can win.
 
+Low on Energy and no Battery in sight? The Charging Station is a bay beside the last straights before the finish line: drive through it to charge fast, but it has a speed limit, so it's a detour.
+
 Leading is meant to be hard: every Bot behind a Player in first place shoots at them, about once a second between them. A Shield, a dodge or a Battery is how you hold on.
 
 Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the Item. On mobile the E-Car accelerates by itself: drag the left pad to steer, and tap the one action button on the right, which shoots, or uses the Item when you hold one (it shows which). There is no brake on mobile; pushing against a wall while steering turns the E-Car free.

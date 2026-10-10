@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { type Theme, type Track, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
+import { type Theme, type Track, BAY_WIDTH, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
 
 export const SEAT_COLORS = [0xff4d4d, 0x2f9bff, 0xffa62b, 0x1fd1b2, 0xa66cff, 0xffd60a, 0x5ad45a, 0xff6fb5];
 
@@ -138,12 +138,16 @@ const THEMES: Record<Theme, ThemeLook> = {
 
 export const themeOf = (theme: Theme) => THEMES[theme];
 
-/** A ribbon between two sideways offsets from the centreline, `lift` above the road; `keep` drops segments (dashes, kerb colours). */
-function ribbon(track: Track, from: number, to: number, lift: number, mat: THREE.Material, keep: (i: number) => boolean = () => true) {
+type Sample = Track['samples'][number];
+/**
+ * A ribbon between two sideways offsets from the centreline (`to` may depend on the sample, for the Charging Station's bay),
+ * `lift` above the road; `keep` drops segments (dashes, kerb colours).
+ */
+function ribbon(track: Track, from: number, to: number | ((s: Sample) => number), lift: number, mat: THREE.Material, keep: (i: number) => boolean = () => true) {
   const pos: number[] = [], index: number[] = [];
   track.samples.forEach((s, i) => {
-    const r = right(s.dx, s.dz), y = s.y + lift;
-    pos.push(s.x + r.x * from, y, s.z + r.z * from, s.x + r.x * to, y, s.z + r.z * to);
+    const r = right(s.dx, s.dz), y = s.y + lift, t = typeof to === 'number' ? to : to(s);
+    pos.push(s.x + r.x * from, y, s.z + r.z * from, s.x + r.x * t, y, s.z + r.z * t);
     if (!keep(i)) return;
     const j = (i + 1) % track.n;
     index.push(2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j);
@@ -151,10 +155,10 @@ function ribbon(track: Track, from: number, to: number, lift: number, mat: THREE
   return mesh(geometry(pos, index), mat);
 }
 
-function skirt(track: Track, offset: number, mat: THREE.Material) {
+function skirt(track: Track, offset: (s: Sample) => number, mat: THREE.Material) {
   const pos: number[] = [], index: number[] = [];
   track.samples.forEach((s, i) => {
-    const r = right(s.dx, s.dz), x = s.x + r.x * offset, z = s.z + r.z * offset;
+    const r = right(s.dx, s.dz), x = s.x + r.x * offset(s), z = s.z + r.z * offset(s);
     pos.push(x, s.y, z, x, s.y - 0.6, z);
     const j = (i + 1) % track.n;
     index.push(2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j);
@@ -249,7 +253,27 @@ export function buildTrackScene(track: Track): TrackScene {
   statics.add(ribbon(track, -HALF_WIDTH, HALF_WIDTH, 0.01, m(0xffd60a, false), (i) => track.samples[i].kick && i % 2 === 0));
   const side = new THREE.MeshToonMaterial({ color: 0x3a3f47, gradientMap: GRADIENT, side: THREE.DoubleSide });
   side.userData.outlineParameters = { visible: false };
-  statics.add(skirt(track, -HALF_WIDTH, side), skirt(track, HALF_WIDTH, side));
+  statics.add(skirt(track, () => -HALF_WIDTH, side), skirt(track, (s) => HALF_WIDTH + s.bay, side));
+
+  // the Charging Station: a blue bay with green charging pads under a canopy with its sign
+  const inBay = (i: number) => track.samples[i].bay > 0;
+  statics.add(ribbon(track, HALF_WIDTH, (s) => HALF_WIDTH + s.bay, 0, m(0x4a6a8f, false), inBay));
+  statics.add(ribbon(track, HALF_WIDTH + 0.8, HALF_WIDTH + BAY_WIDTH - 0.8, 0.012, m(0x39e46b, false), (i) => track.samples[i].bay >= BAY_WIDTH && i % 5 < 3));
+  const mid = track.samples[track.n - 17], rm = right(mid.dx, mid.dz), at = HALF_WIDTH + BAY_WIDTH / 2;
+  const sign = canvasTexture(256, 64, (c) => {
+    c.fillStyle = '#39e46b'; c.fillRect(0, 0, 256, 64);
+    c.fillStyle = '#111'; c.font = '46px Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('⚡ CHARGE', 128, 36);
+  });
+  sign.wrapS = sign.wrapT = THREE.ClampToEdgeWrapping;
+  // turned along the road, the canopy's +x points left, so its posts stand at -x on the bay's outer edge; the roof is
+  // see-through so the high camera still shows the E-Cars under it, and the sign faces the E-Cars coming in (-z)
+  const posts = [-9, 9].map((z) => cyl(0.25, 0.25, 4.2, m(0x333a44), -(BAY_WIDTH / 2 + 0.2), 2.1, z, 10));
+  const canopy = group(...posts, rbox(BAY_WIDTH + 1.2, 0.35, 20, 0.12, toon(0xffffff, { opacity: 0.45 }), 0, 4.3, 0),
+    mesh(new THREE.BoxGeometry(BAY_WIDTH, 1.2, 0.2), toon(0xffffff, { map: sign }), 0, 5.1, -9.9));
+  canopy.position.set(mid.x + rm.x * at, mid.y, mid.z + rm.z * at);
+  canopy.rotation.y = Math.atan2(mid.dx, mid.dz);
+  live.add(canopy);
 
   track.walls.forEach((w, i) => {
     const wall = rbox(0.5, 1, w.length + 0.06, 0.12, Math.floor(i / 4) % 2 ? m(0xffffff) : m(0xff3b3b), w.x, w.y + 0.5, w.z);
@@ -257,7 +281,7 @@ export function buildTrackScene(track: Track): TrackScene {
     statics.add(wall);
   });
   // pillars hold the road up, except where they would stand on the road under a bridge
-  const overRoad = (p: Track['samples'][number]) => track.samples.some((o) => o.y < p.y - 1 && (o.x - p.x) ** 2 + (o.z - p.z) ** 2 < (HALF_WIDTH + 1) ** 2);
+  const overRoad = (p: Sample) => track.samples.some((o) => o.y < p.y - 1 && (o.x - p.x) ** 2 + (o.z - p.z) ** 2 < (HALF_WIDTH + 1) ** 2);
   for (let i = 0; i < track.n; i += 12) {
     const s = track.samples[i];
     if (!overRoad(s)) statics.add(cyl(0.35, 0.5, s.y - look.groundY, m(0xb8c0cc), s.x, (s.y + look.groundY) / 2 - 0.3, s.z, 8));
