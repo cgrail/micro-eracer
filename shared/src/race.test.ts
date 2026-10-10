@@ -104,6 +104,26 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   assert.ok(moved >= 0 && moved < 60, `moved ${moved} samples`);
 });
 
+test('Bots keep shooting at a Player in the lead', async () => {
+  await initPhysics();
+  const sim = new RaceSim('kitchen');
+  sim.phase = 'racing';
+  sim.startedAt = -10;
+  const player = sim.join('p', 'Player', 'roadster')!;
+  const bot = sim.seats.find((s) => !s.owner)!;
+  // the Player leads on the first straight with one Bot 15 m behind; the other Bots are far away
+  sim.seats.forEach((s, i) => { s.position = s === player ? 1 : s === bot ? 2 : i + 3; teleport(s.car, poseAt(sim.track, s === player ? 40 : s === bot ? 25 : 150 + i * 12)); });
+  let shots = 0, hits = 0;
+  for (let t = 0; t < 3; t += DT) {
+    sim.time += DT;
+    sim.combat.botTurn(bot);
+    sim.combat.step(DT);
+    for (const e of sim.events) { if (e.t === 'shot' && e.s === bot.index) shots++; if (e.t === 'hit' && e.s === player.index) hits++; }
+    sim.events = [];
+  }
+  assert.ok(shots >= 2 && hits >= 1, `${shots} Shots, ${hits} Hits`);
+});
+
 test('a Shield blocks the next Hit, then the Hit after it lands', async () => {
   await initPhysics();
   const sim = new RaceSim('garden');

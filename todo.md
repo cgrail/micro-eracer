@@ -6,7 +6,7 @@
 [x] on mobile the steering is to sensitive. give a little bit more control
 [x] the copter should not flow you back, but just recharge you
 [x] keep only the action button which either shoots or triggers an action. brake is also useless on mobile. only one action button is ok
-[ ] if you're on first place, bots should shoot at you all the time. it should be really hard to stay at the top
+[x] if you're on first place, bots should shoot at you all the time. it should be really hard to stay at the top
 [ ] add more cars like a a  suv, a truck like the f150 lightinign, an electric trailer
 [ ] add a recharge gas station near the finish line with a detour if you can't find battery.
 [ ] if you run empty, the whole screen should turn grey or black and white. it should be real obvious that something is wrong

@@ -26,6 +26,8 @@ export class Combat {
   mines: Mine[] = [];
   /** Per Item Box: the time it is back after being taken (0 = there). */
   boxes: number[];
+  /** When the Bots may next fire at a Player in the lead; shared, so the Leader is shot about once a second, not once per Bot. */
+  private leaderShotAt = 0;
   private id = 0;
 
   constructor(private sim: RaceSim) {
@@ -37,13 +39,19 @@ export class Combat {
     return { x: t.x, y: t.y, z: t.z, fx: Math.sin(yaw), fz: Math.cos(yaw) };
   }
 
-  /** The weapon built into every E-Car: costs the shooter Energy, at most three per second. */
-  shoot(s: Seat) {
+  /** The weapon built into every E-Car: costs the shooter Energy, at most three per second. Bots may aim it `at` someone. */
+  shoot(s: Seat, at?: Seat) {
     const { sim } = this;
     if (!sim.canAct(s) || sim.time < s.nextShotAt || s.energy <= SHOT_COST) return;
     s.energy -= SHOT_COST;
     s.nextShotAt = sim.time + SHOT_EVERY;
-    const { x, y, z, fx, fz } = this.pose(s);
+    let { x, y, z, fx, fz } = this.pose(s);
+    if (at) {
+      // aim where the target will be when the Shot gets there
+      const t = at.car.rb.translation(), lead = Math.hypot(t.x - x, t.z - z) / SHOT_SPEED;
+      const ax = t.x + at.vx * lead - x, az = t.z + at.vz * lead - z, d = Math.hypot(ax, az) || 1;
+      fx = ax / d; fz = az / d;
+    }
     this.bolts.push({ id: ++this.id, kind: 'shot', owner: s.index, x: x + fx * 2.4, y, z: z + fz * 2.4, vx: fx * SHOT_SPEED + s.vx, vz: fz * SHOT_SPEED + s.vz, until: sim.time + SHOT_LIFE, target: -1 });
     sim.emit({ t: 'shot', s: s.index });
   }
@@ -128,19 +136,30 @@ export class Combat {
     sim.stats.hits++;
   }
 
-  /** Bots use Items right away when they make sense and shoot whoever is lined up ahead. */
+  /**
+   * Bots use Items right away when they make sense and shoot whoever is lined up ahead. A Player in the lead is everyone's
+   * target: Bots behind aim at them in a wide cone and, all together, fire at them about once a second.
+   */
   botTurn(s: Seat) {
     const { sim } = this;
     if (s.item === 'shield' || (s.item === 'missile' && s.position > 1)) this.useItem(s);
     if (s.item === 'mine' && sim.seats.some((o) => o !== s && s.progress.u - o.progress.u > 2 && s.progress.u - o.progress.u < 20)) this.useItem(s);
-    if (!sim.botsAttack() || s.energy < 60 || sim.time < s.nextShotAt) return;
+    if (!sim.botsAttack() || sim.time < s.nextShotAt) return;
     const { x, z, fx, fz } = this.pose(s), r = right(fx, fz);
-    const target = sim.seats.find((o) => {
-      if (o === s) return false;
+    // within `range` ahead and at most `slack` metres plus `cone` per metre ahead to the side
+    const ahead = (o: Seat, range: number, slack: number, cone = 0) => {
       const t = o.car.rb.translation(), ax = t.x - x, az = t.z - z;
-      const ahead = ax * fx + az * fz, side = ax * r.x + az * r.z;
-      return ahead > 3 && ahead < 25 && Math.abs(side) < 1.2;
-    });
+      const along = ax * fx + az * fz, side = ax * r.x + az * r.z;
+      return o !== s && along > 3 && along < range && Math.abs(side) < slack + cone * along;
+    };
+    const leader = sim.seats.find((o) => o.owner && o.position === 1 && !o.finished);
+    if (leader && sim.time >= this.leaderShotAt && s.energy > 3 * SHOT_COST && ahead(leader, 35, 0, 0.6) && sameLevel(leader.car.rb.translation().y, this.pose(s).y)) {
+      this.shoot(s, leader);
+      this.leaderShotAt = sim.time + 1 + Math.random() * 0.6;
+      s.nextShotAt = sim.time + 1;
+      return;
+    }
+    const target = s.energy >= 60 ? sim.seats.find((o) => ahead(o, 25, 1.2)) : undefined;
     // Bots save their Shots mostly for the Players, so the action happens around them
     if (!target || (!target.owner && Math.random() < 0.7)) { s.nextShotAt = sim.time + 0.5; return; }
     this.shoot(s);
