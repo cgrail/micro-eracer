@@ -118,11 +118,12 @@ export class Sound {
       this.skid.gain.value = 0;
       src.connect(band).connect(this.skid).connect(this.master);
     }
-    // the wind opens up and gets louder with speed (roughly with its square, like real drag), a little more under power
+    // the wind opens up and gets louder with speed (roughly with its square, like real drag), a little more under power;
+    // kept quiet, just there to be heard in the background
     const k = Math.min(1, Math.abs(speed) / 22);
     this.engine.rumble.frequency.setTargetAtTime(180 + k * 520, this.t, 0.12);
     this.engine.rush.frequency.setTargetAtTime(500 + k * 1700, this.t, 0.12);
-    this.engine.gain.gain.setTargetAtTime(0.01 + k * k * 0.3 + Math.max(0, throttle) * k * 0.04, this.t, 0.15);
+    this.engine.gain.gain.setTargetAtTime(0.003 + k * k * 0.08 + Math.max(0, throttle) * k * 0.01, this.t, 0.15);
     this.skid!.gain.setTargetAtTime(Math.min(1, skid) * 0.25, this.t, 0.05);
   }
 
