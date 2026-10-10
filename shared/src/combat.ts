@@ -138,7 +138,7 @@ export class Combat {
 
   /**
    * Bots use Items right away when they make sense and shoot whoever is lined up ahead. A Player in the lead is everyone's
-   * target: Bots behind aim at them in a wide cone and, all together, fire at them about once a second.
+   * target: Bots up to 45 m behind aim at them in a 45° cone and, all together, fire at them about once a second.
    */
   botTurn(s: Seat) {
     const { sim } = this;
@@ -153,9 +153,9 @@ export class Combat {
       return o !== s && along > 3 && along < range && Math.abs(side) < slack + cone * along;
     };
     const leader = sim.seats.find((o) => o.owner && o.position === 1 && !o.finished);
-    if (leader && sim.time >= this.leaderShotAt && s.energy > 3 * SHOT_COST && ahead(leader, 35, 0, 0.6) && sameLevel(leader.car.rb.translation().y, this.pose(s).y)) {
+    if (leader && sim.time >= this.leaderShotAt && s.energy > 3 * SHOT_COST && ahead(leader, 45, 0, 1) && sameLevel(leader.car.rb.translation().y, this.pose(s).y)) {
       this.shoot(s, leader);
-      this.leaderShotAt = sim.time + 1 + Math.random() * 0.6;
+      this.leaderShotAt = sim.time + 0.8 + Math.random() * 0.5;
       s.nextShotAt = sim.time + 1;
       return;
     }

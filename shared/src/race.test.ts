@@ -95,6 +95,18 @@ test('every Body can win: half the field in Semis, half in Roadsters', async () 
   assert.ok(wins.semi > 0 && wins.roadster > 0);
 });
 
+test('Batteries are plentiful at the back and scarce at the front', async () => {
+  await initPhysics();
+  const byPosition = Array(8).fill(0);
+  for (const def of TRACKS) {
+    const sim = new RaceSim(def.id), emit = sim.emit;
+    sim.emit = (e) => { if (e.t === 'battery') byPosition[sim.seats[e.s].position - 1]++; emit(e); };
+    for (let t = 0; t < 240 && sim.results.length === 0; t += DT) sim.step(DT);
+  }
+  const front = byPosition[0] + byPosition[1], back = byPosition.slice(4).reduce((a, b) => a + b);
+  assert.ok(back > 2 * front, `Batteries by Position: ${byPosition}`);
+});
+
 test('an empty E-Car is Stranded, then Recharged where it stands to full Energy', async () => {
   await initPhysics();
   const sim = new RaceSim('kitchen');
