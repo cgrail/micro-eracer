@@ -4,15 +4,18 @@ import { type Pose, type Track, HALF_WIDTH, ROAD_Y, right } from './track.ts';
 export type BodyKind = 'microbus' | 'roadster';
 export const BODY_KINDS: BodyKind[] = ['microbus', 'roadster'];
 
-// shortcut: placeholder handling; real tuning (the Microbus must still be able to win) is build step 4
-export const BODIES: Record<BodyKind, { maxSpeed: number; accel: number; steer: number; mass: number }> = {
-  microbus: { maxSpeed: 20, accel: 20, steer: 2.3, mass: 1.6 },
-  roadster: { maxSpeed: 21.5, accel: 24, steer: 2.6, mass: 1.0 },
+/**
+ * How each Body drives. The Microbus is slower and turns wider, and pays it back: `mass` wins Rams and softens Hits,
+ * `grip` keeps it on the Track, and `tank` (battery size, times the Roadster's) means fewer Airlifts.
+ */
+export const BODIES: Record<BodyKind, { maxSpeed: number; accel: number; steer: number; mass: number; grip: number; tank: number }> = {
+  microbus: { maxSpeed: 19, accel: 15, steer: 2.1, mass: 2.2, grip: 12, tank: 1.3 },
+  roadster: { maxSpeed: 22, accel: 26, steer: 2.7, mass: 1, grip: 8, tank: 1 },
 };
 
 export const DT = 1 / 60;
 export const HALF = { x: 0.9, y: 0.45, z: 1.8 };
-const BRAKE = 30, REVERSE_MAX = 6, GRIP = 9, DRIFT_GRIP = 4.5, DRIFT_IN = 4, DRIFT_OUT = 2.5;
+const BRAKE = 30, REVERSE_MAX = 6, DRIFT_IN = 4, DRIFT_OUT = 2.5;
 
 export interface Input { throttle: number; steer: number }
 export const NO_INPUT: Input = { throttle: 0, steer: 0 };
@@ -93,7 +96,7 @@ export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale
 
   car.drifting = Math.abs(ls) > (car.drifting ? DRIFT_OUT : DRIFT_IN);
   const spinning = Math.abs(car.spin) > 0.3;
-  ls *= Math.max(0, 1 - (car.drifting || spinning ? DRIFT_GRIP : GRIP) * (wet ? 0.5 : 1) * DT);
+  ls *= Math.max(0, 1 - p.grip * (car.drifting || spinning ? 0.5 : 1) * (wet ? 0.5 : 1) * DT);
   // a Drift rotates the car faster: that is the tighter line through the corner
   let yawRate = -input.steer * p.steer * (car.drifting ? 1.3 : 1) * clamp(fs / 8, -1, 1);
   if (spinning) { yawRate = car.spin; car.spin *= 1 - 1.8 * DT; fs *= 1 - 1.5 * DT; } else car.spin = 0;

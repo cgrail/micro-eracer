@@ -1,6 +1,6 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
+  BODIES, type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from './car.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
@@ -18,7 +18,7 @@ export const FINISH_TIME = 10;
 export const STRANDED_TIME = 1.6;
 export const AIRLIFT_TIME = 1.6;
 const RESPAWN_LOCK = 1;
-/** A full battery lasts this many Laps of driving, on every Track. */
+/** A full Roadster battery lasts this many Laps of driving, on every Track. */
 const TANK_LAPS = 2.2;
 export const BATTERY_CHARGE = 30;
 const BATTERY_EVERY = 1.4, MAX_BATTERIES = 7, BATTERY_LIFE = 25, PICKUP_RADIUS = 2.4;
@@ -184,7 +184,7 @@ export class RaceSim {
       }
       const moved = Math.hypot(t.x - s.lastX, t.z - s.lastZ);
       // jumps (Fall-off resets) are not driving
-      if (live && !s.finished && moved < 2) s.energy = Math.max(0, s.energy - (moved * MAX_ENERGY * this.drainScale) / (TANK_LAPS * this.track.n));
+      if (live && !s.finished && moved < 2) s.energy = Math.max(0, s.energy - (moved * MAX_ENERGY * this.drainScale) / (TANK_LAPS * BODIES[s.kind].tank * this.track.n));
       s.lastX = t.x; s.lastZ = t.z;
       updateProgress(this.track, s.progress, t.x, t.z);
       if (live && !s.finished && s.progress.u >= LAPS * this.track.n) {
@@ -263,7 +263,7 @@ export class RaceSim {
     }
   }
 
-  /** A Ram moves Energy from the hit E-Car to the one that drove into the contact faster. */
+  /** A Ram moves Energy from the hit E-Car to the one that drove into the contact harder (speed times weight). */
   private judgeRams() {
     for (let i = 0; i < SEATS; i++) for (let j = i + 1; j < SEATS; j++) {
       const a = this.seats[i], b = this.seats[j], key = i * SEATS + j;
@@ -275,7 +275,7 @@ export class RaceSim {
       const d = Math.hypot(pb.x - pa.x, pb.z - pa.z) || 1, nx = (pb.x - pa.x) / d, nz = (pb.z - pa.z) / d;
       const sa = a.vx * nx + a.vz * nz, sb = -(b.vx * nx + b.vz * nz);
       if (sa + sb < RAM_MIN_SPEED) continue;
-      const [rammer, victim] = sa >= sb ? [a, b] : [b, a];
+      const [rammer, victim] = sa * BODIES[a.kind].mass >= sb * BODIES[b.kind].mass ? [a, b] : [b, a];
       this.ramCooldown.set(key, this.time + RAM_COOLDOWN);
       if (victim.shield) { victim.shield = false; this.emit({ t: 'block', s: victim.index }); continue; }
       const amount = Math.min(RAM_MAX, 5 + (sa + sb - RAM_MIN_SPEED) * RAM_ENERGY_PER_MS, victim.energy);

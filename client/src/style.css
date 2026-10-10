@@ -34,6 +34,7 @@ canvas { display: block; touch-action: none; }
 .bodies legend { margin-bottom: 4px; }
 button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; border-radius: 12px; border: 3px solid var(--ink); cursor: pointer; color: var(--ink); }
 .bodies button { flex: 1; background: transparent; color: inherit; }
+.bodies small { display: block; font: 13px/1.2 system-ui, sans-serif; letter-spacing: 0; opacity: 0.8; }
 .bodies button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
 #play { background: var(--yellow); font-size: 30px; box-shadow: 5px 5px 0 var(--ink); }
 #play:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }

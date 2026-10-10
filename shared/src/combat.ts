@@ -1,4 +1,4 @@
-import { yawOfBody } from './car.ts';
+import { BODIES, yawOfBody } from './car.ts';
 import type { RaceSim, Seat } from './race.ts';
 import { right } from './track.ts';
 
@@ -115,15 +115,16 @@ export class Combat {
     if (victim.shield) { victim.shield = false; sim.emit({ t: 'block', s: victim.index }); return; }
     const h = HITS[kind];
     victim.energy = Math.max(0, victim.energy - h.drain);
-    const spin = (Math.random() < 0.5 ? -1 : 1) * h.spin;
-    const ix = dx * h.shove, iz = dz * h.shove;
+    // heavier Bodies get thrown around less
+    const mass = BODIES[victim.kind].mass, spin = ((Math.random() < 0.5 ? -1 : 1) * h.spin) / mass;
+    const ix = (dx * h.shove) / mass, iz = (dz * h.shove) / mass, hop = h.hop / mass;
     if (!victim.owner) {
       const v = victim.car.rb.linvel();
-      victim.car.rb.setLinvel({ x: v.x + ix, y: v.y + h.hop, z: v.z + iz }, true);
+      victim.car.rb.setLinvel({ x: v.x + ix, y: v.y + hop, z: v.z + iz }, true);
       victim.car.spin = spin;
     }
     // a Player's browser drives their E-Car, so it applies the same shove when it gets this
-    sim.emit({ t: 'hit', s: victim.index, by, kind, ix, iz, hop: h.hop, spin });
+    sim.emit({ t: 'hit', s: victim.index, by, kind, ix, iz, hop, spin });
     sim.stats.hits++;
   }
 
