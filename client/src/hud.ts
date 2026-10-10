@@ -35,7 +35,8 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
       const names: string[] = [];
       state.results.forEach((n) => names.push(n));
       let msg = status;
-      if (!msg && state.phase === 'grid') msg = names.length ? `Next race in ${left}` : String(left);
+      // the grid counts down 3, 2, 1 in big numbers, after a Race too
+      if (!msg && state.phase === 'grid') msg = String(left);
       else if (!msg && me?.mode === STRANDED) msg = 'Battery empty!';
       else if (!msg && me?.mode === RECHARGE) msg = 'Recharging…';
       else if (!msg && me?.finished) msg = `Finished P${me.position}!`;
@@ -66,12 +67,14 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
       // finished (or on the grid after a Race) it's the end: the board moves to the middle under a title and the rest dims;
       // while we're still racing it waits in the corner, out of the way
       const over = state.phase === 'grid' ? names.length > 0 : state.phase === 'finishing' && !!me?.finished;
+      // finished, the title counts down to the next Race
+      const title = !over ? '' : state.phase === 'grid' ? '🏁 Race over' : `🏁 Next race in ${left}`;
+      if (hud.results.dataset.title !== title) hud.results.dataset.title = title;
       const shown = `${state.phase}:${over}:${board.join('\n')}`;
       if (shown !== lastResults) {
         lastResults = shown;
         hud.results.classList.toggle('live', state.phase === 'finishing' && !over);
         hud.results.classList.toggle('over', over);
-        hud.results.dataset.title = !over ? '' : state.phase === 'grid' ? '🏁 Race over' : '🏁 Finish!';
         hud.results.replaceChildren(...board.map((n) => Object.assign(document.createElement('li'), { textContent: n, className: n === me?.name ? 'me' : '' })));
       }
     },
