@@ -2,7 +2,7 @@
 
 A Micro Machines–style 3D racing game in the browser, online first. You enter a name, press Play, and take over a Bot's E-Car in a Race that is already running, against up to 7 others (Players or Bots). The E-Cars are electric: Energy drains as you drive and when you are hit, Batteries on the Track charge it, and an empty E-Car is Stranded and then Recharged by a drone where it stands. There are Shots, Item Boxes (Missile, Mine, Shield), Rams, Drifts, Puddles and Fall-offs on four small themed Tracks (kitchen, garden, office desk, bathtub). It runs on desktop and mobile.
 
-It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus on a Node server, and Rapier physics in both. Every model, texture, sound, voice and song is generated in code, so there are no asset files; the only bundled asset is the Bangers font (`@fontsource/bangers`).
+It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus on a Node server, and Rapier physics in both. Every model, texture, sound and song is generated in code. The only asset files are the Bangers font (`@fontsource/bangers`) and the Racers' voices: short CC0 recordings in `client/public/voices`, credited in its `CREDITS.md`.
 
 - **Terms:** [CONTEXT.md](CONTEXT.md) is the glossary (Race, Seat, Player, Bot, E-Car, Body, Energy, Stranded, Recharge, Ram, Hit, Item…). Use its capitalised terms in code, comments and UI text. A new or changed game concept gets its entry there. It is a glossary only, so no implementation details go in it.
 - **Decisions:** [docs/adr/](docs/adr/). An ADR is only for a decision that is hard to reverse, surprising without context and the result of a real trade-off.
@@ -56,13 +56,13 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 - **Look:** cel shading (`MeshToonMaterial` with a 3-tone gradient) with black outlines (`OutlineEffect`; `userData.outlineParameters = { visible: false }` turns one material's outline off), static scenery merged per material, canvas textures, a halftone overlay and comic HUD lettering.
 - **Sound:** all WebAudio, started by the Play button (a user gesture, which mobile browsers need).
   - effects, and the motor whine and skid of the Player's own E-Car
-  - cartoon voices (`cry(mood, seat)`): a formant synth with one voice per Seat. Cries about other E-Cars are rationed, and ones about your own always play
+  - voices (`cry(mood, seat)`): CC0 recordings per mood (`CLIPS` in `audio.ts`, files `public/voices/<mood>-<name>.mp3`), played at a per-Seat rate so each Racer sounds different. Cries about other E-Cars are rationed, and ones about your own always play. A new clip must be CC0, trimmed, loudness-matched (about −18 dB mean, peaks under −1 dB) and listed in `CREDITS.md`
   - one chiptune song per Track, from Electro Car Racer (github.com/cgrail/e-racer)
   - one mute switch for everything
 
 ## Rules for changes
 
-- **Everything stays procedural:** no image, model, audio or font files beyond the bundled Bangers font. No requests to Google Fonts or other third parties (the audience is in Germany, so GDPR applies).
+- **Everything stays procedural:** no image, model, audio or font files beyond the bundled Bangers font and the CC0 voice clips. No requests to Google Fonts or other third parties (the audience is in Germany, so GDPR applies).
 - **`shared/` runs in Node:** it must not touch the DOM or browser APIs, and it stays free of networking.
 - **Server and browsers run the same `shared/` code:** a change to it, to the schema in `RaceRoom.ts`, to a message or to `RaceEvent` needs both sides deployed together. One process serves both, so a deploy does that, but tabs that are already open run the old client until they reload.
 - **Never trust the browser:** every message is checked on the server (`isPose`: finite numbers, bounded; names cut to 16 characters; Body from `BODY_KINDS`), and Shots and Items go through `canAct` and the server's own cooldowns.

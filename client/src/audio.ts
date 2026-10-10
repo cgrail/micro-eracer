@@ -1,25 +1,17 @@
 import { type CompiledSong, hz, SONGS_COMPILED } from './songs.ts';
 
-/** All sounds, voices and music are synthesised with WebAudio, so nothing is downloaded. */
+/** Effects and music are synthesised with WebAudio; only the Racers' voices are recordings (`public/voices`, CC0, see its CREDITS.md). */
 
-// formants of the cartoon mouth: the three resonances that make a buzz sound like "a", "e", "i", "o" or "u"
-const FORMANTS = { a: [850, 1250, 2800], e: [550, 1950, 2700], i: [330, 2500, 3200], o: [520, 880, 2600], u: [360, 760, 2500] };
-const FORMANT_GAINS = [1.6, 1.1, 0.5];
-type Vowel = keyof typeof FORMANTS;
-/** One breath of a cry: pitch (times the Racer's own) and vowel glide evenly over it; `h` is a breathy onset, `rough` a scream's rasp. */
-interface Part { at: number; len: number; f0: number[]; v: Vowel[]; h?: number; rough?: number }
-
-const laugh = [0, 1, 2, 3].map((k): Part => ({ at: k * 0.13, len: k === 3 ? 0.22 : 0.1, f0: [1.45 * 0.92 ** k, 1.3 * 0.92 ** k], v: ['a', 'a'], h: 0.035 }));
-const yahoo: Part[] = [{ at: 0, len: 0.15, f0: [1, 1.2], v: ['i', 'a'] }, { at: 0.17, len: 0.45, f0: [1.5, 1.9, 1.75, 1.3], v: ['o', 'u'], h: 0.04 }];
-const ouch: Part[] = [{ at: 0, len: 0.34, f0: [2, 1.8, 1.1], v: ['a', 'a', 'u'], rough: 0.25 }];
-const hey: Part[] = [{ at: 0, len: 0.28, f0: [1.25, 1.5, 1], v: ['e', 'e', 'i'], h: 0.05 }];
-const scream: Part[] = [{ at: 0, len: 0.95, f0: [1.3, 2.3, 2.2, 2.25, 2, 1.4], v: ['u', 'a', 'a', 'a', 'a', 'o'], rough: 0.35 }];
-const nooo: Part[] = [{ at: 0, len: 0.9, f0: [1.6, 1.5, 1.3, 1, 0.75], v: ['u', 'o', 'o', 'o', 'u'] }];
-/** What a Racer cries out: "ha-ha-ha!" or "ya-hoo!" after a Ram, "ow!", "hey!" or "waaah!" when hit, "nooo!" when running dry. */
-const CRIES = { gloat: [laugh, yahoo], hurt: [ouch, hey, scream], thrown: [scream], despair: [nooo] };
-export type Mood = keyof typeof CRIES;
-// every Seat has its own voice: pitch (Hz) and head size (formant scale)
-const VOICES = [[330, 1.1], [250, 0.95], [420, 1.22], [290, 1], [370, 1.15], [230, 0.92], [460, 1.25], [310, 1.05]];
+/** What a Racer cries out: a laugh or a cheer after a Ram, "ow!" when hit, a scream when thrown about, "nooo!" when running dry. */
+const CLIPS = {
+  gloat: ['laugh-cute', 'laugh-cartoon', 'laugh-taunt', 'woohoo', 'wouhouh', 'yahoo'],
+  hurt: ['ouch', 'oww', 'oww-2', 'oof'],
+  thrown: ['scream-wow', 'waaah', 'scream-short'],
+  despair: ['nooo', 'nooo-2'],
+};
+export type Mood = keyof typeof CLIPS;
+// every Seat sounds like someone else: the same recordings played a little faster (higher) or slower (deeper)
+const VOICE_RATES = [1, 0.88, 1.16, 0.95, 1.08, 0.84, 1.24, 0.92];
 
 export class Sound {
   muted = false;
@@ -27,7 +19,7 @@ export class Sound {
   private master!: GainNode;
   private mus!: GainNode;
   private noise!: AudioBuffer;
-  private glottal!: PeriodicWave;
+  private voices: Partial<Record<Mood, AudioBuffer[]>> = {};
   private engine?: { osc: OscillatorNode; osc2: OscillatorNode; filter: BiquadFilterNode; gain: GainNode };
   private skid?: GainNode;
   private drone?: { osc: OscillatorNode; gain: GainNode };
@@ -56,10 +48,7 @@ export class Sound {
       this.noise = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
       const data = this.noise.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-      // vocal cords: a buzz whose harmonics fall off faster than a sawtooth's, which sounds softer and more like a voice
-      const real = new Float32Array(40), imag = new Float32Array(40);
-      for (let k = 1; k < 40; k++) imag[k] = 1 / k ** 1.3;
-      this.glottal = this.ctx.createPeriodicWave(real, imag);
+      this.loadVoices();
     }
     void this.ctx.resume();
   }
@@ -187,74 +176,31 @@ export class Sound {
   countdown(go: boolean) { this.tone('square', go ? 1320 : 660, go ? 1320 : 660, go ? 0.5 : 0.15, 0.15); }
   fanfare() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone('square', f, f, i === 3 ? 0.5 : 0.14, 0.12), i * 130)); }
 
-  /** A Racer cries out in their own cartoon voice, at most once a second each. Full volume means it's about our own E-Car. */
+  private loadVoices() {
+    for (const [mood, names] of Object.entries(CLIPS) as [Mood, string[]][]) {
+      const load = (name: string) => fetch(`${import.meta.env.BASE_URL}voices/${mood}-${name}.mp3`)
+        .then((r) => r.arrayBuffer()).then((data) => this.ctx!.decodeAudioData(data))
+        // shortcut: a clip that fails to load is never heard; the others still are
+        .catch(() => undefined);
+      void Promise.all(names.map(load)).then((list) => (this.voices[mood] = list.filter((b) => b !== undefined)));
+    }
+  }
+
+  /** A Racer cries out in their own voice, at most once a second each. Full volume means it's about our own E-Car. */
   cry(mood: Mood, seat: number, vol = 1, delay = 0) {
-    if (!this.ctx || seat < 0 || this.t < (this.lastCry[seat] ?? -9) + 1) return;
+    const clips = this.voices[mood];
+    if (!this.ctx || !clips?.length || seat < 0 || this.t < (this.lastCry[seat] ?? -9) + 1) return;
     // the others' cries are rationed, so the ones about us always stand out
     if (vol < 1 && (vol < 0.4 || this.t < this.lastOtherCry + 0.8)) return;
     if (vol < 1) this.lastOtherCry = this.t;
     this.lastCry[seat] = this.t;
-    const ctx = this.ctx, variants = CRIES[mood], [pitch, size] = VOICES[seat % VOICES.length];
-    const wobble = 0.93 + Math.random() * 0.14;
-    for (const p of variants[Math.floor(Math.random() * variants.length)]) {
-      const t0 = this.t + delay + p.at, t1 = t0 + p.len, attack = Math.min(0.025, p.len * 0.25), release = Math.min(0.08, p.len * 0.4);
-      const out = ctx.createGain();
-      out.gain.setValueAtTime(0.0001, t0);
-      out.gain.exponentialRampToValueAtTime(0.25 * vol, t0 + attack);
-      out.gain.setValueAtTime(0.25 * vol, t1 - release);
-      out.gain.exponentialRampToValueAtTime(0.0001, t1);
-      out.connect(this.master);
-      let into: AudioNode = out;
-      if (p.rough) {
-        const am = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
-        am.gain.value = 1 - p.rough;
-        depth.gain.value = p.rough;
-        lfo.frequency.value = 38 + Math.random() * 14;
-        lfo.connect(depth).connect(am.gain);
-        am.connect(out);
-        into = am;
-        lfo.start(t0);
-        lfo.stop(t1 + 0.02);
-      }
-      const osc = ctx.createOscillator(), vib = ctx.createOscillator(), vibDepth = ctx.createGain(), voiced = ctx.createGain();
-      osc.setPeriodicWave(this.glottal);
-      osc.frequency.setValueCurveAtTime(p.f0.map((f) => f * pitch * wobble), t0, p.len);
-      vib.frequency.value = 5.5 + Math.random() * 1.5;
-      vibDepth.gain.value = p.len > 0.3 ? 45 : 15; // cents
-      vib.connect(vibDepth).connect(osc.detune);
-      osc.connect(voiced);
-      // breath: an "h" before the voice comes in, and a little air all the way through
-      const air = ctx.createBufferSource(), airGain = ctx.createGain();
-      air.buffer = this.noise;
-      air.loop = true;
-      airGain.gain.setValueAtTime(p.h ? 0.9 : 0.05, t0);
-      voiced.gain.setValueAtTime(p.h ? 0 : 1, t0);
-      if (p.h) {
-        airGain.gain.linearRampToValueAtTime(0.05, t0 + p.h * 1.5);
-        voiced.gain.linearRampToValueAtTime(1, t0 + p.h);
-      }
-      air.connect(airGain);
-      FORMANT_GAINS.forEach((g, i) => {
-        const band = ctx.createBiquadFilter(), level = ctx.createGain();
-        band.type = 'bandpass';
-        band.Q.value = 4 + i * 2;
-        band.frequency.setValueCurveAtTime(p.v.map((v) => FORMANTS[v][i] * size), t0, p.len);
-        level.gain.value = g;
-        voiced.connect(band);
-        airGain.connect(band);
-        band.connect(level).connect(into);
-      });
-      // a little of the plain voice too, so the pitch never drops out between the formants
-      const body = ctx.createBiquadFilter(), bodyLevel = ctx.createGain();
-      body.type = 'lowpass';
-      body.frequency.value = 1200 * size;
-      bodyLevel.gain.value = 0.25;
-      voiced.connect(body).connect(bodyLevel).connect(into);
-      osc.start(t0);
-      vib.start(t0);
-      air.start(t0, Math.random());
-      for (const n of [osc, vib, air]) n.stop(t1 + 0.02);
-    }
+    const src = this.ctx.createBufferSource(), gain = this.ctx.createGain();
+    src.buffer = clips[Math.floor(Math.random() * clips.length)];
+    // a little wobble too, so the same clip never sounds quite the same twice
+    src.playbackRate.value = VOICE_RATES[seat % VOICE_RATES.length] * (0.96 + Math.random() * 0.08);
+    gain.gain.value = vol;
+    src.connect(gain).connect(this.master);
+    src.start(this.t + delay);
   }
 
   /** Loops a song of the soundtrack; asking for the one already playing changes nothing. */

@@ -40,7 +40,7 @@ Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the
 
 Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), `U` and `D` (ramps up and down) and `J` (a jump), where a trailing `*` adds walls. A Track may cross itself where a ramp has lifted one part over the other: that is a bridge. A crossing on one level is refused, because it would be a shortcut. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
 
-All sounds are synthesised in the browser with WebAudio, so there are no audio files: the motor, skids, splashes, beeps, explosions, the chiptune soundtrack from [Electro Car Racer](https://github.com/cgrail/e-racer) (one song per Track, in `client/src/songs.ts`), and the Racers' cartoon voices, a formant synth that laughs, yells "ow!", "hey!", "waaah!" or "nooo!" in each Seat's own voice.
+The sounds are synthesised in the browser with WebAudio: the motor, skids, splashes, beeps, explosions and the chiptune soundtrack from [Electro Car Racer](https://github.com/cgrail/e-racer) (one song per Track, in `client/src/songs.ts`). The only recordings are the Racers' voices (laughs and cheers after a Ram, "ow!" when hit, screams, "nooo!" when running dry): 15 short CC0 clips from Freesound in `client/public/voices`, credited in its `CREDITS.md`. Each Seat plays them at its own pitch.
 
 The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `OutlineEffect`), a halftone overlay and the Bangers font, bundled locally so no request goes to Google Fonts.
 
