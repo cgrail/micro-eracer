@@ -1,0 +1,77 @@
+# Micro E-Racer
+
+A Micro Machines–style 3D racing game in the browser, online first. You enter a name, press Play, and take over a Bot's E-Car in a Race that is already running, against up to 7 others (Players or Bots). The E-Cars are electric: Energy drains as you drive and when you are hit, Batteries on the Track charge it, and an empty E-Car is Stranded and then Airlifted to last place. There are Shots, Item Boxes (Missile, Mine, Shield), Rams, Drifts, Puddles and Fall-offs on four small themed Tracks (kitchen, garden, office desk, bathtub). It runs on desktop and mobile.
+
+It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus on a Node server, and Rapier physics in both. Every model, texture, sound, voice and song is generated in code, so there are no asset files; the only bundled asset is the Bangers font (`@fontsource/bangers`).
+
+- **Terms:** [CONTEXT.md](CONTEXT.md) is the glossary (Race, Seat, Player, Bot, E-Car, Body, Energy, Stranded, Airlift, Ram, Hit, Item…). Use its capitalised terms in code, comments and UI text. A new or changed game concept gets its entry there. It is a glossary only, so no implementation details go in it.
+- **Decisions:** [docs/adr/](docs/adr/). An ADR is only for a decision that is hard to reverse, surprising without context and the result of a real trade-off.
+
+## Running and checking
+
+- `npm run dev` starts Vite on `:5173` (with `--host`, so a phone on the LAN can join) and the game server on `:2567` (`tsx watch`). In development the browser connects to `<hostname>:2567`; in production, to its own origin.
+- `TRACK=garden` picks the first Race's Track, and `DRAIN_SCALE=10` makes Energy run out ten times faster (for trying out Stranded and the Airlift). Both work with `npm run dev` and in `/etc/default/micro-eracer` on the server.
+- The user usually has `npm run dev` running. Start any server of your own on another port (`PORT=2600 npx tsx server/src/index.ts`) and never kill theirs.
+- After every change, run these from the repo root:
+  - `npm run typecheck` (`tsc --noEmit`; nothing is emitted, since Vite and tsx run the TypeScript as it is).
+  - `npm test` (`shared/src/race.test.ts`, node:test through tsx). It checks that every Track closes and counts Laps only in order. It runs a headless Race on every Track in which 8 Bots must finish, and checks Stranded → Airlift and Shield. It logs balance stats per Track: Race time, Airlifts, Leader Airlifts, pickups, Rams, Hits. Extend it when you add a mechanic, and look at the stats after balance changes. The Leader should almost never be Airlifted.
+  - `npm run build`, to confirm Vite bundles cleanly. The chunk-size warning is known.
+- The user does all in-browser testing, so never launch a browser or headless Chrome. After each change, list the manual checks to run instead: how it looks, sounds and plays, on desktop and on a phone.
+- `install.sh` deploys onto the box that mech-vs-mech's `install.sh` set up (Caddy in Let's Encrypt mode), next to Electro Car Racer and calvo:
+  - code in `/opt/micro-eracer`, run as user `mer`
+  - systemd unit `micro-eracer` on `127.0.0.1:8091`, started with `node --import tsx server/src/index.ts`
+  - Caddy site `/etc/caddy/apps/micro-eracer.caddy`
+  - a timer that runs `update.sh` every 5 minutes, so **a push to `main` goes live within 5 minutes**
+
+  Both scripts build with `npm ci && npm run build`, so a new dependency needs nothing more there. Check them with `bash -n` (and shellcheck if it's installed).
+
+## Architecture
+
+One `package.json`, no workspaces. There are three folders, and `client/` and `server/` both import `shared/`.
+
+| Folder | Files | Role |
+|---|---|---|
+| `shared/src/` | `track.ts` (`buildTrack`, `TRACKS`, progress), `tracks/*.ts` (one data file per Track), `car.ts` (Rapier world, `createCar`, `driveCar`, Energy constants), `race.ts` (`RaceSim`, `Seat`, `RaceEvent`, `botInput`), `combat.ts` (`Combat`: Shots, Item Boxes, Missiles, Mines, Shields), `race.test.ts` | The game itself: Tracks, physics and the Race simulation. It runs in Node on the server, and the browser reuses the Track and physics code. It has no networking, so an Offline Race can run `RaceSim` in the browser later |
+| `server/src/` | `index.ts` (Colyseus server; in production it also serves `client/dist` with Express), `RaceRoom.ts` (state schema, messages, `sync()`) | One Colyseus room per Race wraps a `RaceSim` and steps it at 60 Hz. Each tick broadcasts that tick's `events` and copies the sim into the schema state (`sync()`) |
+| `client/src/` | `main.ts` (start form, mute, joining), `game.ts` (`startGame`: renderer, state sync, own E-Car, events, camera, HUD), `scene.ts` (toon materials, Track scenery per theme, `makeCar`, `makeDrone`, `makeBattery`, …), `effects.ts` (`Particles`), `input.ts` (keyboard and touch `Controls`), `audio.ts` (`Sound`: effects, motor, cartoon voices, music player), `songs.ts` (soundtrack data), `index.html`, `style.css` | The browser app. It drives the Player's own E-Car locally and shows everything else as the server reports it |
+
+### Core model
+
+- **Who owns what** ([ADR 0001](docs/adr/0001-browsers-drive-own-car-server-owns-the-rest.md)):
+  - **The browser:** each browser simulates only its own E-Car, as a dynamic Rapier body in its own world of the Track. It sends a `pose` 20 times a second, and handles its own Fall-off (back to the last Checkpoint).
+  - **The server owns everything else:** Bots (dynamic bodies driven by `botInput`), Laps and Positions, Energy, Batteries, Rams, Combat, phases and results. Players' E-Cars are kinematic bodies on the server, placed from their poses, and `ActiveCollisionTypes.KINEMATIC_KINEMATIC` lets the server judge Rams between them.
+  - **What the server does to a Player's E-Car** reaches the browser in one of two ways, never by moving the server's body:
+    - a Hit's shove and spin come as a `hit` event, and that browser applies them;
+    - a jump (new grid, Airlift) bumps `Seat.spawn`. The browser teleports to the reported pose when it sees the new `spawn`, and the server ignores poses that carry an old `spawn`.
+- **Track:** a turtle walk of pieces (`S`, `L`, `R`; a trailing `*` adds walls) on a grid of `TILE` = 16 m tiles. It is sampled into `samples`; Checkpoints, the Bot racing line, Puddles and Item Box spots all come from piece indexes. Progress (`Progress.u`) is a continuous sample count found by a windowed nearest-sample search. That stops shortcuts: a Lap only counts when the samples are passed in order. Every Track must close, which `npm test` checks.
+- **Race flow:** `phase` goes grid → racing → finishing. Grid time is 3 s for the first Race and 5 s after that. The Race ends 10 s after the first finish, then the next Race starts on a different Track. There are 3 Laps and 8 Seats.
+- **Joining and leaving:** a joining Player takes over the last-Position Bot's E-Car where it is. A leaving Player's Seat goes back to a Bot (after a 5 s chance to reconnect).
+- **Energy:** drains by distance driven: a full tank lasts `TANK_LAPS` = 2.2 Laps on any Track. Shots cost Energy and Hits drain it. Below 25 the E-Car is in Limp Mode, down to half speed at empty. At 0 it is Stranded for `STRANDED_TIME` (it jerks, sputters, and the drone arrives), then Airlifted: put behind the last Racer on the same Lap, with full Energy.
+- **Batteries:** they spawn mostly ahead of the trailing half of the field. One in three spawns ahead of the front half, so a Leader who goes for them can survive. Rams steal Energy.
+- **Bots:** they hold off attacking for 4 s after GO (`botsAttack`). After that they hunt Batteries, Ram prey ahead (Players first), use Items when they make sense, and save their Shots mostly for Players. `catchUp` keeps them near the Players.
+- **Events:** `RaceEvent` (`ram`, `hit`, `boom`, `block`, `battery`, `shot`, `stranded`, `airlift`, `box`, `item`) is what happened in one tick. It exists only to drive sounds and effects in the browsers; the state is the truth.
+- **Look:** cel shading (`MeshToonMaterial` with a 3-tone gradient) with black outlines (`OutlineEffect`; `userData.outlineParameters = { visible: false }` turns one material's outline off), static scenery merged per material, canvas textures, a halftone overlay and comic HUD lettering.
+- **Sound:** all WebAudio, started by the Play button (a user gesture, which mobile browsers need).
+  - effects, and the motor whine and skid of the Player's own E-Car
+  - cartoon voices (`cry(mood, seat)`): a formant synth with one voice per Seat. Cries about other E-Cars are rationed, and ones about your own always play
+  - one chiptune song per Track, from Electro Car Racer (github.com/cgrail/e-racer)
+  - one mute switch for everything
+
+## Rules for changes
+
+- **Everything stays procedural:** no image, model, audio or font files beyond the bundled Bangers font. No requests to Google Fonts or other third parties (the audience is in Germany, so GDPR applies).
+- **`shared/` runs in Node:** it must not touch the DOM or browser APIs, and it stays free of networking.
+- **Server and browsers run the same `shared/` code:** a change to it, to the schema in `RaceRoom.ts`, to a message or to `RaceEvent` needs both sides deployed together. One process serves both, so a deploy does that, but tabs that are already open run the old client until they reload.
+- **Never trust the browser:** every message is checked on the server (`isPose`: finite numbers, bounded; names cut to 16 characters; Body from `BODY_KINDS`), and Shots and Items go through `canAct` and the server's own cooldowns.
+- **Mobile is a first-class target:** every new action needs a touch button (in `#touch` in `index.html`, wired in `input.ts`). Layouts must work at phone width with safe-area insets. Mind the draw calls: `OutlineEffect` already renders everything twice.
+- **Per-Seat state lives on the `Seat`** (server) or in `views[seat]` (browser), never in globals.
+- **Tracks are data:** a new Track is a file in `shared/src/tracks/` added to `TRACKS`, with a theme in `scene.ts` if it's new; `npm test` must pass on it.
+- **Keep files under about 300 lines.** `game.ts`, `scene.ts`, `audio.ts` and `race.ts` are already past that. When a change makes one of them grow, split it along a real seam (HUD out of `game.ts`, props per theme out of `scene.ts`, voices out of `audio.ts`, Bots out of `race.ts`) instead.
+- **Saved data:** `localStorage` keys `name`, `body` and `muted`, each read and written in `try/catch` (private mode), so the game works without storage. Old values must keep loading.
+- **Keep `README.md` in sync** when you add player-visible features, controls or settings.
+
+## Workflow
+
+- The backlog is `todo.md`, worked through with the `/todo` skill. Each item gets its own commit, and done items are ticked `[x]` and kept.
+- Commit messages use an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the reason isn't obvious.
+- Don't push unless asked: pushing to `main` deploys.
