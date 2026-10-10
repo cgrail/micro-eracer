@@ -46,9 +46,11 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #pos { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 16px; font-size: 52px; color: var(--yellow); }
 #lap { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; font-size: 32px; }
 #msg { position: absolute; top: 26%; width: 100%; text-align: center; font-size: 64px; color: var(--yellow); }
-#results { position: absolute; top: calc(26% + 84px); left: 50%; transform: translateX(-50%) rotate(1deg); margin: 0; padding: 12px 20px 12px 44px;
+#results { position: absolute; top: calc(26% + 116px); left: 50%; transform: translateX(-50%) rotate(1deg); margin: 0; padding: 12px 20px 12px 44px;
   background: var(--paper); color: var(--ink); border: 3px solid #111; border-radius: 12px; box-shadow: 5px 5px 0 #111; font-size: 22px; }
 #results:empty { display: none; }
+#news { position: absolute; top: calc(26% + 76px); width: 100%; padding: 0 16px; text-align: center; font-size: 24px; color: #fff;
+  -webkit-text-stroke: 1.5px #111; paint-order: stroke fill; text-shadow: 2px 2px 0 #111; }
 #offline { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); margin: 0; padding: 4px 12px;
   background: var(--paper); color: var(--ink); border: 2px solid #111; border-radius: 10px; font: 16px var(--comic); white-space: nowrap; }
 @media (pointer: coarse) { #offline { bottom: auto; top: max(150px, calc(env(safe-area-inset-top) + 140px)); } }

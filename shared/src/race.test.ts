@@ -151,6 +151,18 @@ test('Bots keep shooting at a Player in the lead', async () => {
   assert.ok(shots >= 2 && hits >= 1, `${shots} Shots, ${hits} Hits`);
 });
 
+test('a Player taking over a Bot is announced, and only Bots wear the robot', async () => {
+  await initPhysics();
+  const sim = new RaceSim('kitchen');
+  const seat = sim.join('p', '🤖 Sneaky', 'roadster')!;
+  assert.equal(seat.name, 'Sneaky');
+  const joined = sim.events.find((e) => e.t === 'join');
+  assert.ok(joined?.t === 'join' && joined.name === 'Sneaky' && joined.was.startsWith('🤖'));
+  sim.leave('p');
+  assert.ok(!seat.owner && seat.name.startsWith('🤖'));
+  assert.ok(sim.events.some((e) => e.t === 'leave' && e.was === 'Sneaky'));
+});
+
 test('a Shield blocks the next Hit, then the Hit after it lands', async () => {
   await initPhysics();
   const sim = new RaceSim('garden');

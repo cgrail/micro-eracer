@@ -27,7 +27,7 @@ A human Racer.
 _Avoid_: User, client
 
 **Bot**:
-A computer-controlled Racer that races, shoots and Rams like a Player and stays close to the Players.
+A computer-controlled Racer that races, shoots and Rams like a Player and stays close to the Players. Its name always starts with 🤖, so nobody mistakes it for a Player.
 _Avoid_: AI, NPC, CPU
 
 **E-Car**:

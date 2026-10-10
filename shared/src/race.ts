@@ -65,10 +65,15 @@ export type RaceEvent =
   | { t: 'hit'; s: number; by: number; kind: HitKind; ix: number; iz: number; hop: number; spin: number }
   | { t: 'boom'; x: number; z: number }
   | { t: 'block' | 'battery' | 'shot' | 'stranded' | 'recharge'; s: number }
-  | { t: 'box' | 'item'; s: number; item: ItemKind };
+  | { t: 'box' | 'item'; s: number; item: ItemKind }
+  /** A Player took over a Bot's Seat (`join`), or a Bot took over from a Player who left (`leave`); `was` is who had it. */
+  | { t: 'join' | 'leave'; s: number; name: string; was: string };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-const botName = (i: number) => `Bot ${i + 1}`;
+/** A Bot's name always starts with the robot, so nobody takes one for a Player. */
+const BOT_NAMES = ['Sparky', 'Volty', 'Amp Champ', 'Ohmigosh', 'Zappy', 'Coily', 'Fuse Box', 'Watt-Ever', 'Plugsy', 'Lithia'];
+const BOT = '🤖';
+const botName = (i: number) => `${BOT} ${BOT_NAMES[i % BOT_NAMES.length]}`;
 
 /** One Race and everything the server owns in it. Kept free of networking so an Offline Race can run it too. */
 export class RaceSim {
@@ -130,6 +135,9 @@ export class RaceSim {
     if (!bots.length) return null;
     const seat = bots.reduce((a, b) => (b.position > a.position ? b : a));
     const v = seat.car.rb.linvel();
+    // only Bots wear the robot
+    name = name.replaceAll(BOT, '').trim() || 'Player';
+    this.emit({ t: 'join', s: seat.index, name, was: seat.name });
     Object.assign(seat, { owner, name, kind, vx: v.x, vz: v.z });
     this.replaceCar(seat, false);
     return seat;
@@ -139,6 +147,7 @@ export class RaceSim {
   leave(owner: string) {
     const seat = this.seats.find((s) => s.owner === owner);
     if (!seat) return;
+    this.emit({ t: 'leave', s: seat.index, name: botName(seat.index), was: seat.name });
     Object.assign(seat, { owner: '', name: botName(seat.index) });
     this.replaceCar(seat, true);
   }

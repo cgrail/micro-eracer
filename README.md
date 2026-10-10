@@ -24,6 +24,8 @@ Run dry and you're Stranded: the world turns black and white until a drone arriv
 
 Low on Energy and no Battery in sight? The Charging Station is a bay beside the last straights before the finish line: drive through it to charge fast, but it has a speed limit, so it's a detour.
 
+Bots have names that start with 🤖 and grey name tags; Players' tags are gold. When you join, you take over a Bot's E-Car where it is, and everyone sees who took over whom.
+
 Leading is meant to be hard: every Bot behind a Player in first place shoots at them, about once a second between them. A Shield, a dodge or a Battery is how you hold on.
 
 Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the Item. On mobile the E-Car accelerates by itself: drag the left pad to steer, and tap the one action button on the right, which shoots, or uses the Item when you hold one (it shows which). There is no brake on mobile; pushing against a wall while steering turns the E-Car free.

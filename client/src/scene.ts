@@ -458,7 +458,8 @@ export function makeDrone(): THREE.Group {
   return d;
 }
 
-export function makeNameTag(name: string): THREE.Sprite {
+/** A Player's name in gold, a Bot's in grey, so you can tell who is who. */
+export function makeNameTag(name: string, human: boolean): THREE.Sprite {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 64;
   const g = c.getContext('2d')!;
@@ -469,7 +470,7 @@ export function makeNameTag(name: string): THREE.Sprite {
   g.lineJoin = 'round';
   g.strokeStyle = '#111';
   g.strokeText(name, 128, 34);
-  g.fillStyle = '#fff';
+  g.fillStyle = human ? '#ffd60a' : '#c9ced6';
   g.fillText(name, 128, 34);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;

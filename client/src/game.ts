@@ -113,7 +113,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     let v = views[i];
     if (!v || v.kind !== c.body || v.mine !== mine) {
       if (v) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); world!.removeRigidBody(v.car.rb); }
-      const mesh = makeCar(c.body, SEAT_COLORS[i]), tag = makeNameTag(c.name), drone = makeDrone();
+      const mesh = makeCar(c.body, SEAT_COLORS[i]), tag = makeNameTag(c.name, !!c.owner), drone = makeDrone();
       mesh.add(tag);
       drone.visible = false;
       scene.add(mesh, drone);
@@ -127,7 +127,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     if (v.name !== c.name) {
       v.mesh.remove(v.tag);
       dispose(v.tag);
-      v.mesh.add((v.tag = makeNameTag(c.name)));
+      v.mesh.add((v.tag = makeNameTag(c.name, !!c.owner)));
       v.name = c.name;
     }
     if (v.mode !== c.mode) { v.prevMode = v.mode; v.mode = c.mode; v.modeSince = performance.now(); }
@@ -249,6 +249,8 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       if (e.s === mySeat) sound.powerDown();
       sound.cry('despair', e.s, e.s === mySeat ? 1 : near(p.x, p.z), 0.3);
     } else if (e.t === 'recharge' && e.s === mySeat) sound.battery();
+    else if (e.t === 'join') ui.announce(`${e.name} took over ${e.was}!`);
+    else if (e.t === 'leave') ui.announce(`${e.was} left, ${e.name} takes over`);
   }
 
   room.onStateChange((s: RaceState) => {

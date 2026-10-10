@@ -8,6 +8,8 @@ export interface Hud {
   popups: HTMLElement; item: HTMLElement; danger: HTMLElement;
   /** The touch action button: it says what a press does. */
   action: HTMLElement;
+  /** A line for news such as who just joined. */
+  news: HTMLElement;
 }
 
 export const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
@@ -18,6 +20,7 @@ export const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣
  */
 export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
   let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined, lastCount = -1, lastFilter = '';
+  let newsTimer: ReturnType<typeof setTimeout> | undefined;
   return {
     /** `me` is our own E-Car; `status` a connection message that wins over everything else. */
     update(now: number, state: RaceState | undefined, me: CarState | undefined, status: string) {
@@ -55,6 +58,13 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
         lastResults = shown;
         hud.results.replaceChildren(...(shown ? names : []).map((n) => Object.assign(document.createElement('li'), { textContent: n })));
       }
+    },
+
+    /** Shows a line of news for a few seconds; a newer one replaces it. */
+    announce(text: string) {
+      hud.news.textContent = text;
+      clearTimeout(newsTimer);
+      newsTimer = setTimeout(() => (hud.news.textContent = ''), 3500);
     },
 
     popup(text: string, kind: 'gain' | 'loss') {
