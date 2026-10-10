@@ -3,7 +3,7 @@
 [x] roadster and microbus should drive differently. the bus is heavier and slower, but it must still be possible to win with it
 [x] the tracks are flat. add ramps, jumps and bridges, still small and without shortcuts
 [x] offline race against bots when the server can't be reached on play
-[ ] on mobile the steering is to sensitive. give a little bit more control
+[x] on mobile the steering is to sensitive. give a little bit more control
 [ ] the copter should not flow you back, but just recharge you
 [ ] keep only the action button which either shoots or triggers an action. brake is also useless on mobile. only one action button is ok
 [ ] if you're on first place, bots should shoot at you all the time. it should be really hard to stay at the top

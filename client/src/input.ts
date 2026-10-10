@@ -2,6 +2,13 @@ import type { Input } from '../../shared/src/car.ts';
 
 export const isTouch = matchMedia('(pointer: coarse)').matches;
 
+const STEER_DEAD = 6, STEER_FULL = 100;
+/** Drag distance (px) to steering: a small dead zone, then gentle near the middle for small corrections, full lock at STEER_FULL. */
+function steerCurve(dx: number) {
+  const k = Math.min(1, Math.max(0, Math.abs(dx) - STEER_DEAD) / (STEER_FULL - STEER_DEAD));
+  return Math.sign(dx) * k ** 1.4;
+}
+
 export interface Controls {
   drive(): Input;
   /** True while the fire key or button is held. */
@@ -24,7 +31,7 @@ export function createInput(pad: { steer: HTMLElement; brake: HTMLElement; fire:
 
   let steerStart: number | null = null, touchSteer = 0, braking = false, firing = false;
   pad.steer.addEventListener('pointerdown', (e) => { steerStart = e.clientX; pad.steer.setPointerCapture(e.pointerId); });
-  pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) touchSteer = Math.max(-1, Math.min(1, (e.clientX - steerStart) / 60)); });
+  pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) touchSteer = steerCurve(e.clientX - steerStart); });
   for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; });
   const hold = (el: HTMLElement, set: (on: boolean) => void) => {
     el.addEventListener('pointerdown', () => set(true));
