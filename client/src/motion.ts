@@ -1,5 +1,10 @@
 import type * as THREE from 'three';
+import type RAPIER from '@dimforge/rapier3d-compat';
 import { BODIES, type BodyKind, type Car, HALF } from '../../shared/src/car.ts';
+import { RAM_MIN_SPEED, ramResponse } from '../../shared/src/contact.ts';
+import { STRANDED_TIME } from '../../shared/src/race.ts';
+import type { Particles } from './effects.ts';
+import { RECHARGE, STRANDED } from './state.ts';
 import type { Pose, Track } from '../../shared/src/track.ts';
 
 /** How the browser shows one E-Car: its model, its physics body here, and where it is drawn. */
@@ -16,11 +21,14 @@ export interface CarView {
   roadY: number;
   /** The model's eased slope along a ramp. */
   tilt: number;
+  /** When we last shoved it ourselves (`ourRams`), so the server's word on that Ram isn't applied twice. */
+  kickedAt: number;
   wet: boolean;
 }
 
 export const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const smooth = (k: number) => k * k * (3 - 2 * k);
 
 /** Rise of the road per metre along the Track at sample `i`. */
 const gradeAt = (track: Track, i: number) => {
@@ -57,4 +65,58 @@ export function place(v: CarView, track: Track, i: number, p: { x: number; y: nu
   v.tilt += (along - v.tilt) * (1 - Math.exp(-dt * 12));
   v.mesh.position.set(p.x, p.y - Math.abs(v.tilt) * BODIES[v.kind].length, p.z);
   v.mesh.rotation.set(-Math.atan(v.tilt), yaw, 0, 'YXZ');
+}
+
+/**
+ * Our own Rams. Here the other E-Cars can't be pushed (they go where the server says), so they'd stop us like a wall: when
+ * we drive into one, we shove it at once and keep the way the collision leaves us, as the server works out too.
+ * `before` is our velocity going into this physics step.
+ */
+export function ourRams(world: RAPIER.World, own: CarView, views: CarView[], before: { x: number; z: number }) {
+  const rb = own.car.rb, t = rb.translation(), now = performance.now();
+  for (const v of views) {
+    if (v.mine || now - v.kickedAt < 500) continue;
+    let touching = false;
+    world.contactPair(rb.collider(0), v.car.rb.collider(0), (m) => { if (m.numContacts() > 0) touching = true; });
+    if (!touching) continue;
+    const o = v.car.rb.translation(), d = Math.hypot(o.x - t.x, o.z - t.z) || 1, n = { x: (o.x - t.x) / d, z: (o.z - t.z) / d };
+    const ours = before.x * n.x + before.z * n.z, theirs = -(v.target.vx * n.x + v.target.vz * n.z);
+    // only when we drove into them; when they drive into us, the server's Ram shoves us
+    if (ours + theirs < RAM_MIN_SPEED || ours * BODIES[own.kind].mass < theirs * BODIES[v.kind].mass) continue;
+    const { kick, keep } = ramResponse(own.car, v.car, n, ours + theirs);
+    v.target.vx += n.x * kick;
+    v.target.vz += n.z * kick;
+    v.kickedAt = now;
+    const after = rb.linvel(), along = after.x * n.x + after.z * n.z, want = -theirs + keep;
+    rb.setLinvel({ x: after.x + n.x * (want - along), y: after.y, z: after.z + n.z * (want - along) }, true);
+  }
+}
+
+/**
+ * Out of energy: Stranded and jerking on the spot while a drone flies in, then the drone hovers
+ * over the E-Car sending charge down into it (the Recharge), and flies off once it's full.
+ */
+export function dronePose(v: CarView, time: number, { soot, sparks }: { soot: Particles; sparks: Particles }) {
+  const since = (performance.now() - v.modeSince) / 1000;
+  let droneY = -1, jerk = 0;
+  if (v.mode === STRANDED) {
+    jerk = Math.max(0, 1 - since / (STRANDED_TIME - 0.4));
+    if (since > 0.6) droneY = 14 - smooth(Math.min(1, (since - 0.6) / 0.6)) * 11.4;
+  } else if (v.mode === RECHARGE) {
+    droneY = 2.6 + Math.sin(time * 5) * 0.15;
+    const p = v.mesh.position;
+    if (Math.random() < 0.6) sparks.emit(p.x + (Math.random() - 0.5) * 0.6, p.y + 2.2, p.z + (Math.random() - 0.5) * 0.6, 0, -6, 0, 0.3, 0.35);
+  } else if (v.prevMode === RECHARGE && since < 0.6) droneY = 2.6 + since ** 2 * 40;
+  const p = v.mesh.position;
+  p.y += Math.abs(Math.sin(time * 23)) * 0.15 * jerk;
+  v.mesh.rotation.z = Math.sin(time * 31) * 0.1 * jerk;
+  v.mesh.rotation.x += Math.sin(time * 19) * 0.06 * jerk;
+  if (jerk > 0 && Math.random() < 0.3) soot.emit(p.x, p.y + 0.3, p.z, Math.random() - 0.5, 1.5, Math.random() - 0.5, 0.8, 0.9);
+  v.drone.visible = droneY >= 0;
+  if (v.drone.visible) {
+    v.drone.position.set(p.x, p.y + droneY, p.z);
+    v.drone.rotation.y = v.mesh.rotation.y;
+    for (const rotor of v.drone.userData.rotors as THREE.Object3D[]) rotor.rotation.y += 0.9;
+  }
+  return v.drone.visible;
 }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
+import { ramResponse, shove } from './contact.ts';
 import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
 import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress } from './track.ts';
 
@@ -59,6 +60,19 @@ test('an E-Car that ends up on another is put down beside it', async () => {
   for (let t = 0; t < 1.5; t += DT) sim.step(DT);
   const pa = a.car.rb.translation(), pb = b.car.rb.translation();
   assert.ok(Math.hypot(pa.x - pb.x, pa.z - pb.z) > 2.5 && Math.abs(pa.y - pb.y) < 0.5, `still stacked: ${pb.y - pa.y} m apart in height`);
+});
+
+test('a side Ram shoves the victim away, harder from a heavier rammer, and makes it skid', async () => {
+  await initPhysics();
+  const track = buildTrack(TRACKS[0]), world = createTrackWorld(track), at = poseAt(track, 40);
+  const car = (kind: 'roadster' | 'semi', lateral: number) => createCar(world, kind, poseAt(track, 40, lateral), true);
+  const victim = car('roadster', 0), n = { x: -Math.cos(at.yaw), z: Math.sin(at.yaw) }; // from the rammer on its left, across it
+  const even = ramResponse(car('roadster', 3), victim, n, 10), heavy = ramResponse(car('semi', 3), victim, n, 10);
+  assert.ok(Math.abs(even.kick - 6.5) < 0.01 && Math.abs(even.keep - 3.5) < 0.01, 'equal weights share the speed, with a bounce');
+  assert.ok(heavy.kick > 9 && heavy.keep > even.keep);
+  shove(victim, n.x * even.kick, n.z * even.kick, 0);
+  const v = victim.rb.linvel();
+  assert.ok(Math.hypot(v.x, v.z) > 6 && victim.slide > 0);
 });
 
 test('Laps count only when driven in order', () => {

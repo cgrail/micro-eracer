@@ -70,7 +70,7 @@ export interface PoseReport extends Pose { vx: number; vz: number; spawn: number
 
 /** Things that happened this tick, for sounds and effects in the browsers. `s` is a Seat index. */
 export type RaceEvent =
-  | { t: 'ram'; a: number; b: number; n: number }
+  | { t: 'ram'; a: number; b: number; n: number; ix: number; iz: number; spin: number }
   | { t: 'hit'; s: number; by: number; kind: HitKind; ix: number; iz: number; hop: number; spin: number }
   | { t: 'boom'; x: number; z: number }
   | { t: 'block' | 'battery' | 'shot' | 'stranded' | 'recharge'; s: number }

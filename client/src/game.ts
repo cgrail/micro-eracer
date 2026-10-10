@@ -5,14 +5,15 @@ import {
   type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
-import { type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
+import type { RaceEvent } from '../../shared/src/race.ts';
 import {
   type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
 import { makeCar } from './cars.ts';
-import { type CarView, angleDiff, glide, place } from './motion.ts';
+import { type CarView, angleDiff, dronePose, glide, ourRams, place } from './motion.ts';
+import { shove } from '../../shared/src/contact.ts';
 import { Particles } from './effects.ts';
 import { type Hud, ITEM_ICONS, createHud, itemLabel } from './hud.ts';
 import type { Controls } from './input.ts';
@@ -22,7 +23,6 @@ import {
 import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
 
 
-const smooth = (k: number) => k * k * (3 - 2 * k);
 
 function dispose(obj: THREE.Object3D) {
   obj.traverse((o) => {
@@ -101,7 +101,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       v = views[i] = {
         mesh, tag, drone, name: c.name, kind: c.body, mine, car: createCar(world!, c.body, pose, mine),
         target: { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }, shown: { ...pose },
-        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, roadY: 0, tilt: 0, wet: false,
+        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, roadY: 0, tilt: 0, kickedAt: 0, wet: false,
       };
       if (mine) own = { view: v, seat: i, progress: startProgress(track!, 0), spawn: -1, lockedUntil: 0 };
     }
@@ -185,7 +185,16 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       sound.cry('hurt', e.b, vol);
       sound.cry('gloat', e.a, vol, 0.35);
       for (let k = 0; k < 12; k++) sparks.emit(p.x, 0.8, p.z, (Math.random() - 0.5) * 10, Math.random() * 6, (Math.random() - 0.5) * 10, 0.35, 0.4);
-      if (e.b === mySeat) shake = 0.35;
+      const victim = views[e.b];
+      if (e.b === mySeat && own) {
+        // we drive our own E-Car, so we apply the shove the server worked out
+        shove(own.view.car, e.ix, e.iz, e.spin);
+        shake = 0.35;
+      } else if (victim && performance.now() - victim.kickedAt > 500) {
+        // the shoved E-Car starts sliding at once, before the server's next update shows it (unless we shoved it already)
+        victim.target.vx += e.ix;
+        victim.target.vz += e.iz;
+      }
     } else if (e.t === 'hit') {
       const p = posOf(e.s), mine = e.s === mySeat;
       if (e.kind !== 'shot') {
@@ -271,9 +280,11 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       const press = controls.takeItemPress();
       if (!locked && me.item && (press || (me.item === 'zap' && controls.firing())) && now >= nextShot) { room.send('item'); nextShot = now + 340; }
     }
+    const before = own?.view.car.rb.linvel();
     world.step();
     clock += DT;
     if (!own) return;
+    if (state.phase !== 'grid') ourRams(world, own.view, views, before!);
     const rb = own.view.car.rb, t = rb.translation();
     if (t.y < track.samples[own.progress.idx].y + FALL_Y) {
       teleport(own.view.car, resetToCheckpoint(track, own.progress, views.filter((v) => v !== own!.view).map((v) => v.shown)));
@@ -286,34 +297,6 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     }
   }
 
-  /**
-   * Out of energy: Stranded and jerking on the spot while a drone flies in, then the drone hovers
-   * over the E-Car sending charge down into it (the Recharge), and flies off once it's full.
-   */
-  function dronePose(v: CarView, time: number) {
-    const since = (performance.now() - v.modeSince) / 1000;
-    let droneY = -1, jerk = 0;
-    if (v.mode === STRANDED) {
-      jerk = Math.max(0, 1 - since / (STRANDED_TIME - 0.4));
-      if (since > 0.6) droneY = 14 - smooth(Math.min(1, (since - 0.6) / 0.6)) * 11.4;
-    } else if (v.mode === RECHARGE) {
-      droneY = 2.6 + Math.sin(time * 5) * 0.15;
-      const p = v.mesh.position;
-      if (Math.random() < 0.6) sparks.emit(p.x + (Math.random() - 0.5) * 0.6, p.y + 2.2, p.z + (Math.random() - 0.5) * 0.6, 0, -6, 0, 0.3, 0.35);
-    } else if (v.prevMode === RECHARGE && since < 0.6) droneY = 2.6 + since ** 2 * 40;
-    const p = v.mesh.position;
-    p.y += Math.abs(Math.sin(time * 23)) * 0.15 * jerk;
-    v.mesh.rotation.z = Math.sin(time * 31) * 0.1 * jerk;
-    v.mesh.rotation.x += Math.sin(time * 19) * 0.06 * jerk;
-    if (jerk > 0 && Math.random() < 0.3) soot.emit(p.x, p.y + 0.3, p.z, Math.random() - 0.5, 1.5, Math.random() - 0.5, 0.8, 0.9);
-    v.drone.visible = droneY >= 0;
-    if (v.drone.visible) {
-      v.drone.position.set(p.x, p.y + droneY, p.z);
-      v.drone.rotation.y = v.mesh.rotation.y;
-      for (const rotor of v.drone.userData.rotors as THREE.Object3D[]) rotor.rotation.y += 0.9;
-    }
-    return v.drone.visible;
-  }
 
   /** Splashes, drift smoke, spinning wheels, warning lights, drones, Batteries, Item Boxes and flying weapons. */
   function animate(dt: number, time: number) {
@@ -340,7 +323,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
         sound.splash(v.mine ? 1.5 : near(p.x, p.z));
       }
       v.lastY = p.y;
-      const flying = dronePose(v, time);
+      const flying = dronePose(v, time, { soot, sparks });
       if (v.mine) ownDrone = flying;
       // red roof light: slow below a quarter of the Energy, fast when nearly or completely empty
       const low = v.energy < 25 || v.mode === STRANDED;

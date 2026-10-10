@@ -27,8 +27,11 @@ const BRAKE = 30, REVERSE_MAX = 6, DRIFT_IN = 4, DRIFT_OUT = 2.5;
 /** `hold`: brake to a halt and then stay put, even on a ramp (Stranded or being Recharged). */
 export interface Input { throttle: number; steer: number; hold?: boolean }
 export const NO_INPUT: Input = { throttle: 0, steer: 0 };
-/** `spin`: yaw rate (rad/s) of a spin-out after a Hit, fading away; the driver has no control meanwhile. */
-export interface Car { rb: RAPIER.RigidBody; kind: BodyKind; drifting: boolean; spin: number }
+/**
+ * `spin`: yaw rate (rad/s) of a spin-out after a Hit or Ram, fading away; the driver has no control meanwhile.
+ * `slide`: seconds left of a skid after being Rammed, with little grip, so the E-Car slides away sideways.
+ */
+export interface Car { rb: RAPIER.RigidBody; kind: BodyKind; drifting: boolean; spin: number; slide: number }
 
 export const initPhysics = () => RAPIER.init();
 export const yawQuat = (yaw: number) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -72,7 +75,7 @@ export function createCar(world: RAPIER.World, kind: BodyKind, pose: Pose, dynam
     .setMass(BODIES[kind].mass).setFriction(0).setRestitution(0.3)
     // Players' E-Cars are kinematic on the server; their contacts are still needed to judge Rams
     .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.DEFAULT | RAPIER.ActiveCollisionTypes.KINEMATIC_KINEMATIC), rb);
-  return { rb, kind, drifting: false, spin: 0 };
+  return { rb, kind, drifting: false, spin: 0, slide: 0 };
 }
 
 export function teleport(car: Car, pose: Pose, vx = 0, vz = 0) {
@@ -117,7 +120,8 @@ export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale
 
   car.drifting = Math.abs(ls) > (car.drifting ? DRIFT_OUT : DRIFT_IN);
   const spinning = Math.abs(car.spin) > 0.3;
-  ls *= Math.max(0, 1 - p.grip * (car.drifting || spinning ? 0.5 : 1) * (wet ? 0.5 : 1) * DT);
+  car.slide = Math.max(0, car.slide - DT);
+  ls *= Math.max(0, 1 - p.grip * (car.slide > 0 ? 0.25 : car.drifting || spinning ? 0.5 : 1) * (wet ? 0.5 : 1) * DT);
   // a Drift rotates the car faster: that is the tighter line through the corner. Pushing on the throttle it turns a little
   // even standing still, so an E-Car stuck nose-first on a wall can get free (touch has no reverse)
   const turning = input.throttle > 0 ? Math.max(0.3, clamp(fs / 8, -1, 1)) : clamp(fs / 8, -1, 1);
