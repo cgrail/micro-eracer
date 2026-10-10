@@ -1,6 +1,6 @@
 # Todo
 
-[x] the first place should be slowed down until player 2 can be seen. it shall be a real constant fight between position 1,2 and 3
+
 [ ] bundle size. vite v8.3.4 building client environment for production...
 ✓ 80 modules transformed.
 computing gzip size...
