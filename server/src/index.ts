@@ -15,6 +15,7 @@ const server = defineServer({
   express: (app) => { app.use(express.static(fileURLToPath(new URL('../../client/dist', import.meta.url)))); },
 });
 
-const port = Number(process.env.PORT ?? 2567);
-await server.listen(port);
-console.log(`Micro E-Racer server on :${port}`);
+// HOST=127.0.0.1 behind a reverse proxy on the same box; all interfaces otherwise
+const port = Number(process.env.PORT ?? 2567), host = process.env.HOST || undefined;
+await server.listen(port, host);
+console.log(`Micro E-Racer server on ${host ?? ''}:${port}`);

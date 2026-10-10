@@ -107,6 +107,8 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     world?.free();
     if (look) { scene.remove(look.group); dispose(look.group); look.background.dispose(); }
     track = buildTrack(TRACKS.find((t) => t.id === id) ?? TRACKS[0]);
+    // every Track has its own song
+    sound.music(TRACKS.indexOf(track.def));
     world = createTrackWorld(track);
     look = buildTrackScene(track);
     scene.add(look.group);
@@ -213,20 +215,23 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     if (e.t === 'ram') {
       const p = posOf(e.b), vol = e.a === mySeat || e.b === mySeat ? 1 : near(p.x, p.z);
       sound.crash(vol);
-      sound.scream(vol);
+      sound.cry('hurt', e.b, vol);
+      sound.cry('gloat', e.a, vol, 0.35);
       for (let k = 0; k < 12; k++) sparks.emit(p.x, 0.8, p.z, (Math.random() - 0.5) * 10, Math.random() * 6, (Math.random() - 0.5) * 10, 0.35, 0.4);
-      if (e.a === mySeat) sound.shout(true);
-      if (e.b === mySeat) { sound.shout(false); shake = 0.35; }
+      if (e.b === mySeat) shake = 0.35;
     } else if (e.t === 'hit') {
       const p = posOf(e.s), mine = e.s === mySeat;
-      if (e.kind !== 'shot') sound.scream(mine ? 1 : near(p.x, p.z));
+      if (e.kind !== 'shot') {
+        const by = posOf(e.by);
+        sound.cry('thrown', e.s, mine ? 1 : near(p.x, p.z));
+        sound.cry('gloat', e.by, e.by === mySeat ? 1 : near(by.x, by.z), 0.6);
+      }
       if (mine && own) {
         // we drive our own E-Car, so we apply the shove the server worked out
         const v = own.view.car.rb.linvel();
         own.view.car.rb.setLinvel({ x: v.x + e.ix, y: v.y + e.hop, z: v.z + e.iz }, true);
         own.view.car.spin = e.spin;
         shake = e.kind === 'shot' ? 0.15 : 0.5;
-        if (e.kind !== 'shot') sound.shout(false);
       }
       if (e.kind === 'shot') for (let k = 0; k < 8; k++) sparks.emit(p.x, 0.9, p.z, (Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6, 0.3, 0.3);
     } else if (e.t === 'boom') {
@@ -253,7 +258,11 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       const icons = Object.values(ITEM_ICONS).filter(Boolean);
       for (let k = 0; k < 5; k++) setTimeout(() => (hud.item.textContent = icons[k % icons.length]), k * 100);
       setTimeout(() => (hud.item.textContent = ITEM_ICONS[e.item]), 500);
-    } else if (e.t === 'stranded' && e.s === mySeat) sound.powerDown();
+    } else if (e.t === 'stranded') {
+      const p = posOf(e.s);
+      if (e.s === mySeat) sound.powerDown();
+      sound.cry('despair', e.s, e.s === mySeat ? 1 : near(p.x, p.z), 0.3);
+    }
   }
 
   room.onStateChange((s: RaceState) => {

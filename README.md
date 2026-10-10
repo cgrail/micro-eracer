@@ -30,18 +30,17 @@ Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the
 
 Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), where a trailing `*` adds walls. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
 
-All sounds are synthesised in the browser with WebAudio, so there are no audio files: the motor, skids, splashes, beeps, explosions, and cartoon screams on Rams. Shouts use the browser's built-in speech voice.
+All sounds are synthesised in the browser with WebAudio, so there are no audio files: the motor, skids, splashes, beeps, explosions, the chiptune soundtrack from [Electro Car Racer](https://github.com/cgrail/e-racer) (one song per Track, in `client/src/songs.ts`), and the Racers' cartoon voices, a formant synth that laughs, yells "ow!", "hey!", "waaah!" or "nooo!" in each Seat's own voice.
 
 The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `OutlineEffect`), a halftone overlay and the Bangers font, bundled locally so no request goes to Google Fonts.
 
-## Deploy (VPS)
+## Deploy
 
-On a VPS with Docker, with a DNS record for your subdomain pointing at it:
+`install.sh` puts the game on the Ubuntu box that [mech-vs-mech](https://github.com/cgrail/mech-vs-mech)'s `install.sh` already set up in Let's Encrypt mode, next to [Electro Car Racer](https://github.com/cgrail/e-racer) and calvo and the same way they are deployed. Run it on the server:
 
 ```sh
 git clone https://github.com/cgrail/micro-eracer.git && cd micro-eracer
-echo "DOMAIN=race.example.com" > .env
-docker compose up -d --build
+sudo DOMAIN=micro.example.com ./install.sh   # later runs: sudo ./install.sh
 ```
 
-Caddy gets the HTTPS certificate automatically and compresses the app. One Node process serves both the browser app and the game server.
+It builds the game into `/opt/micro-eracer`, runs the server as the unprivileged user `mer` in a sandboxed systemd unit (`micro-eracer`) on `127.0.0.1:8091`, and adds the Caddy site `/etc/caddy/apps/micro-eracer.caddy`, which serves `https://$DOMAIN` with a Let's Encrypt certificate. Point a plain, un-proxied A/AAAA record for the domain at the box. One Node process serves both the browser app and the Races. A systemd timer runs `update.sh` every 5 minutes and deploys whatever lands on `origin/main`; `sudo ./update.sh --force` rebuilds now. Server settings live in `/etc/default/micro-eracer` (`TRACK=` and `DRAIN_SCALE=` from above work there too).
