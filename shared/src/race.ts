@@ -190,7 +190,7 @@ export class RaceSim {
         const v = s.car.rb.linvel();
         s.vx = v.x; s.vz = v.z;
         if (t.y < this.track.samples[s.progress.idx].y + FALL_Y) {
-          teleport(s.car, resetToCheckpoint(this.track, s.progress));
+          teleport(s.car, resetToCheckpoint(this.track, s.progress, this.seats.filter((o) => o !== s).map((o) => o.car.rb.translation())));
           s.lockedUntil = this.time + RESPAWN_LOCK;
           s.lastX = s.car.rb.translation().x; s.lastZ = s.car.rb.translation().z;
           continue;

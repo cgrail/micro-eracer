@@ -302,7 +302,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     if (!own) return;
     const rb = own.view.car.rb, t = rb.translation();
     if (t.y < track.samples[own.progress.idx].y + FALL_Y) {
-      teleport(own.view.car, resetToCheckpoint(track, own.progress));
+      teleport(own.view.car, resetToCheckpoint(track, own.progress, views.filter((v) => v !== own!.view).map((v) => v.shown)));
       own.lockedUntil = clock + 1;
     } else updateProgress(track, own.progress, t.x, t.z);
     if (++ticks % 3 === 0) {

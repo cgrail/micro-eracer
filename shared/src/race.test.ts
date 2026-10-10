@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
 import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
-import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, startProgress, updateProgress } from './track.ts';
+import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress } from './track.ts';
 
 test('every Track closes and its start grid sits behind the finish line', () => {
   for (const def of TRACKS) {
@@ -36,6 +36,15 @@ test('a jump throws an E-Car into the air', async () => {
     air = Math.max(air, t.y - track.samples[nearestSample(track, t.x, t.y, t.z)].y);
   }
   assert.ok(air > 1.5, `flew only ${air.toFixed(2)} m above the road`);
+});
+
+test('a Fall-off never puts an E-Car on top of another', () => {
+  const track = buildTrack(TRACKS[0]), cp = track.checkpoints[3];
+  const blocker = poseAt(track, cp);
+  const pose = resetToCheckpoint(track, startProgress(track, cp + 5), [blocker]);
+  assert.ok(Math.hypot(pose.x - blocker.x, pose.z - blocker.z) > 5);
+  // with nobody in the way it's the Checkpoint itself
+  assert.deepEqual(resetToCheckpoint(track, startProgress(track, cp + 5)), blocker);
 });
 
 test('Laps count only when driven in order', () => {

@@ -52,6 +52,8 @@ export const FALL_Y = -2.5;
 /** Height of a ramp, so a bridge clears the road it crosses. */
 export const RISE = 3.5;
 const KICK = 1.2, KICK_LEN = 10, WINDOW = 25;
+/** How far apart two E-Cars' middles must be for a reset not to land one on the other (the Semi is 4.8 m long). */
+const CLEAR = 5;
 /** The Charging Station: a bay this wide on the right of the last straights, from BAY_FROM to BAY_TO samples before the finish line. */
 export const BAY_WIDTH = 5;
 /** Speed limit in the Charging Station, times the top speed: charging there costs time, so it's a detour. */
@@ -185,11 +187,20 @@ export function updateProgress(track: Track, p: Progress, x: number, z: number):
 }
 
 /** Moves progress back to the last Checkpoint passed and returns the pose to put the E-Car at. */
-export function resetToCheckpoint(track: Track, p: Progress): Pose {
+export function resetToCheckpoint(track: Track, p: Progress, others: Point[] = []): Pose {
   let cp = track.checkpoints[0];
   for (const c of track.checkpoints) if (c <= p.idx) cp = c;
   p.u -= p.idx - cp;
   p.idx = cp;
+  // never onto another E-Car: try across the road, then a little further back (it has to drive past the Checkpoint again)
+  const free = (pose: Pose) => others.every((o) => (o.x - pose.x) ** 2 + (o.z - pose.z) ** 2 > CLEAR ** 2 || !sameLevel(o.y, pose.y));
+  for (const back of [0, 6, 12]) for (const lateral of [0, -2.6, 2.6]) {
+    const pose = poseAt(track, cp - back, lateral);
+    if (!free(pose)) continue;
+    p.u -= back;
+    p.idx = (cp - back + track.n) % track.n;
+    return pose;
+  }
   return poseAt(track, cp);
 }
 
