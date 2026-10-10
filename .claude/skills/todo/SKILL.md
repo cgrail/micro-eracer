@@ -27,7 +27,7 @@ Do **not** batch items. For each item, in order:
    - **`shared/` runs in Node:** no DOM or browser APIs in it, and no networking.
    - **Never trust the browser:** new messages are validated on the server, as `isPose` does.
    - **Everything stays procedural:** no image, model, audio or font files (the CC0 voice clips are the one exception), and no third-party requests.
-   - **Mobile:** touch has one action button and no brake; a new action fits into that button, not a new one. Check phone width and safe areas. Every extra mesh or material costs draw calls twice, because of `OutlineEffect`.
+   - **Mobile:** touch has one action button, no brake, and a Back button only while stuck; a new action fits into the action button, not a new one. Check phone width and safe areas. Every extra mesh or material costs draw calls twice, because of `OutlineEffect`.
    - **Per-Seat state** lives on the `Seat` or in `views[seat]`, never in globals.
    - **File size:** files stay under about 300 lines. If a change makes an oversized file (`game.ts`, `scene.ts`, `audio.ts`, `race.ts`) grow, split it along a real seam as part of the item.
    - **Saved data:** stored `localStorage` values (`name`, `body`, `muted`) keep loading.

@@ -28,7 +28,7 @@ Bots have names that start with 🤖 and grey name tags; Players' tags are gold.
 
 Leading is meant to be hard: Batteries are plentiful at the back of the field and scarce at the front, so the Leader runs dry the most, and every Bot behind a Player in first place shoots at them, about once a second between them. A Shield, a dodge and the Charging Station are how you hold on.
 
-Controls: on desktop, arrows or WASD drive, and Space, E or Shift uses your Item (hold it down and a Zap keeps firing). On mobile the E-Car accelerates by itself: drag the left pad to steer, and tap the one action button on the right, which shows the Item you hold and uses it. There is no brake on mobile; pushing against a wall while steering turns the E-Car free.
+Controls: on desktop, arrows or WASD drive, and Space, E or Shift uses your Item (hold it down and a Zap keeps firing). On mobile the E-Car accelerates by itself: drag the left pad to steer, and tap the one action button on the right, which shows the Item you hold and uses it. There is no brake on mobile; pushing against a wall while steering turns the E-Car free, and if you're stuck a Back button appears: hold it to reverse.
 
 Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes like the Missile, Mine and Shield, and Item Boxes only give to Racers from fourth place back.
 

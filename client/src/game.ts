@@ -67,7 +67,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
   const batteries = new Map<number, THREE.Group>(), mines = new Map<number, THREE.Group>();
   const bolts = new Map<number, { mesh: THREE.Group; s: BoltState; at: number }>();
   let boxes: THREE.Group[] = [];
-  let clock = 0, ticks = 0, status = '', shake = 0, nextShot = 0, nextBeep = 0, roulette = 0, inPit = false;
+  let clock = 0, ticks = 0, status = '', shake = 0, nextShot = 0, nextBeep = 0, roulette = 0, inPit = false, stuckFor = 0;
 
   function loadTrack(id: string) {
     for (const v of views) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); }
@@ -263,6 +263,10 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       inPit = pit;
       // the server slows a Leader who is far ahead (`pace`, in percent)
       driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1) * ((me.pace || 100) / 100), inPuddle(track, t));
+      // pushing on but hardly moving for a moment means stuck (nose on a wall, after a spin): touch gets its reverse button
+      const v = own.view.car.rb.linvel(), yaw = yawOfBody(own.view.car.rb), forward = v.x * Math.sin(yaw) + v.z * Math.cos(yaw);
+      stuckFor = !locked && forward < 1 ? stuckFor + DT : 0;
+      controls.showBack(stuckFor > 0.8);
       // one key or button uses the Item; held down, a Zap keeps firing (the server allows three Shots a second)
       const press = controls.takeItemPress();
       if (!locked && me.item && (press || (me.item === 'zap' && controls.firing())) && now >= nextShot) { room.send('item'); nextShot = now + 340; }

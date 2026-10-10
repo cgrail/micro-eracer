@@ -15,13 +15,15 @@ export interface Controls {
   firing(): boolean;
   /** True once per press of the Item key or the action button. */
   takeItemPress(): boolean;
+  /** On touch, shows the reverse button while the E-Car is stuck (there is no brake otherwise). */
+  showBack(on: boolean): void;
 }
 
 /**
  * Desktop: arrows/WASD drive, Space, E or Shift uses the Item (held, a Zap keeps firing). Mobile: the E-Car accelerates by
  * itself, the left thumb steers, and the right thumb has one action button that uses the Item.
  */
-export function createInput(pad: { steer: HTMLElement; action: HTMLElement }): Controls {
+export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back: HTMLElement }): Controls {
   const keys = new Set<string>();
   let itemPressed = false;
   addEventListener('keydown', (e) => {
@@ -32,19 +34,22 @@ export function createInput(pad: { steer: HTMLElement; action: HTMLElement }): C
   addEventListener('keyup', (e) => keys.delete(e.code));
   addEventListener('blur', () => keys.clear());
 
-  let steerStart: number | null = null, touchSteer = 0, firing = false;
+  let steerStart: number | null = null, touchSteer = 0, firing = false, reversing = false;
   pad.steer.addEventListener('pointerdown', (e) => { steerStart = e.clientX; pad.steer.setPointerCapture(e.pointerId); });
   pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) touchSteer = steerCurve(e.clientX - steerStart); });
   for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; });
   pad.action.addEventListener('pointerdown', () => { firing = true; itemPressed = true; });
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) pad.action.addEventListener(type, () => (firing = false));
+  pad.back.addEventListener('pointerdown', () => (reversing = true));
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) pad.back.addEventListener(type, () => (reversing = false));
 
   const key = (...codes: string[]) => (codes.some((c) => keys.has(c)) ? 1 : 0);
   return {
     drive: () => isTouch
-      ? { throttle: 1, steer: touchSteer }
+      ? { throttle: reversing ? -1 : 1, steer: touchSteer }
       : { throttle: key('ArrowUp', 'KeyW') - key('ArrowDown', 'KeyS'), steer: key('ArrowRight', 'KeyD') - key('ArrowLeft', 'KeyA') },
     firing: () => firing || keys.has('Space'),
     takeItemPress: () => { const p = itemPressed; itemPressed = false; return p; },
+    showBack: (on) => { if (pad.back.hidden === on) pad.back.hidden = !on; if (!on) reversing = false; },
   };
 }

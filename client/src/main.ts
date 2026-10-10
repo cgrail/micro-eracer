@@ -27,7 +27,7 @@ const showBody = () => bodyButtons.forEach((b) => b.setAttribute('aria-pressed',
 bodyButtons.forEach((b) => b.addEventListener('click', () => { body = b.dataset.body as BodyKind; showBody(); }));
 showBody();
 
-const controls = createInput({ steer: $('steer'), action: $('fire') });
+const controls = createInput({ steer: $('steer'), action: $('fire'), back: $('back') });
 const sound = new Sound();
 const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.setAttribute('aria-pressed', String(sound.muted)); };
 sound.setMuted(load('muted') === '1');
