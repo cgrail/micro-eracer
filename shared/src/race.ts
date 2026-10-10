@@ -241,7 +241,8 @@ export class RaceSim {
       if (s) {
         const idx = (s.progress.idx + (front ? 35 : 15) + Math.floor(Math.random() * 20)) % this.track.n;
         const pose = poseAt(this.track, idx, (Math.random() * 2 - 1) * (HALF_WIDTH - 1.2));
-        this.batteries.push({ id: ++this.batteryId, x: pose.x, y: this.track.samples[idx].y, z: pose.z, idx, until: this.time + BATTERY_LIFE });
+        // never inside an Item Box; the next spawn tries elsewhere
+        if (!this.track.itemBoxes.some((b) => (b.x - pose.x) ** 2 + (b.z - pose.z) ** 2 < 3 ** 2)) this.batteries.push({ id: ++this.batteryId, x: pose.x, y: this.track.samples[idx].y, z: pose.z, idx, until: this.time + BATTERY_LIFE });
       }
       this.nextBatteryAt = this.time + BATTERY_EVERY;
     }

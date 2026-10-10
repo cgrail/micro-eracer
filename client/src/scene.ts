@@ -250,7 +250,8 @@ export function buildTrackScene(track: Track): TrackScene {
   }
   statics.add(ribbon(track, -0.15, 0.15, 0.01, m(0xfff3b0, false), (i) => !turn(i) && !track.samples[i].kick && Math.floor(i / 3) % 2 === 0));
   // a jump's kicker in hazard stripes
-  statics.add(ribbon(track, -HALF_WIDTH, HALF_WIDTH, 0.01, m(0xffd60a, false), (i) => track.samples[i].kick && i % 2 === 0));
+  // just under the edge lines, which would otherwise flicker through it
+  statics.add(ribbon(track, -HALF_WIDTH, HALF_WIDTH, 0.006, m(0xffd60a, false), (i) => track.samples[i].kick && i % 2 === 0));
   const side = new THREE.MeshToonMaterial({ color: 0x3a3f47, gradientMap: GRADIENT, side: THREE.DoubleSide });
   side.userData.outlineParameters = { visible: false };
   statics.add(skirt(track, () => -HALF_WIDTH, side), skirt(track, (s) => HALF_WIDTH + s.bay, side));
@@ -317,24 +318,45 @@ export function buildTrackScene(track: Track): TrackScene {
     live.add(disc, shine, ripple(p.x, p.y + 0.05, p.z, p.r * 0.9, random(), animated));
   }
 
-  // scenery in the tiles the road does not use
+  // scenery in the tiles the road does not use: every prop stays inside its tile, so it never reaches the road or the
+  // next tile's props, and clear of the other prop in its tile
   const key = (x: number, z: number) => `${Math.round(x)},${Math.round(z)}`;
   const used = new Set(track.tiles.map((t) => key(t.x, t.z)));
   const tx = track.tiles.map((t) => t.x), tz = track.tiles.map((t) => t.z);
+  const footprints = new Map<string, number>();
+  const footprint = (kind: string) => {
+    if (!footprints.has(kind)) {
+      const box = new THREE.Box3().setFromObject(PROPS[kind](m, rng(kind)));
+      // any way it's turned, the prop fits in this circle
+      footprints.set(kind, Math.max(...[box.min.x, box.max.x].flatMap((bx) => [box.min.z, box.max.z].map((bz) => Math.hypot(bx, bz)))));
+    }
+    return footprints.get(kind)!;
+  };
   let ponds = 0;
   for (let x = Math.min(...tx) - 2 * TILE; x <= Math.max(...tx) + 2 * TILE; x += TILE) {
     for (let z = Math.min(...tz) - 2 * TILE; z <= Math.max(...tz) + 2 * TILE; z += TILE) {
       if (used.has(key(x, z))) continue;
       const count = random() < 0.8 ? 1 + Math.floor(random() * 2) : 0;
+      const placed: { x: number; z: number; r: number }[] = [];
       for (let i = 0; i < count; i++) {
         let kind = look.props[Math.floor(random() * look.props.length)];
-        if (kind === 'pond' && ponds++ >= 2) kind = 'flower';
-        const px = x + (random() - 0.5) * 6, pz = z + (random() - 0.5) * 6;
+        // a pond takes a whole tile to itself
+        if (kind === 'pond' && (ponds >= 2 || placed.length)) kind = 'flower';
+        if (kind === 'pond') ponds++;
+        const r = kind === 'pond' ? 0 : footprint(kind), room = Math.max(0, TILE / 2 - 0.5 - r);
+        let px = x, pz = z, fits = false;
+        for (let tries = 0; tries < 6 && !fits; tries++) {
+          px = x + (random() * 2 - 1) * room;
+          pz = z + (random() * 2 - 1) * room;
+          fits = placed.every((p) => Math.hypot(p.x - px, p.z - pz) > p.r + r + 0.5);
+        }
+        if (!fits) continue;
+        placed.push({ x: px, z: pz, r });
         if (kind === 'pond') {
           const water = mesh(new THREE.CircleGeometry(5.5, 32), toon(0x4fb3e8, { outline: false }), x, look.groundY + 0.05, z);
           water.rotation.x = -Math.PI / 2;
           live.add(water, ripple(x, look.groundY + 0.08, z, 5, random(), animated));
-          for (let a = 0; a < 12; a++) statics.add(PROPS.stone(m, random).translateX(x + Math.cos(a / 1.9) * 6.2).translateZ(z + Math.sin(a / 1.9) * 6.2).translateY(look.groundY));
+          for (let a = 0; a < 12; a++) statics.add(PROPS.stone(m, random).translateX(x + Math.cos(a / 1.9) * 5.6).translateZ(z + Math.sin(a / 1.9) * 5.6).translateY(look.groundY));
           break;
         }
         const prop = PROPS[kind](m, random);
