@@ -20,14 +20,14 @@ Do **not** batch items. For each item, in order:
 2. **Locate it.** [CLAUDE.md](../../../CLAUDE.md) maps the three folders. A change usually touches more than one layer, so follow a feature through every layer it touches:
    - **Simulation:** `shared/src/race.ts`, `combat.ts`, `car.ts`, `track.ts`.
    - **Sync:** the schema and `sync()` in `server/src/RaceRoom.ts`, plus a message handler if the browser sends something new.
-   - **Browser:** the state sync and `onEvent` in `client/src/game.ts`, models in `scene.ts`, sound in `audio.ts`, the HUD in `index.html`, `style.css` and `hud.ts`, and controls in `input.ts` (keys and a touch button).
+   - **Browser:** the state sync and `onEvent` in `client/src/game.ts`, models in `scene.ts`, sound in `audio.ts`, the HUD in `index.html`, `style.css` and `hud.ts`, and controls in `input.ts` (keys, and the touch pad and action button).
 3. **Implement.** Match the surrounding code's idiom: terse, data-driven, comments only for the why, glossary terms from [CONTEXT.md](../../../CONTEXT.md).
 4. **Check the constraints in CLAUDE.md** that the change touches. The ones that bite most often:
    - **Ownership:** each browser drives only its own E-Car. Anything the server does to a Player's E-Car goes out as a `RaceEvent` (applied by that browser) or a `spawn` bump (a jump), never by moving its body on the server.
    - **`shared/` runs in Node:** no DOM or browser APIs in it, and no networking.
    - **Never trust the browser:** new messages are validated on the server, as `isPose` does.
    - **Everything stays procedural:** no image, model, audio or font files, and no third-party requests.
-   - **Mobile:** a new action needs a touch button. Check phone width and safe areas. Every extra mesh or material costs draw calls twice, because of `OutlineEffect`.
+   - **Mobile:** touch has one action button and no brake; a new action fits into that button, not a new one. Check phone width and safe areas. Every extra mesh or material costs draw calls twice, because of `OutlineEffect`.
    - **Per-Seat state** lives on the `Seat` or in `views[seat]`, never in globals.
    - **File size:** files stay under about 300 lines. If a change makes an oversized file (`game.ts`, `scene.ts`, `audio.ts`, `race.ts`) grow, split it along a real seam as part of the item.
    - **Saved data:** stored `localStorage` values (`name`, `body`, `muted`) keep loading.

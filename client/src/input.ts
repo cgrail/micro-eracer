@@ -11,14 +11,17 @@ function steerCurve(dx: number) {
 
 export interface Controls {
   drive(): Input;
-  /** True while the fire key or button is held. */
+  /** True while the fire key or the action button is held. */
   firing(): boolean;
-  /** True once per press of the Item key or button. */
+  /** True once per press of the Item key or the action button. */
   takeItemPress(): boolean;
 }
 
-/** Desktop: arrows/WASD, Space shoots, E or Shift uses the Item. Mobile: auto-throttle, left thumb steers, right thumb brakes/shoots/uses. */
-export function createInput(pad: { steer: HTMLElement; brake: HTMLElement; fire: HTMLElement; item: HTMLElement }): Controls {
+/**
+ * Desktop: arrows/WASD, Space shoots, E or Shift uses the Item. Mobile: the E-Car accelerates by itself, the left thumb steers,
+ * and the right thumb has one action button that shoots, or uses the Item when there is one (the game decides which).
+ */
+export function createInput(pad: { steer: HTMLElement; action: HTMLElement }): Controls {
   const keys = new Set<string>();
   let itemPressed = false;
   addEventListener('keydown', (e) => {
@@ -29,22 +32,17 @@ export function createInput(pad: { steer: HTMLElement; brake: HTMLElement; fire:
   addEventListener('keyup', (e) => keys.delete(e.code));
   addEventListener('blur', () => keys.clear());
 
-  let steerStart: number | null = null, touchSteer = 0, braking = false, firing = false;
+  let steerStart: number | null = null, touchSteer = 0, firing = false;
   pad.steer.addEventListener('pointerdown', (e) => { steerStart = e.clientX; pad.steer.setPointerCapture(e.pointerId); });
   pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) touchSteer = steerCurve(e.clientX - steerStart); });
   for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; });
-  const hold = (el: HTMLElement, set: (on: boolean) => void) => {
-    el.addEventListener('pointerdown', () => set(true));
-    for (const type of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(type, () => set(false));
-  };
-  hold(pad.brake, (on) => (braking = on));
-  hold(pad.fire, (on) => (firing = on));
-  pad.item.addEventListener('pointerdown', () => (itemPressed = true));
+  pad.action.addEventListener('pointerdown', () => { firing = true; itemPressed = true; });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) pad.action.addEventListener(type, () => (firing = false));
 
   const key = (...codes: string[]) => (codes.some((c) => keys.has(c)) ? 1 : 0);
   return {
     drive: () => isTouch
-      ? { throttle: braking ? -1 : 1, steer: touchSteer }
+      ? { throttle: 1, steer: touchSteer }
       : { throttle: key('ArrowUp', 'KeyW') - key('ArrowDown', 'KeyS'), steer: key('ArrowRight', 'KeyD') - key('ArrowLeft', 'KeyA') },
     firing: () => firing || keys.has('Space'),
     takeItemPress: () => { const p = itemPressed; itemPressed = false; return p; },

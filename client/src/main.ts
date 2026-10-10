@@ -13,7 +13,7 @@ const form = $<HTMLFormElement>('start'), nameInput = $<HTMLInputElement>('name'
 const error = $('error'), hudEl = $('hud'), touch = $('touch'), mute = $<HTMLButtonElement>('mute'), offline = $('offline');
 const hud = {
   pos: $('pos'), lap: $('lap'), msg: $('msg'), results: $<HTMLOListElement>('results'),
-  energy: $('energy'), energyFill: $('energy-fill'), popups: $('popups'), item: $('item'), danger: $('danger'),
+  energy: $('energy'), energyFill: $('energy-fill'), popups: $('popups'), item: $('item'), danger: $('danger'), action: $('fire'),
 };
 
 // remembered per browser so the next visit is one tap; storage can be unavailable (private mode)
@@ -27,7 +27,7 @@ const showBody = () => bodyButtons.forEach((b) => b.setAttribute('aria-pressed',
 bodyButtons.forEach((b) => b.addEventListener('click', () => { body = b.dataset.body as BodyKind; showBody(); }));
 showBody();
 
-const controls = createInput({ steer: $('steer'), brake: $('brake'), fire: $('fire'), item: $('use') });
+const controls = createInput({ steer: $('steer'), action: $('fire') });
 const sound = new Sound();
 const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.setAttribute('aria-pressed', String(sound.muted)); };
 sound.setMuted(load('muted') === '1');

@@ -285,8 +285,9 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       const input = me.mode === STRANDED ? haltInput(own.view.car) : locked ? NO_INPUT : controls.drive();
       driveCar(world, own.view.car, input, limpScale(me.energy), inPuddle(track, t));
       if (!locked) {
-        if (controls.firing() && now >= nextShot) { room.send('shoot'); nextShot = now + 340; }
-        if (controls.takeItemPress()) room.send('item');
+        // a press uses the Item when there is one, and only shoots otherwise (on touch both come from one button)
+        if (controls.takeItemPress() && me.item) { room.send('item'); nextShot = now + 600; }
+        else if (controls.firing() && now >= nextShot) { room.send('shoot'); nextShot = now + 340; }
       }
     }
     world.step();

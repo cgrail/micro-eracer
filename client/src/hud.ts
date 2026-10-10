@@ -6,6 +6,8 @@ import { RECHARGE, type CarState, type RaceState, STRANDED } from './state.ts';
 export interface Hud {
   pos: HTMLElement; lap: HTMLElement; msg: HTMLElement; results: HTMLOListElement; energy: HTMLElement; energyFill: HTMLElement;
   popups: HTMLElement; item: HTMLElement; danger: HTMLElement;
+  /** The touch action button: it says what a press does. */
+  action: HTMLElement;
 }
 
 export const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
@@ -33,6 +35,8 @@ export function createHud(hud: Hud, sound: Sound) {
       else if (!msg && now < goUntil) msg = 'GO!';
       hud.pos.textContent = me ? `P${me.position}/${SEATS}` : '';
       hud.lap.textContent = me ? `Lap ${me.lap}/${LAPS}` : '';
+      const action = me?.item ? ITEM_ICONS[me.item] : 'Zap';
+      if (hud.action.textContent !== action) hud.action.textContent = action;
       if (msg !== lastMsg) hud.msg.textContent = lastMsg = msg;
       const energy = me?.energy ?? MAX_ENERGY;
       hud.energyFill.style.width = `${energy}%`;

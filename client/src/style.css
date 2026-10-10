@@ -82,10 +82,8 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #steer { position: absolute; left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 45%; height: 70%;
   display: grid; place-items: center; border: 3px solid rgb(0 0 0 / 0.5); border-radius: 20px; background: rgb(255 255 255 / 0.18);
   color: #fffe; font: 34px var(--comic); touch-action: none; user-select: none; }
-#brake, #fire, #use { position: absolute; border-radius: 50%; color: #fff; box-shadow: 4px 4px 0 #111; touch-action: none; user-select: none; padding: 0; }
-#brake { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 96px; height: 96px; background: rgb(255 77 77 / 0.75); }
-#fire { right: 124px; bottom: max(24px, calc(env(safe-area-inset-bottom) + 8px)); width: 80px; height: 80px; background: rgb(255 200 30 / 0.8); color: #111; }
-#use { right: 28px; bottom: max(124px, calc(env(safe-area-inset-bottom) + 108px)); width: 72px; height: 72px; background: rgb(47 155 255 / 0.8); }
+#fire { position: absolute; right: 24px; bottom: max(24px, env(safe-area-inset-bottom)); width: 108px; height: 108px; padding: 0; border-radius: 50%;
+  background: rgb(255 200 30 / 0.85); color: #111; font-size: 30px; box-shadow: 4px 4px 0 #111; touch-action: none; user-select: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .popup, #energy[data-level="limp"] #energy-fill, #danger { animation: none; }

@@ -20,7 +20,7 @@ To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same ne
 
 Bodies: the Roadster is fast, quick off the line and drifts easily. The Microbus is slower and turns wider, but it's heavy (it wins Rams and gets thrown around less by Hits), grips better and has a bigger battery, so it runs dry less often.
 
-Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the Item. On mobile the E-Car accelerates by itself: drag the left pad to steer, and use the Brake, Zap and Item buttons on the right.
+Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the Item. On mobile the E-Car accelerates by itself: drag the left pad to steer, and tap the one action button on the right, which shoots, or uses the Item when you hold one (it shows which). There is no brake on mobile; pushing against a wall while steering turns the E-Car free.
 
 `DRAIN_SCALE=10 npm run dev` makes batteries run dry ten times faster, so you can try out being Stranded and the drone's Recharge.
 

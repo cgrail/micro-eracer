@@ -109,8 +109,10 @@ export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale
   car.drifting = Math.abs(ls) > (car.drifting ? DRIFT_OUT : DRIFT_IN);
   const spinning = Math.abs(car.spin) > 0.3;
   ls *= Math.max(0, 1 - p.grip * (car.drifting || spinning ? 0.5 : 1) * (wet ? 0.5 : 1) * DT);
-  // a Drift rotates the car faster: that is the tighter line through the corner
-  let yawRate = -input.steer * p.steer * (car.drifting ? 1.3 : 1) * clamp(fs / 8, -1, 1);
+  // a Drift rotates the car faster: that is the tighter line through the corner. Pushing on the throttle it turns a little
+  // even standing still, so an E-Car stuck nose-first on a wall can get free (touch has no reverse)
+  const turning = input.throttle > 0 ? Math.max(0.3, clamp(fs / 8, -1, 1)) : clamp(fs / 8, -1, 1);
+  let yawRate = -input.steer * p.steer * (car.drifting ? 1.3 : 1) * turning;
   if (spinning) { yawRate = car.spin; car.spin *= 1 - 1.8 * DT; fs *= 1 - 1.5 * DT; } else car.spin = 0;
 
   rb.setLinvel({ x: fx * fs + r.x * ls, y: v.y, z: fz * fs + r.z * ls }, true);
