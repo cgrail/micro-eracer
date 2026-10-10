@@ -90,8 +90,12 @@ _Avoid_: Low battery, slowdown
 A pickup that instantly adds Energy; Batteries keep appearing on the Track just ahead of the trailing Racers.
 _Avoid_: Power-up, coin, item
 
+**Stranded**:
+The moment after an E-Car's Energy runs out: it jerks to a halt on the spot, unable to drive, until the Airlift picks it up.
+_Avoid_: Dead, broken down
+
 **Airlift**:
-What happens when an E-Car's Energy runs out: a drone sets it down just behind the last Racer, on that Racer's Lap, with full Energy. A Racer already in last Position is only recharged.
+What follows being Stranded: a drone lifts the E-Car and sets it down just behind the last Racer, on that Racer's Lap, with full Energy. A Racer already in last Position is only recharged.
 _Avoid_: Respawn, reset
 
 **Ram**:
@@ -109,7 +113,7 @@ A fire from the weapon built into every E-Car; it costs the shooter Energy.
 _Avoid_: Bullet, laser
 
 **Item Box**:
-A pickup on the Track that gives a Racer one random Item.
+A pickup at a fixed spot on the Track that gives a Racer without an Item one random Item, and comes back a few seconds after being taken.
 _Avoid_: Mystery box, crate
 
 **Item**:

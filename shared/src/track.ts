@@ -15,6 +15,8 @@ export interface TrackDef {
   pieces: string;
   /** Indexes of the pieces with a Puddle in their middle. */
   puddles: number[];
+  /** Indexes of the pieces with a row of Item Boxes across their middle. */
+  items: number[];
 }
 
 export interface Sample { x: number; z: number; dx: number; dz: number; walls: boolean; turn: boolean }
@@ -33,6 +35,7 @@ export interface Track {
   /** Centre of every tile the road runs through, so scenery can avoid them. */
   tiles: { x: number; z: number }[];
   puddles: Circle[];
+  itemBoxes: { x: number; z: number }[];
 }
 
 export const TRACKS: TrackDef[] = [kitchen, garden, desk, bathtub];
@@ -83,11 +86,11 @@ export function buildTrack(def: TrackDef): Track {
       walls.push({ x: (ax + bx) / 2, z: (az + bz) / 2, yaw: yawOf(bx - ax, bz - az), length: Math.hypot(bx - ax, bz - az) });
     }
   }
-  const puddles = def.puddles.map((piece) => {
-    const mid = Math.floor((checkpoints[piece] + (checkpoints[piece + 1] ?? n)) / 2);
-    return { x: samples[mid].x, z: samples[mid].z, r: 3.2 };
-  });
-  return { def, samples, n, checkpoints, walls, tiles, puddles };
+  const middle = (piece: number) => Math.floor((checkpoints[piece] + (checkpoints[piece + 1] ?? n)) / 2);
+  const puddles = def.puddles.map((piece) => ({ x: samples[middle(piece)].x, z: samples[middle(piece)].z, r: 3.2 }));
+  const track = { def, samples, n, checkpoints, walls, tiles, puddles, itemBoxes: [] as { x: number; z: number }[] };
+  track.itemBoxes = def.items.flatMap((piece) => [-2.8, 0, 2.8].map((lateral) => poseAt(track, middle(piece), lateral)));
+  return track;
 }
 
 export const inPuddle = (track: Track, x: number, z: number) => track.puddles.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < p.r ** 2);

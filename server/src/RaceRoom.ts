@@ -6,14 +6,19 @@ import { type PoseReport, RaceSim, SEATS } from '../../shared/src/race.ts';
 const CarState = schema({
   name: t.string(), body: t.string(), owner: t.string(),
   x: t.float32(), y: t.float32(), z: t.float32(), yaw: t.float32(), vx: t.float32(), vz: t.float32(),
-  lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(), energy: t.uint8(), airlifted: t.boolean(),
+  lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(), energy: t.uint8(),
+  /** 0 driving, 1 stranded (out of Energy), 2 being airlifted */
+  mode: t.uint8(), item: t.string(), shield: t.boolean(),
 }, 'CarState');
 
 const BatteryState = schema({ id: t.uint32(), x: t.float32(), z: t.float32() }, 'BatteryState');
+const BoltState = schema({ id: t.uint32(), kind: t.string(), x: t.float32(), z: t.float32(), vx: t.float32(), vz: t.float32() }, 'BoltState');
+const MineState = schema({ id: t.uint32(), x: t.float32(), z: t.float32() }, 'MineState');
 
 const RaceState = schema({
   phase: t.string(), timer: t.float32(), trackId: t.string(),
   cars: t.array(CarState), results: t.array('string'), batteries: t.array(BatteryState),
+  bolts: t.array(BoltState), mines: t.array(MineState), boxes: t.array('boolean'),
 }, 'RaceState');
 type RaceState = SchemaType<typeof RaceState>;
 
@@ -23,18 +28,27 @@ const isPose = (m: any): m is PoseReport =>
 
 export class RaceRoom extends Room<{ state: RaceState }> {
   maxClients = SEATS;
-  maxMessagesPerSecond = 60;
+  maxMessagesPerSecond = 80;
   // TRACK=garden picks the first Race's Track, handy while working on one
   private sim = new RaceSim(process.env.TRACK);
 
   onCreate() {
+    // DRAIN_SCALE=10 makes batteries run dry fast, for trying out stranding and the Airlift
+    this.sim.drainScale = Number(process.env.DRAIN_SCALE) || 1;
     const state = new RaceState();
     for (let i = 0; i < SEATS; i++) state.cars.push(new CarState());
     this.setState(state);
     // fill the state before the first tick: the creating client receives it on join
     this.sync();
     this.onMessage('pose', (client, msg) => { if (isPose(msg)) this.sim.setPose(client.sessionId, msg); });
-    this.setSimulationInterval(() => { this.sim.step(DT); this.sync(); }, DT * 1000);
+    const seatOf = (client: Client) => this.sim.seats.find((s) => s.owner === client.sessionId);
+    this.onMessage('shoot', (client) => { const s = seatOf(client); if (s) this.sim.combat.shoot(s); });
+    this.onMessage('item', (client) => { const s = seatOf(client); if (s) this.sim.combat.useItem(s); });
+    this.setSimulationInterval(() => {
+      this.sim.step(DT);
+      if (this.sim.events.length) { this.broadcast('events', this.sim.events); this.sim.events = []; }
+      this.sync();
+    }, DT * 1000);
   }
 
   onJoin(client: Client, options: { name?: unknown; body?: unknown }) {
@@ -62,12 +76,25 @@ export class RaceRoom extends Room<{ state: RaceState }> {
       state.batteries.clear();
       state.batteries.push(...sim.batteries.map(({ id, x, z }) => Object.assign(new BatteryState(), { id, x, z })));
     }
+    const { combat } = sim;
+    if (state.bolts.length !== combat.bolts.length || combat.bolts.some((b, i) => state.bolts[i].id !== b.id)) {
+      state.bolts.clear();
+      state.bolts.push(...combat.bolts.map(() => new BoltState()));
+    }
+    // missiles turn, so their position and heading go out every patch
+    combat.bolts.forEach(({ id, kind, x, z, vx, vz }, i) => Object.assign(state.bolts[i], { id, kind, x, z, vx, vz }));
+    if (state.mines.map((m) => m.id).join() !== combat.mines.map((m) => m.id).join()) {
+      state.mines.clear();
+      state.mines.push(...combat.mines.map(({ id, x, z }) => Object.assign(new MineState(), { id, x, z })));
+    }
+    const boxes = combat.boxes.map((at) => at <= sim.time);
+    if (state.boxes.join() !== boxes.join()) { state.boxes.clear(); state.boxes.push(...boxes); }
     sim.seats.forEach((s, i) => {
       const c = state.cars[i], p = s.car.rb.translation();
       Object.assign(c, {
         name: s.name, body: s.kind, owner: s.owner, x: p.x, y: p.y, z: p.z, yaw: yawOfBody(s.car.rb), vx: s.vx, vz: s.vz,
         lap: sim.lap(s), position: s.position, finished: s.finished, spawn: s.spawn,
-        energy: Math.ceil(s.energy), airlifted: sim.isAirlifted(s),
+        energy: Math.ceil(s.energy), mode: sim.isStranded(s) ? 1 : sim.isAirlifted(s) ? 2 : 0, item: s.item, shield: s.shield,
       });
     });
   }

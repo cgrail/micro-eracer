@@ -6,4 +6,5 @@ export const kitchen: TrackDef = {
   theme: 'kitchen',
   pieces: 'S S S R* S S R S S R* L* R L S R* R* S S',
   puddles: [8],
+  items: [4, 13],
 };

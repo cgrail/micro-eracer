@@ -3,37 +3,56 @@ import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import type { Room } from '@colyseus/sdk';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  type BodyKind, type Car, type Input, DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
+  type BodyKind, type Car, DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
-import { LAPS, type Phase, SEATS } from '../../shared/src/race.ts';
+import { AIRLIFT_TIME, LAPS, type Phase, type RaceEvent, SEATS, STRANDED_TIME } from '../../shared/src/race.ts';
 import {
   type Pose, type Progress, type Track, FALL_Y, TRACKS, buildTrack, inPuddle, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
+import type { Sound } from './audio.ts';
 import { Particles } from './effects.ts';
-import { SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeCar, makeDrone, makeNameTag } from './scene.ts';
+import type { Controls } from './input.ts';
+import {
+  SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeCar, makeDrone, makeItemBox, makeMine, makeNameTag,
+} from './scene.ts';
 
 /** Mirrors server/src/RaceRoom.ts. */
 interface CarState {
   name: string; body: BodyKind; owner: string; x: number; y: number; z: number; yaw: number; vx: number; vz: number;
-  lap: number; position: number; finished: boolean; spawn: number; energy: number; airlifted: boolean;
+  lap: number; position: number; finished: boolean; spawn: number; energy: number; mode: number; item: string; shield: boolean;
 }
-interface BatteryState { id: number; x: number; z: number }
+interface Spot { id: number; x: number; z: number }
+interface BoltState extends Spot { kind: string; vx: number; vz: number }
 interface List<T> { forEach(cb: (item: T, i: number) => void): void }
-interface RaceState { phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>; batteries: List<BatteryState> }
+interface RaceState {
+  phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>;
+  batteries: List<Spot>; bolts: List<BoltState>; mines: List<Spot>; boxes: List<boolean>;
+}
+
+const DRIVING = 0, STRANDED = 1, AIRLIFT = 2;
 
 interface CarView {
   mesh: THREE.Group; tag: THREE.Sprite; drone: THREE.Group; name: string; kind: BodyKind; mine: boolean; car: Car;
   target: Pose & { vx: number; vz: number; at: number };
   shown: Pose;
-  airlifted: boolean;
+  energy: number;
+  mode: number;
+  prevMode: number;
+  modeSince: number;
   lastY: number;
+  wet: boolean;
 }
 
-export interface Hud { pos: HTMLElement; lap: HTMLElement; msg: HTMLElement; results: HTMLOListElement; energy: HTMLElement; energyFill: HTMLElement; popups: HTMLElement }
+export interface Hud {
+  pos: HTMLElement; lap: HTMLElement; msg: HTMLElement; results: HTMLOListElement; energy: HTMLElement; energyFill: HTMLElement;
+  popups: HTMLElement; item: HTMLElement; danger: HTMLElement;
+}
 
+const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
 const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
+const smooth = (k: number) => k * k * (3 - 2 * k);
 
 function dispose(obj: THREE.Object3D) {
   obj.traverse((o) => {
@@ -45,7 +64,7 @@ function dispose(obj: THREE.Object3D) {
 }
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
-export function startGame(room: Room, readInput: () => Input, hud: Hud): () => void {
+export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound): () => void {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   document.body.prepend(renderer.domElement);
@@ -57,29 +76,33 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
   scene.add(sun);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 600);
   const splash = new Particles(0xd4f1ff, 500), smoke = new Particles(0xf4f4f4, 300, 1.5, 2.2), sparks = new Particles(0x8dff9e, 200, -6);
-  scene.add(splash.points, smoke.points, sparks.points);
+  const fire = new Particles(0xffa424, 300, -4, 1.5), soot = new Particles(0x55565c, 200, 1.5, 2.5);
+  const allParticles = [splash, smoke, sparks, fire, soot];
+  for (const p of allParticles) scene.add(p.points);
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     const scale = renderer.getDrawingBufferSize(new THREE.Vector2()).y / (2 * Math.tan((camera.fov * Math.PI) / 360));
-    for (const p of [splash, smoke, sparks]) p.setScale(scale);
+    for (const p of allParticles) p.setScale(scale);
   };
   resize();
   addEventListener('resize', resize);
 
   let track: Track | undefined, world: RAPIER.World | undefined, look: TrackScene | undefined;
   let state: RaceState | undefined, me: CarState | undefined;
-  let own: { view: CarView; progress: Progress; spawn: number; lockedUntil: number } | undefined;
+  let own: { view: CarView; seat: number; progress: Progress; spawn: number; lockedUntil: number } | undefined;
   const views: CarView[] = [];
-  const batteries = new Map<number, THREE.Group>();
-  let clock = 0, ticks = 0, status = '';
+  const batteries = new Map<number, THREE.Group>(), mines = new Map<number, THREE.Group>();
+  const bolts = new Map<number, { mesh: THREE.Group; s: BoltState; at: number }>();
+  let boxes: THREE.Group[] = [];
+  let clock = 0, ticks = 0, status = '', shake = 0, nextShot = 0, nextBeep = 0, roulette = 0;
 
   function loadTrack(id: string) {
     for (const v of views) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); }
     views.length = 0;
-    for (const b of batteries.values()) { scene.remove(b); dispose(b); }
-    batteries.clear();
+    for (const m of [...batteries.values(), ...mines.values(), ...[...bolts.values()].map((b) => b.mesh), ...boxes]) { scene.remove(m); dispose(m); }
+    batteries.clear(); mines.clear(); bolts.clear();
     own = undefined;
     world?.free();
     if (look) { scene.remove(look.group); dispose(look.group); look.background.dispose(); }
@@ -88,8 +111,8 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     look = buildTrackScene(track);
     scene.add(look.group);
     scene.background = look.background;
-    const img = look.background.image as HTMLCanvasElement;
-    scene.fog = new THREE.Fog(new THREE.Color().setStyle(skyBottom(img)), 140, 320);
+    scene.fog = new THREE.Fog(new THREE.Color().setStyle(skyBottom(look.background.image as HTMLCanvasElement)), 140, 320);
+    boxes = track.itemBoxes.map((b) => { const box = makeItemBox(); box.position.set(b.x, 1.4, b.z); scene.add(box); return box; });
   }
 
   function syncCar(c: CarState, i: number) {
@@ -104,9 +127,10 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
       scene.add(mesh, drone);
       v = views[i] = {
         mesh, tag, drone, name: c.name, kind: c.body, mine, car: createCar(world!, c.body, pose, mine),
-        target: { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }, shown: { ...pose }, airlifted: false, lastY: c.y,
+        target: { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }, shown: { ...pose },
+        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, wet: false,
       };
-      if (mine) own = { view: v, progress: startProgress(track!, 0), spawn: -1, lockedUntil: 0 };
+      if (mine) own = { view: v, seat: i, progress: startProgress(track!, 0), spawn: -1, lockedUntil: 0 };
     }
     if (v.name !== c.name) {
       v.mesh.remove(v.tag);
@@ -114,11 +138,15 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
       v.mesh.add((v.tag = makeNameTag(c.name)));
       v.name = c.name;
     }
-    v.airlifted = c.airlifted;
+    if (v.mode !== c.mode) { v.prevMode = v.mode; v.mode = c.mode; v.modeSince = performance.now(); }
+    v.energy = c.energy;
+    (v.mesh.userData.shield as THREE.Object3D).visible = c.shield;
     if (!mine) { v.target = { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }; return; }
-    // Battery pickups and Rams show up as jumps; driving drains too slowly to trigger this
-    const gained = me && !c.airlifted ? c.energy - me.energy : 0;
+    // Battery pickups, Rams and Hits show up as jumps; driving drains too slowly to trigger this
+    const gained = me && c.mode === DRIVING && me.mode === DRIVING ? c.energy - me.energy : 0;
     if (Math.abs(gained) > 4) popup(`${gained > 0 ? '+' : ''}${Math.round(gained)}`, gained > 0 ? 'gain' : 'loss');
+    if (me && !me.finished && c.finished) sound.fanfare();
+    if (roulette < performance.now()) hud.item.textContent = ITEM_ICONS[c.item] ?? '';
     me = { ...c };
     if (own!.spawn !== c.spawn) {
       // the race moved our E-Car (new Race grid, Airlift, or we just took over a Bot)
@@ -128,24 +156,38 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     }
   }
 
-  function syncBatteries(list: List<BatteryState>) {
+  function syncSpots(list: List<Spot>, map: Map<number, THREE.Group>, make: () => THREE.Group, y: number, gone?: (m: THREE.Group) => void) {
     const seen = new Set<number>();
     list.forEach((b) => {
       seen.add(b.id);
-      if (batteries.has(b.id)) return;
-      const mesh = makeBattery();
-      mesh.position.set(b.x, 1.1, b.z);
+      if (map.has(b.id)) return;
+      const mesh = make();
+      mesh.position.set(b.x, y, b.z);
       mesh.userData.phase = b.id;
-      batteries.set(b.id, mesh);
+      map.set(b.id, mesh);
       scene.add(mesh);
     });
-    for (const [id, mesh] of batteries) {
+    for (const [id, mesh] of map) {
       if (seen.has(id)) continue;
-      for (let k = 0; k < 18; k++) sparks.emit(mesh.position.x, mesh.position.y, mesh.position.z, (Math.random() - 0.5) * 8, Math.random() * 7, (Math.random() - 0.5) * 8, 0.5, 0.6);
+      gone?.(mesh);
       scene.remove(mesh);
       dispose(mesh);
-      batteries.delete(id);
+      map.delete(id);
     }
+  }
+
+  function syncBolts(list: List<BoltState>) {
+    const seen = new Set<number>(), now = performance.now();
+    list.forEach((b) => {
+      seen.add(b.id);
+      const known = bolts.get(b.id);
+      if (known) { known.s = { ...b }; known.at = now; return; }
+      const mesh = makeBolt(b.kind);
+      mesh.position.set(b.x, 0.9, b.z);
+      scene.add(mesh);
+      bolts.set(b.id, { mesh, s: { ...b }, at: now });
+    });
+    for (const [id, b] of bolts) if (!seen.has(id)) { scene.remove(b.mesh); dispose(b.mesh); bolts.delete(id); }
   }
 
   function popup(text: string, kind: 'gain' | 'loss') {
@@ -154,12 +196,78 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     setTimeout(() => el.remove(), 1200);
   }
 
+  /** Louder the closer it happens to our E-Car. */
+  const near = (x: number, z: number) => {
+    const p = own?.view.mesh.position ?? camera.position;
+    return Math.max(0, 1 - Math.hypot(p.x - x, p.z - z) / 70);
+  };
+  const posOf = (seat: number) => views[seat]?.mesh.position ?? new THREE.Vector3();
+
+  function explode(x: number, z: number) {
+    for (let k = 0; k < 40; k++) fire.emit(x, 0.8, z, (Math.random() - 0.5) * 12, Math.random() * 9, (Math.random() - 0.5) * 12, 0.8 + Math.random() * 0.6, 0.6);
+    for (let k = 0; k < 14; k++) soot.emit(x + (Math.random() - 0.5) * 2, 1, z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 1 + Math.random() * 2, (Math.random() - 0.5) * 2, 1.2, 1.2);
+  }
+
+  function onEvent(e: RaceEvent) {
+    const mySeat = own?.seat ?? -1;
+    if (e.t === 'ram') {
+      const p = posOf(e.b), vol = e.a === mySeat || e.b === mySeat ? 1 : near(p.x, p.z);
+      sound.crash(vol);
+      sound.scream(vol);
+      for (let k = 0; k < 12; k++) sparks.emit(p.x, 0.8, p.z, (Math.random() - 0.5) * 10, Math.random() * 6, (Math.random() - 0.5) * 10, 0.35, 0.4);
+      if (e.a === mySeat) sound.shout(true);
+      if (e.b === mySeat) { sound.shout(false); shake = 0.35; }
+    } else if (e.t === 'hit') {
+      const p = posOf(e.s), mine = e.s === mySeat;
+      if (e.kind !== 'shot') sound.scream(mine ? 1 : near(p.x, p.z));
+      if (mine && own) {
+        // we drive our own E-Car, so we apply the shove the server worked out
+        const v = own.view.car.rb.linvel();
+        own.view.car.rb.setLinvel({ x: v.x + e.ix, y: v.y + e.hop, z: v.z + e.iz }, true);
+        own.view.car.spin = e.spin;
+        shake = e.kind === 'shot' ? 0.15 : 0.5;
+        if (e.kind !== 'shot') sound.shout(false);
+      }
+      if (e.kind === 'shot') for (let k = 0; k < 8; k++) sparks.emit(p.x, 0.9, p.z, (Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6, 0.3, 0.3);
+    } else if (e.t === 'boom') {
+      explode(e.x, e.z);
+      sound.boom(near(e.x, e.z));
+    } else if (e.t === 'block') {
+      const p = posOf(e.s);
+      sound.block(e.s === mySeat ? 1 : near(p.x, p.z));
+    } else if (e.t === 'battery') {
+      const p = posOf(e.s);
+      sound.battery(e.s === mySeat ? 1 : near(p.x, p.z) * 0.4);
+    } else if (e.t === 'shot') {
+      const p = posOf(e.s);
+      sound.shot(e.s === mySeat ? 1 : near(p.x, p.z));
+    } else if (e.t === 'item') {
+      const p = posOf(e.s), vol = e.s === mySeat ? 1 : near(p.x, p.z);
+      if (e.item === 'missile') sound.missile(vol);
+      else if (e.item === 'mine') sound.mineDrop(vol);
+      else if (e.s === mySeat) sound.shield();
+    } else if (e.t === 'box' && e.s === mySeat) {
+      sound.box();
+      // a short roulette before the Item shows
+      roulette = performance.now() + 500;
+      const icons = Object.values(ITEM_ICONS).filter(Boolean);
+      for (let k = 0; k < 5; k++) setTimeout(() => (hud.item.textContent = icons[k % icons.length]), k * 100);
+      setTimeout(() => (hud.item.textContent = ITEM_ICONS[e.item]), 500);
+    } else if (e.t === 'stranded' && e.s === mySeat) sound.powerDown();
+  }
+
   room.onStateChange((s: RaceState) => {
     state = s;
     if (s.trackId !== track?.def.id) loadTrack(s.trackId);
     s.cars.forEach(syncCar);
-    syncBatteries(s.batteries);
+    syncSpots(s.batteries, batteries, makeBattery, 1.1, (m) => {
+      for (let k = 0; k < 18; k++) sparks.emit(m.position.x, m.position.y, m.position.z, (Math.random() - 0.5) * 8, Math.random() * 7, (Math.random() - 0.5) * 8, 0.5, 0.6);
+    });
+    syncSpots(s.mines, mines, makeMine, 0);
+    syncBolts(s.bolts);
+    s.boxes.forEach((on, i) => { if (boxes[i]) boxes[i].visible = on; });
   });
+  room.onMessage('events', (list: RaceEvent[]) => list.forEach(onEvent));
   room.onDrop(() => (status = 'Reconnecting…'));
   room.onReconnect(() => (status = ''));
 
@@ -179,8 +287,13 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     }
     if (own && me) {
       const t = own.view.car.rb.translation();
-      const locked = state.phase === 'grid' || clock < own.lockedUntil || me.airlifted;
-      driveCar(world, own.view.car, locked ? NO_INPUT : readInput(), limpScale(me.energy), inPuddle(track, t.x, t.z));
+      const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
+      const input = me.mode === STRANDED ? { throttle: -0.6, steer: 0 } : locked ? NO_INPUT : controls.drive();
+      driveCar(world, own.view.car, input, limpScale(me.energy), inPuddle(track, t.x, t.z));
+      if (!locked) {
+        if (controls.firing() && now >= nextShot) { room.send('shoot'); nextShot = now + 340; }
+        if (controls.takeItemPress()) room.send('item');
+      }
     }
     world.step();
     clock += DT;
@@ -196,9 +309,41 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     }
   }
 
-  /** Splashes in Puddles and bath water, smoke while drifting, spinning wheels, hovering drones. */
-  function animateCars(dt: number, time: number) {
+  /**
+   * Out of Energy: stranded and jerking on the spot while a drone flies in and lifts the E-Car,
+   * then (after the server moved it to the back) the drone lowers it onto the road and leaves.
+   */
+  function airliftPose(v: CarView, time: number) {
+    const since = (performance.now() - v.modeSince) / 1000;
+    let lift = 0, droneY = -1, jerk = 0;
+    if (v.mode === STRANDED) {
+      jerk = Math.max(0, 1 - since / (STRANDED_TIME - 0.4));
+      if (since > 0.6) droneY = 14 - smooth(Math.min(1, (since - 0.6) / 0.6)) * 11.4;
+      lift = smooth(Math.min(1, Math.max(0, (since - 1.2) / 0.4))) * 2;
+    } else if (v.mode === AIRLIFT || (v.prevMode === AIRLIFT && since < 0.6)) {
+      // lowered onto the road, then the drone flies off (a moment past the Airlift's end)
+      const t = v.mode === AIRLIFT ? since : AIRLIFT_TIME + since;
+      lift = 2 * (1 - smooth(Math.min(1, t / 1.1)));
+      droneY = 2.6 + (t > 1.1 ? (t - 1.1) ** 2 * 40 : 0);
+    }
+    const p = v.mesh.position;
+    p.y += lift + Math.abs(Math.sin(time * 23)) * 0.15 * jerk;
+    v.mesh.rotation.z = Math.sin(time * 31) * 0.1 * jerk;
+    v.mesh.rotation.x = Math.sin(time * 19) * 0.06 * jerk;
+    if (jerk > 0 && Math.random() < 0.3) soot.emit(p.x, p.y + 0.3, p.z, Math.random() - 0.5, 1.5, Math.random() - 0.5, 0.8, 0.9);
+    v.drone.visible = droneY >= 0;
+    if (v.drone.visible) {
+      v.drone.position.set(p.x, p.y + droneY, p.z);
+      v.drone.rotation.y = v.mesh.rotation.y;
+      for (const rotor of v.drone.userData.rotors as THREE.Object3D[]) rotor.rotation.y += 0.9;
+    }
+    return v.drone.visible;
+  }
+
+  /** Splashes, drift smoke, spinning wheels, warning lights, drones, Batteries, Item Boxes and flying weapons. */
+  function animate(dt: number, time: number) {
     if (!track || !look) return;
+    let ownDrone = false;
     for (const v of views) {
       const p = v.mesh.position, yaw = v.mesh.rotation.y;
       const vel = v.mine ? v.car.rb.linvel() : { x: v.target.vx, z: v.target.vz };
@@ -206,41 +351,66 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
       const fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
       const forward = vel.x * fx + vel.z * fz, sideways = vel.x * r.x + vel.z * r.z;
       for (const w of v.mesh.userData.wheels as THREE.Object3D[]) w.rotateY((-forward * dt) / 0.44);
-      if (speed > 3 && inPuddle(track, p.x, p.z)) {
+      const wet = inPuddle(track, p.x, p.z);
+      if (speed > 3 && wet) {
         for (let k = 0; k < Math.ceil(speed / 5); k++) {
           splash.emit(p.x + (Math.random() - 0.5) * 2, 0.2, p.z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5 + vel.x * 0.3, 3 + Math.random() * 5, (Math.random() - 0.5) * 5 + vel.z * 0.3, 0.35 + Math.random() * 0.3, 0.7);
         }
+        if (!v.wet) sound.splash(v.mine ? 1 : near(p.x, p.z));
       }
-      if (Math.abs(sideways) > 3.5 && p.y > -0.2) {
-        smoke.emit(p.x - fx * 1.6 + (Math.random() - 0.5), 0.1, p.z - fz * 1.6 + (Math.random() - 0.5), 0, 0.5, 0, 0.7, 0.8);
-      }
+      v.wet = wet;
+      if (Math.abs(sideways) > 3.5 && p.y > -0.2) smoke.emit(p.x - fx * 1.6 + (Math.random() - 0.5), 0.1, p.z - fz * 1.6 + (Math.random() - 0.5), 0, 0.5, 0, 0.7, 0.8);
       if (look.water && v.lastY > look.groundY && p.y <= look.groundY) {
         for (let k = 0; k < 50; k++) splash.emit(p.x, look.groundY, p.z, (Math.random() - 0.5) * 9, 5 + Math.random() * 8, (Math.random() - 0.5) * 9, 0.5 + Math.random() * 0.5, 1);
+        sound.splash(v.mine ? 1.5 : near(p.x, p.z));
       }
       v.lastY = p.y;
-      v.drone.visible = v.airlifted;
-      if (v.airlifted) {
-        v.drone.position.set(p.x, p.y + 2.4 + Math.sin(time * 6) * 0.15, p.z);
-        for (const rotor of v.drone.userData.rotors as THREE.Object3D[]) rotor.rotation.y += dt * 40;
+      const flying = airliftPose(v, time);
+      if (v.mine) ownDrone = flying;
+      // red roof light: slow below a quarter of the Energy, fast when nearly or completely empty
+      const low = v.energy < 25 || v.mode === STRANDED;
+      const urgent = v.energy < 10 || v.mode === STRANDED;
+      const beacon = v.mesh.userData.beacon as THREE.Object3D;
+      beacon.visible = low && v.mode !== AIRLIFT;
+      (v.mesh.userData.halo as THREE.Object3D).visible = Math.floor(time * (urgent ? 8 : 4)) % 2 === 0;
+    }
+    if (own && me) {
+      const v = own.view.car.rb.linvel(), t = own.view.car.rb.translation();
+      const yaw = yawOfBody(own.view.car.rb), r = right(Math.sin(yaw), Math.cos(yaw));
+      const driving = me.mode === DRIVING && state?.phase !== 'grid';
+      sound.drive(driving ? Math.hypot(v.x, v.z) : 0, driving ? controls.drive().throttle : 0, driving && t.y > -0.2 ? (Math.abs(v.x * r.x + v.z * r.z) - 3) / 4 : 0);
+      sound.setDrone(ownDrone);
+      if (driving && me.energy < 25 && time > nextBeep) {
+        sound.lowBattery(me.energy < 10);
+        nextBeep = time + (me.energy < 10 ? 0.35 : 0.8);
       }
     }
-    for (const b of batteries.values()) {
-      b.rotation.y = time * 2;
-      b.position.y = 1.1 + Math.sin(time * 3 + b.userData.phase) * 0.25;
+    for (const b of batteries.values()) { b.rotation.y = time * 2; b.position.y = 1.1 + Math.sin(time * 3 + b.userData.phase) * 0.25; }
+    boxes.forEach((b, i) => { b.rotation.y = time * 1.5 + i; b.rotation.x = Math.sin(time + i) * 0.3; b.position.y = 1.4 + Math.sin(time * 2 + i) * 0.2; });
+    for (const m of mines.values()) (m.userData.light as THREE.MeshBasicMaterial).color.setHex(Math.floor(time * 3) % 2 ? 0xff2020 : 0x441111);
+    const now = performance.now();
+    for (const b of bolts.values()) {
+      const age = Math.min((now - b.at) / 1000, 0.2);
+      b.mesh.position.set(b.s.x + b.s.vx * age, 0.9, b.s.z + b.s.vz * age);
+      b.mesh.rotation.y = Math.atan2(b.s.vx, b.s.vz);
+      if (b.s.kind === 'missile') smoke.emit(b.mesh.position.x, 0.9, b.mesh.position.z, 0, 0.3, 0, 0.5, 0.5);
     }
   }
 
-  let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined;
+  let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined, lastCount = -1;
   function updateHud(now: number) {
     if (!state) return;
-    if (lastPhase === 'grid' && state.phase === 'racing') goUntil = now + 1000;
+    if (lastPhase === 'grid' && state.phase === 'racing') { goUntil = now + 1000; sound.countdown(true); }
     lastPhase = state.phase;
     const left = Math.ceil(state.timer);
+    if (state.phase === 'grid' && left !== lastCount && left > 0 && left <= 3) sound.countdown(false);
+    lastCount = state.phase === 'grid' ? left : -1;
     const names: string[] = [];
     state.results.forEach((n) => names.push(n));
     let msg = status;
     if (!msg && state.phase === 'grid') msg = names.length ? `Next race in ${left}` : String(left);
-    else if (!msg && me?.airlifted) msg = 'Airlift!';
+    else if (!msg && me?.mode === STRANDED) msg = 'Battery empty!';
+    else if (!msg && me?.mode === AIRLIFT) msg = 'Airlift!';
     else if (!msg && me?.finished) msg = `Finished P${me.position}!`;
     else if (!msg && state.phase === 'finishing') msg = `Race ends in ${left}`;
     else if (!msg && now < goUntil) msg = 'GO!';
@@ -251,6 +421,7 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     hud.energyFill.style.width = `${energy}%`;
     if (hud.energy.getAttribute('aria-valuenow') !== String(energy)) hud.energy.setAttribute('aria-valuenow', String(energy));
     hud.energy.dataset.level = energy < 25 ? 'limp' : energy < 50 ? 'low' : 'ok';
+    hud.danger.hidden = !(me && state.phase !== 'grid' && (energy < 15 || me.mode === STRANDED));
     const shown = state.phase === 'grid' ? names.join('\n') : '';
     if (shown !== lastResults) {
       lastResults = shown;
@@ -259,7 +430,7 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
   }
 
   let raf = 0, acc = 0, last = performance.now();
-  const focus = new THREE.Vector3();
+  const focus = new THREE.Vector3(), lastTarget = new THREE.Vector3();
   function frame(now: number) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
@@ -267,10 +438,10 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
     for (const v of views) {
       const p = v.mine ? v.car.rb.translation() : v.shown;
       v.mesh.position.set(p.x, p.y, p.z);
-      v.mesh.rotation.y = v.mine ? yawOfBody(v.car.rb) : v.shown.yaw;
+      v.mesh.rotation.set(0, v.mine ? yawOfBody(v.car.rb) : v.shown.yaw, 0);
     }
-    animateCars(dt, now / 1000);
-    for (const p of [splash, smoke, sparks]) p.update(dt);
+    animate(dt, now / 1000);
+    for (const p of allParticles) p.update(dt);
     look?.update(now / 1000);
     const target = own?.view.mesh ?? views[0]?.mesh;
     if (target) {
@@ -278,8 +449,16 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
       // portrait phones see little sideways, so look down more steeply
       const [back, up] = camera.aspect < 1 ? [9, 24] : [13, 14];
       const desired = new THREE.Vector3(target.position.x - fx * back, target.position.y + up, target.position.z - fz * back);
-      camera.position.lerp(desired, 1 - Math.exp(-dt * 4));
+      // a far jump (Airlift, new Race) cuts instead of flying the camera across the Track
+      if (lastTarget.distanceTo(target.position) > 25) camera.position.copy(desired);
+      else camera.position.lerp(desired, 1 - Math.exp(-dt * 4));
+      lastTarget.copy(target.position);
       camera.lookAt(focus.set(target.position.x + fx * 3, target.position.y, target.position.z + fz * 3));
+      if (shake > 0) {
+        shake = Math.max(0, shake - dt);
+        camera.position.x += (Math.random() - 0.5) * shake * 1.5;
+        camera.position.y += (Math.random() - 0.5) * shake * 1.5;
+      }
     }
     effect.render(scene, camera);
     updateHud(now);
@@ -290,6 +469,7 @@ export function startGame(room: Room, readInput: () => Input, hud: Hud): () => v
   return () => {
     cancelAnimationFrame(raf);
     removeEventListener('resize', resize);
+    sound.silenceLoops();
     dispose(scene);
     look?.background.dispose();
     world?.free();

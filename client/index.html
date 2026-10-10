@@ -26,12 +26,18 @@
     <div id="lap"></div>
     <div id="energy" data-level="ok" role="meter" aria-label="Energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span aria-hidden="true">⚡</span><div class="bar"><div id="energy-fill"></div><div class="limp"></div></div></div>
     <div id="popups"></div>
+    <div id="item" aria-label="Item"></div>
+    <div id="danger" hidden></div>
     <div id="msg" aria-live="polite"></div>
     <ol id="results"></ol>
   </div>
 
+  <button id="mute" type="button" aria-pressed="false" aria-label="Sound" hidden>🔊</button>
+
   <div id="touch" hidden>
     <div id="steer" aria-label="Steer: drag left or right">◀ ▶</div>
+    <button id="use" type="button">Item</button>
+    <button id="fire" type="button">Zap</button>
     <button id="brake" type="button">Brake</button>
   </div>
 

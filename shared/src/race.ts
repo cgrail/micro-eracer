@@ -3,6 +3,7 @@ import {
   type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from './car.ts';
+import { Combat, type HitKind, type ItemKind } from './combat.ts';
 import {
   type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, TRACKS, buildTrack, gridPose, inPuddle, lapOf, lateralOf, nearestSample,
   poseAt, resetToCheckpoint, right, startProgress, updateProgress,
@@ -13,9 +14,12 @@ export const LAPS = 3;
 export const FIRST_GRID_TIME = 3;
 export const GRID_TIME = 5;
 export const FINISH_TIME = 10;
-export const AIRLIFT_TIME = 1.5;
+/** Out of Energy: first stranded on the spot, then the drone carries the E-Car to the back. */
+export const STRANDED_TIME = 1.6;
+export const AIRLIFT_TIME = 1.6;
 const RESPAWN_LOCK = 1;
-const DRAIN_PER_METRE = 0.2;
+/** A full battery lasts this many Laps of driving, on every Track. */
+const TANK_LAPS = 2.2;
 export const BATTERY_CHARGE = 30;
 const BATTERY_EVERY = 1.4, MAX_BATTERIES = 7, BATTERY_LIFE = 25, PICKUP_RADIUS = 2.4;
 const RAM_MIN_SPEED = 3, RAM_ENERGY_PER_MS = 3, RAM_MAX = 25, RAM_COOLDOWN = 1;
@@ -35,7 +39,11 @@ export interface Seat {
   finished: boolean;
   finishTime: number;
   energy: number;
+  item: ItemKind | '';
+  shield: boolean;
+  nextShotAt: number;
   lockedUntil: number;
+  strandedUntil: number;
   airliftUntil: number;
   /** Bumped whenever the E-Car is moved by the race itself, so its driver knows to jump there. */
   spawn: number;
@@ -47,6 +55,14 @@ export interface Seat {
 
 export interface Battery { id: number; x: number; z: number; idx: number; until: number }
 export interface PoseReport extends Pose { vx: number; vz: number; spawn: number }
+
+/** Things that happened this tick, for sounds and effects in the browsers. `s` is a Seat index. */
+export type RaceEvent =
+  | { t: 'ram'; a: number; b: number; n: number }
+  | { t: 'hit'; s: number; by: number; kind: HitKind; ix: number; iz: number; hop: number; spin: number }
+  | { t: 'boom'; x: number; z: number }
+  | { t: 'block' | 'battery' | 'shot' | 'stranded' | 'airlift'; s: number }
+  | { t: 'box' | 'item'; s: number; item: ItemKind };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const botName = (i: number) => `Bot ${i + 1}`;
@@ -60,9 +76,15 @@ export class RaceSim {
   phase: Phase = 'grid';
   timer = FIRST_GRID_TIME;
   time = 0;
+  /** When the current Race left the grid; Bots hold off attacking for a moment after the start. */
+  startedAt = Infinity;
   results: string[] = [];
+  combat!: Combat;
+  events: RaceEvent[] = [];
   /** Counters for tests and tuning. */
-  stats = { airlifts: 0, pickups: 0, rams: 0 };
+  stats = { airlifts: 0, leaderAirlifts: 0, pickups: 0, rams: 0, hits: 0 };
+  /** Multiplies the Energy drain; only for trying out running dry. */
+  drainScale = 1;
   private nextBatteryAt = 0;
   private batteryId = 0;
   private ramCooldown = new Map<number, number>();
@@ -77,6 +99,7 @@ export class RaceSim {
     this.world?.free();
     this.track = buildTrack(def);
     this.world = createTrackWorld(this.track);
+    this.combat = new Combat(this);
     this.batteries = [];
     const slots = [...Array(SEATS).keys()].sort(() => Math.random() - 0.5);
     this.seats = slots.map((slot, i) => {
@@ -88,12 +111,14 @@ export class RaceSim {
         index: i, name: prev?.name ?? botName(i), kind, owner,
         car: createCar(this.world, kind, pose, !owner),
         progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.z)),
-        position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, lockedUntil: 0, airliftUntil: 0,
+        position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, shield: false, nextShotAt: 0,
+        lockedUntil: 0, strandedUntil: 0, airliftUntil: 0,
         spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
       };
     });
     this.phase = 'grid';
     this.timer = gridTime;
+    this.startedAt = Infinity;
   }
 
   /** A joining Player takes over the last-Position Bot's E-Car where it is. Returns null when every Seat has a Player. */
@@ -125,6 +150,10 @@ export class RaceSim {
   }
 
   isAirlifted = (s: Seat) => this.time < s.airliftUntil;
+  isStranded = (s: Seat) => this.time < s.strandedUntil;
+  canAct = (s: Seat) => this.phase !== 'grid' && !this.isAirlifted(s) && !this.isStranded(s);
+  botsAttack = () => this.time > this.startedAt + 4;
+  emit = (e: RaceEvent) => { this.events.push(e); };
 
   step(dt: number) {
     this.time += dt;
@@ -133,11 +162,13 @@ export class RaceSim {
       if (s.owner) continue;
       const t = s.car.rb.translation();
       const locked = !live || this.time < s.lockedUntil || this.isAirlifted(s);
-      driveCar(this.world, s.car, locked ? NO_INPUT : botInput(this, s), live ? this.catchUp(s) * limpScale(s.energy) : 1, inPuddle(this.track, t.x, t.z));
+      const input = this.isStranded(s) ? { throttle: -0.6, steer: 0 } : locked ? NO_INPUT : botInput(this, s);
+      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) : 1, inPuddle(this.track, t.x, t.z));
+      if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
     this.world.step();
     // uses the velocities from before this step, i.e. how the E-Cars came into the contact
-    if (live) this.judgeRams();
+    if (live) { this.judgeRams(); this.combat.step(dt); }
 
     for (const s of this.seats) {
       const t = s.car.rb.translation();
@@ -153,7 +184,7 @@ export class RaceSim {
       }
       const moved = Math.hypot(t.x - s.lastX, t.z - s.lastZ);
       // jumps (Fall-off resets) are not driving
-      if (live && !s.finished && moved < 2) s.energy = Math.max(0, s.energy - moved * DRAIN_PER_METRE);
+      if (live && !s.finished && moved < 2) s.energy = Math.max(0, s.energy - (moved * MAX_ENERGY * this.drainScale) / (TANK_LAPS * this.track.n));
       s.lastX = t.x; s.lastZ = t.z;
       updateProgress(this.track, s.progress, t.x, t.z);
       if (live && !s.finished && s.progress.u >= LAPS * this.track.n) {
@@ -168,13 +199,20 @@ export class RaceSim {
     ranked.forEach((s, i) => (s.position = i + 1));
     if (live) {
       this.updateBatteries(ranked);
-      for (const s of this.seats) if (s.energy <= 0 && !s.finished && !this.isAirlifted(s)) this.airlift(s, ranked);
+      for (const s of this.seats) {
+        if (s.strandedUntil && !this.isStranded(s)) { s.strandedUntil = 0; this.airlift(s, ranked); }
+        else if (s.energy <= 0 && !s.finished && !s.strandedUntil && !this.isAirlifted(s)) {
+          s.strandedUntil = this.time + STRANDED_TIME;
+          if (s.position === 1) this.stats.leaderAirlifts++;
+          this.emit({ t: 'stranded', s: s.index });
+        }
+      }
     }
 
     if (this.phase === 'racing') return;
     this.timer -= dt;
     if (this.timer > 0) return;
-    if (this.phase === 'grid') this.phase = 'racing';
+    if (this.phase === 'grid') { this.phase = 'racing'; this.startedAt = this.time; }
     else { this.results = ranked.map((s) => s.name); this.newRace(GRID_TIME); }
   }
 
@@ -185,6 +223,7 @@ export class RaceSim {
     this.stats.airlifts++;
     s.energy = MAX_ENERGY;
     s.airliftUntil = this.time + AIRLIFT_TIME;
+    this.emit({ t: 'airlift', s: s.index });
     const last = ranked[ranked.length - 1];
     if (last === s || last.finished) return;
     const idx = last.progress.idx - 6;
@@ -200,11 +239,13 @@ export class RaceSim {
   private updateBatteries(ranked: Seat[]) {
     this.batteries = this.batteries.filter((b) => b.until > this.time);
     if (this.time >= this.nextBatteryAt && this.batteries.length < MAX_BATTERIES) {
-      // Batteries appear just ahead of the trailing Racers, so Energy is easier to get the further back you are
-      const trailing = ranked.slice(SEATS / 2).filter((s) => !s.finished);
-      const s = trailing[Math.floor(Math.random() * trailing.length)];
+      // Batteries mostly appear just ahead of the trailing Racers, so Energy is easier to get the further back you are;
+      // one in three appears further ahead of the front half, so the Leader has a hard but fair chance
+      const front = Math.random() < 1 / 3;
+      const pool = (front ? ranked.slice(0, SEATS / 2) : ranked.slice(SEATS / 2)).filter((s) => !s.finished);
+      const s = pool[Math.floor(Math.random() * pool.length)];
       if (s) {
-        const idx = (s.progress.idx + 15 + Math.floor(Math.random() * 20)) % this.track.n;
+        const idx = (s.progress.idx + (front ? 35 : 15) + Math.floor(Math.random() * 20)) % this.track.n;
         const pose = poseAt(this.track, idx, (Math.random() * 2 - 1) * (HALF_WIDTH - 1.2));
         this.batteries.push({ id: ++this.batteryId, x: pose.x, z: pose.z, idx, until: this.time + BATTERY_LIFE });
       }
@@ -218,6 +259,7 @@ export class RaceSim {
       s.energy = Math.min(MAX_ENERGY, s.energy + BATTERY_CHARGE);
       this.batteries = this.batteries.filter((b) => b !== hit);
       this.stats.pickups++;
+      this.emit({ t: 'battery', s: s.index });
     }
   }
 
@@ -234,11 +276,13 @@ export class RaceSim {
       const sa = a.vx * nx + a.vz * nz, sb = -(b.vx * nx + b.vz * nz);
       if (sa + sb < RAM_MIN_SPEED) continue;
       const [rammer, victim] = sa >= sb ? [a, b] : [b, a];
+      this.ramCooldown.set(key, this.time + RAM_COOLDOWN);
+      if (victim.shield) { victim.shield = false; this.emit({ t: 'block', s: victim.index }); continue; }
       const amount = Math.min(RAM_MAX, 5 + (sa + sb - RAM_MIN_SPEED) * RAM_ENERGY_PER_MS, victim.energy);
       victim.energy -= amount;
       rammer.energy = Math.min(MAX_ENERGY, rammer.energy + amount);
-      this.ramCooldown.set(key, this.time + RAM_COOLDOWN);
       this.stats.rams++;
+      this.emit({ t: 'ram', a: rammer.index, b: victim.index, n: Math.round(amount) });
     }
   }
 
@@ -270,7 +314,7 @@ export function botInput(sim: RaceSim, s: Seat): Input {
 
   let lane = ((s.index % 3) - 1) * 1.6;
   const battery = sim.batteries.filter((b) => ahead(b.idx) > 4 && ahead(b.idx) < 30).sort((a, b) => ahead(a.idx) - ahead(b.idx))[0];
-  const prey = sim.seats
+  const prey = !sim.botsAttack() ? undefined : sim.seats
     .filter((o) => o !== s && o.progress.u - s.progress.u > 3 && o.progress.u - s.progress.u < 14)
     .sort((a, b) => Number(!!b.owner) - Number(!!a.owner))[0];
   if (battery) lane = lateralOf(track, battery.idx, battery.x, battery.z);

@@ -18,7 +18,9 @@ npm run typecheck
 
 To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same network.
 
-Controls: arrows or WASD on desktop. On mobile the E-Car accelerates by itself: drag the left pad to steer, and hold Brake to brake.
+Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the Item. On mobile the E-Car accelerates by itself: drag the left pad to steer, and use the Brake, Zap and Item buttons on the right.
+
+`DRAIN_SCALE=10 npm run dev` makes batteries run dry ten times faster, so you can try out being Stranded and the Airlift.
 
 ## Code layout
 
@@ -27,6 +29,8 @@ Controls: arrows or WASD on desktop. On mobile the E-Car accelerates by itself: 
 - `client/`: the Vite + Three.js browser app. It drives your own E-Car locally and shows the others as the server reports them.
 
 Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), where a trailing `*` adds walls. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
+
+All sounds are synthesised in the browser with WebAudio, so there are no audio files: the motor, skids, splashes, beeps, explosions, and cartoon screams on Rams. Shouts use the browser's built-in speech voice.
 
 The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `OutlineEffect`), a halftone overlay and the Bangers font, bundled locally so no request goes to Google Fonts.
 

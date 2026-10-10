@@ -352,6 +352,22 @@ export function makeCar(kind: BodyKind, color: number): THREE.Group {
     g.add(cyl(0.08, 0.08, 0.4, paint, 0.6, 0.25, -1.75), cyl(0.08, 0.08, 0.4, paint, -0.6, 0.25, -1.75));
   }
   g.add(sph(0.2, lamp, 0.6, 0.08, 1.88), sph(0.2, lamp, -0.6, 0.08, 1.88));
+  // red warning light on the roof, flashing while the battery runs low
+  const roof = kind === 'microbus' ? 1.3 : 0.55;
+  const lampOn = new THREE.MeshBasicMaterial({ color: 0xff2020 });
+  const beacon = group(cyl(0.18, 0.22, 0.12, toon(0x333333), 0, roof, 0, 10), sph(0.2, lampOn, 0, roof + 0.15, 0));
+  const halo = mesh(new THREE.SphereGeometry(0.9, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: 0.35, depthWrite: false }), 0, roof + 0.15, 0);
+  for (const m of [lampOn, halo.material]) m.userData.outlineParameters = { visible: false };
+  beacon.add(halo);
+  beacon.visible = false;
+  g.add(beacon);
+  const bubble = mesh(new THREE.SphereGeometry(2.4, 20, 14), toon(0x7fd6ff, { outline: false, opacity: 0.3 }), 0, 0.2, 0);
+  bubble.scale.set(0.9, 0.75, 1.25);
+  bubble.visible = false;
+  g.add(bubble);
+  g.userData.beacon = beacon;
+  g.userData.halo = halo;
+  g.userData.shield = bubble;
   const wheels: THREE.Object3D[] = [];
   for (const [x, z] of [[0.88, 1.2], [-0.88, 1.2], [0.88, -1.2], [-0.88, -1.2]]) {
     const w = group(cyl(0.44, 0.44, 0.34, tyre, 0, 0, 0, 14), cyl(0.22, 0.22, 0.36, rim, 0, 0, 0, 8));
@@ -376,6 +392,48 @@ export function makeBattery(): THREE.Group {
   const glow = mesh(new THREE.SphereGeometry(1.2, 16, 12), new THREE.MeshBasicMaterial({ color: 0x8dff9e, transparent: true, opacity: 0.25, depthWrite: false }));
   glow.material.userData.outlineParameters = { visible: false };
   return group(body, band, cap, glow);
+}
+
+export function makeItemBox(): THREE.Group {
+  const face = canvasTexture(64, 64, (g) => {
+    const grad = g.createLinearGradient(0, 0, 64, 64);
+    ['#ff4d4d', '#ffd60a', '#39e46b', '#2f9bff', '#a66cff'].forEach((c, i) => grad.addColorStop(i / 4, c));
+    g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+    g.fillStyle = '#fff'; g.strokeStyle = '#111'; g.lineWidth = 4; g.font = '48px Bangers, Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.strokeText('?', 32, 35); g.fillText('?', 32, 35);
+  });
+  face.wrapS = face.wrapT = THREE.ClampToEdgeWrapping;
+  return group(rbox(1.6, 1.6, 1.6, 0.25, toon(0xffffff, { map: face })));
+}
+
+export function makeBolt(kind: string): THREE.Group {
+  if (kind === 'shot') {
+    const m = new THREE.MeshBasicMaterial({ color: 0xfff15c });
+    m.userData.outlineParameters = { visible: false };
+    const b = mesh(new THREE.CapsuleGeometry(0.2, 1.4, 4, 8), m);
+    b.rotation.x = Math.PI / 2;
+    return group(b);
+  }
+  const body = cyl(0.25, 0.25, 1.4, toon(0xff3b3b), 0, 0, 0, 10);
+  const nose = mesh(new THREE.ConeGeometry(0.25, 0.5, 10), toon(0xffffff), 0, 0.95, 0);
+  const fins = [0, 1, 2, 3].map((i) => { const f = rbox(0.05, 0.4, 0.5, 0.02, toon(0x333333), Math.cos((i * Math.PI) / 2) * 0.3, -0.5, Math.sin((i * Math.PI) / 2) * 0.3); f.rotation.y = (i * Math.PI) / 2; return f; });
+  const missile = group(body, nose, ...fins);
+  missile.rotation.x = Math.PI / 2;
+  return group(missile);
+}
+
+export function makeMine(): THREE.Group {
+  const light = new THREE.MeshBasicMaterial({ color: 0xff2020 });
+  light.userData.outlineParameters = { visible: false };
+  const spikes = [0, 1, 2, 3, 4, 5].map((i) => {
+    const sp = mesh(new THREE.ConeGeometry(0.15, 0.5, 6), toon(0x555b66), Math.cos((i * Math.PI) / 3) * 0.7, 0.3, Math.sin((i * Math.PI) / 3) * 0.7);
+    sp.rotation.z = -Math.cos((i * Math.PI) / 3) * 1.2;
+    sp.rotation.x = Math.sin((i * Math.PI) / 3) * 1.2;
+    return sp;
+  });
+  const g = group(mesh(new THREE.SphereGeometry(0.7, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), toon(0x2b2f36)), sph(0.18, light, 0, 0.72, 0), ...spikes);
+  g.userData.light = light;
+  return g;
 }
 
 export function makeDrone(): THREE.Group {
