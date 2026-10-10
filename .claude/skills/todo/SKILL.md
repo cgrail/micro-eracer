@@ -35,7 +35,7 @@ Do **not** batch items. For each item, in order:
    ```bash
    npm run typecheck   # tsc --noEmit over client, server and shared
    npm test            # Track checks, a headless Race per Track, Stranded/Recharge, Shield; logs balance stats
-   npm run build       # Vite bundles cleanly (the chunk-size warning is known)
+   npm run build       # Vite bundles cleanly, without a chunk-size warning
    ```
    When the item adds a mechanic or changes one, **extend `shared/src/race.test.ts`** with a check that would fail without it. For balance changes, compare the logged stats before and after. If a check needs a running server, start your own on another port (`PORT=2600`) and never stop the user's `npm run dev`. **Never** launch Chrome or a headless browser. The user does all in-browser testing; how it *looks*, *sounds* and *feels* is theirs to judge.
 6. **Docs, only if something significant changed.**
