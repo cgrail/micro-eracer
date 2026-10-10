@@ -30,7 +30,7 @@ Do **not** batch items. For each item, in order:
    - **Mobile:** touch has one action button, no brake, and a Back button only while stuck; a new action fits into the action button, not a new one. Check phone width and safe areas. Every extra mesh or material costs draw calls twice, because of `OutlineEffect`.
    - **Per-Seat state** lives on the `Seat` or in `views[seat]`, never in globals.
    - **File size:** files stay under about 300 lines. If a change makes an oversized file (`game.ts`, `scene.ts`, `audio.ts`, `race.ts`) grow, split it along a real seam as part of the item.
-   - **Saved data:** stored `localStorage` values (`name`, `body`, `muted`) keep loading.
+   - **Saved data:** stored `localStorage` values (`name`, `body`, `muted`, `steer`) keep loading.
 5. **Verify what can be verified from here.**
    ```bash
    npm run typecheck   # tsc --noEmit over client, server and shared

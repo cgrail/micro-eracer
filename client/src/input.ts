@@ -9,6 +9,10 @@ function steerCurve(dx: number) {
   return Math.sign(dx) * k ** 1.4;
 }
 
+/** How the left thumb steers on touch: by dragging on the pad, or by holding its ◀ or ▶ half. */
+export type Steering = 'slider' | 'buttons';
+export const STEERINGS: readonly Steering[] = ['slider', 'buttons'];
+
 export interface Controls {
   drive(): Input;
   /** True while Space or the action button is held, for a Zap's rapid fire. */
@@ -17,11 +21,12 @@ export interface Controls {
   takeItemPress(): boolean;
   /** On touch, shows the reverse button while the E-Car is stuck (there is no brake otherwise). */
   showBack(on: boolean): void;
+  setSteering(mode: Steering): void;
 }
 
 /**
  * Desktop: arrows/WASD drive, Space, E or Shift uses the Item (held, a Zap keeps firing). Mobile: the E-Car accelerates by
- * itself, the left thumb steers, and the right thumb has one action button that uses the Item.
+ * itself, the left thumb steers (`Steering`), and the right thumb has one action button that uses the Item.
  */
 export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back: HTMLElement }): Controls {
   const keys = new Set<string>();
@@ -34,10 +39,22 @@ export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back
   addEventListener('keyup', (e) => keys.delete(e.code));
   addEventListener('blur', () => keys.clear());
 
-  let steerStart: number | null = null, touchSteer = 0, firing = false, reversing = false;
-  pad.steer.addEventListener('pointerdown', (e) => { steerStart = e.clientX; pad.steer.setPointerCapture(e.pointerId); });
-  pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) touchSteer = steerCurve(e.clientX - steerStart); });
-  for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; });
+  let steering: Steering = 'slider', steerStart: number | null = null, padMiddle = 0, touchSteer = 0, firing = false, reversing = false;
+  // Buttons: the thumb can rock from one half to the other without lifting; the held half lights up
+  const steerTo = (x: number) => {
+    touchSteer = steering === 'slider' ? steerCurve(x - steerStart!) : x < padMiddle ? -1 : 1;
+    const held = steering === 'slider' ? '' : touchSteer < 0 ? 'left' : 'right';
+    if (pad.steer.dataset.held !== held) pad.steer.dataset.held = held;
+  };
+  pad.steer.addEventListener('pointerdown', (e) => {
+    const r = pad.steer.getBoundingClientRect();
+    steerStart = e.clientX;
+    padMiddle = r.left + r.width / 2;
+    pad.steer.setPointerCapture(e.pointerId);
+    steerTo(e.clientX);
+  });
+  pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) steerTo(e.clientX); });
+  for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; pad.steer.dataset.held = ''; });
   pad.action.addEventListener('pointerdown', () => { firing = true; itemPressed = true; });
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) pad.action.addEventListener(type, () => (firing = false));
   pad.back.addEventListener('pointerdown', () => (reversing = true));
@@ -51,5 +68,10 @@ export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back
     firing: () => firing || keys.has('Space'),
     takeItemPress: () => { const p = itemPressed; itemPressed = false; return p; },
     showBack: (on) => { if (pad.back.hidden === on) pad.back.hidden = !on; if (!on) reversing = false; },
+    setSteering: (mode) => {
+      steering = mode;
+      pad.steer.classList.toggle('buttons', mode === 'buttons');
+      pad.steer.setAttribute('aria-label', mode === 'buttons' ? 'Steer: hold left or right' : 'Steer: drag left or right');
+    },
   };
 }

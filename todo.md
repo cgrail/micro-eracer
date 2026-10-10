@@ -1,6 +1,7 @@
 # Todo
 
 
+[x] on mobile instead of slider offer option with left right buttons
 [ ] bundle size. vite v8.3.4 building client environment for production...
 ✓ 80 modules transformed.
 computing gzip size...
