@@ -16,8 +16,10 @@
 #   TLS     Caddy site file /etc/caddy/apps/micro-eracer.caddy
 #           serving https://$DOMAIN with an auto-issued/renewed
 #           certificate
-#   Update  systemd timer runs update.sh every 5 minutes,
-#           auto-deploying whatever lands on origin/main
+#   Update  update.sh deploys whatever lands on origin/main: at once
+#           when GitHub's push webhook reaches the game server
+#           (POST /deploy-hook, which a systemd path unit picks up),
+#           and from a systemd timer every 5 minutes anyway
 #
 # Usage — run ON the server, from a checkout of this repo:
 #
@@ -26,7 +28,9 @@
 #   sudo ./install.sh                            # later runs reuse it
 #
 # DOMAIN is remembered in /etc/default/micro-eracer, so re-runs are
-# plain `sudo ./install.sh`. Settings you add to that file (see the
+# plain `sudo ./install.sh`. The first run also puts the webhook's
+# secret there (DEPLOY_HOOK_SECRET); the summary says how to add the
+# webhook on GitHub. Settings you add to that file (see the
 # README) are kept. Re-running is safe: it re-syncs and rebuilds the
 # code, restarts the service and refreshes the Caddy site. The server
 # keeps no state; a restart only ends the Races that are running.
@@ -95,13 +99,20 @@ chmod -R g-w,o-rwx "$APP_DIR"
 # ---------- systemd service (sandboxed) ----------
 log "Installing systemd service"
 # settings someone added by hand survive; the ones below are this script's
-extra="$(grep -vE '^(#|$|PORT=|HOST=|DOMAIN=)' "$DEFAULTS_FILE" 2> /dev/null || true)"
+extra="$(grep -vE '^(#|$|PORT=|HOST=|DOMAIN=|DEPLOY_HOOK_SECRET=)' "$DEFAULTS_FILE" 2> /dev/null || true)"
+# the secret GitHub signs its push webhook with: made on the first run, then kept
+hook_secret="$(sed -n 's/^DEPLOY_HOOK_SECRET=//p' "$DEFAULTS_FILE" 2> /dev/null | tail -1 || true)"
+[[ -n $hook_secret ]] || hook_secret="$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')"
+# root-only before the secret goes in (systemd reads it as root)
+touch "$DEFAULTS_FILE"
+chmod 600 "$DEFAULTS_FILE"
 {
-  echo "# Micro E-Racer settings — install.sh rewrites the three below on every run;"
-  echo "# other settings (see the README) can be added and are kept"
+  echo "# Micro E-Racer settings — install.sh rewrites the four below on every run"
+  echo "# (keeping the secret); other settings (see the README) can be added and are kept"
   echo "PORT=$APP_PORT"
   echo "HOST=127.0.0.1"
   echo "DOMAIN=$DOMAIN"
+  echo "DEPLOY_HOOK_SECRET=$hook_secret"
   if [[ -n $extra ]]; then printf '%s\n' "$extra"; fi
 } > "$DEFAULTS_FILE"
 cat > /etc/systemd/system/$APP.service <<EOF
@@ -117,6 +128,10 @@ Group=$APP_USER
 WorkingDirectory=$APP_DIR
 EnvironmentFile=-$DEFAULTS_FILE
 Environment=NODE_ENV=production
+# the deploy hook asks for a deploy by writing \$RUNTIME_DIRECTORY/deploy, which
+# $APP-update.path watches; kept across restarts, since removing it counts as a change
+RuntimeDirectory=$APP
+RuntimeDirectoryPreserve=yes
 # tsx runs the TypeScript server as it is; it caches the compiled code in the private /tmp
 ExecStart=$(command -v node) --import tsx $APP_DIR/server/src/index.ts
 Restart=always
@@ -190,8 +205,8 @@ if ! caddy validate --config /etc/caddy/Caddyfile > /dev/null 2>&1; then
 fi
 systemctl reload-or-restart caddy
 
-# ---------- auto-update: track origin/main every 5 min ----------
-log "Installing auto-update timer (update.sh)"
+# ---------- auto-update: on GitHub's push webhook, and every 5 min ----------
+log "Installing auto-update (update.sh) on the deploy hook and a timer"
 cat > /etc/systemd/system/$APP-update.service <<EOF
 [Unit]
 Description=Micro E-Racer auto-update (fetch origin, rebuild, restart)
@@ -214,8 +229,20 @@ RandomizedDelaySec=30
 [Install]
 WantedBy=timers.target
 EOF
+cat > /etc/systemd/system/$APP-update.path <<EOF
+[Unit]
+Description=Micro E-Racer update as soon as GitHub reports a push to main
+
+[Path]
+# written by the game server's deploy hook (server/src/deployHook.ts)
+PathModified=/run/$APP/deploy
+Unit=$APP-update.service
+
+[Install]
+WantedBy=paths.target
+EOF
 systemctl daemon-reload
-systemctl enable --now $APP-update.timer
+systemctl enable --now $APP-update.timer $APP-update.path
 
 # ---------- summary ----------
 sleep 3 # tsx compiles the server on its first start
@@ -226,6 +253,12 @@ if systemctl --no-pager --quiet is-active $APP; then
     echo "  local check  : the game page answers"
   else
     warn "the game page does not answer yet — check: journalctl -u $APP"
+  fi
+  hook="$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$APP_PORT/deploy-hook" || true)"
+  if [[ $hook == 401 ]]; then
+    echo "  deploy hook  : on (it refuses unsigned requests)"
+  else
+    warn "the deploy hook is off (HTTP $hook) — check: journalctl -u $APP"
   fi
 else
   warn "the game server is NOT running — check: journalctl -u $APP"
@@ -241,7 +274,14 @@ cat <<EOF
   settings     : $DEFAULTS_FILE   (then: systemctl restart $APP)
   logs         : journalctl -u $APP -f
   quick check  : curl -sI https://$DOMAIN/ | head -1
-  updates      : auto — pushes to origin/main go live within ~5 min
-                 ($APP-update.timer → update.sh, discards local edits
+  updates      : auto — a push to origin/main goes live as soon as it is
+                 built, once GitHub's webhook is added (repo → Settings →
+                 Webhooks → Add webhook):
+                   Payload URL   https://$DOMAIN/deploy-hook
+                   Content type  application/json
+                   Secret        sudo sed -n 's/^DEPLOY_HOOK_SECRET=//p' $DEFAULTS_FILE
+                   Events        Just the push event
+                 and within ~5 min anyway; both run update.sh
+                 ($APP-update.path and .timer; it discards local edits
                  in this checkout); manual: sudo ./update.sh --force
 EOF
