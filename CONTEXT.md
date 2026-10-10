@@ -73,7 +73,7 @@ A sideways slide when an E-Car turns hard at speed; its only reward is a faster 
 _Avoid_: Powerslide
 
 **Fall-off**:
-An E-Car dropping off the Track's edge; it is put back at the last Checkpoint it passed.
+An E-Car dropping off the Track's edge, or off a bridge onto the road below; it is put back at the last Checkpoint it passed.
 _Avoid_: Crash, out of bounds
 
 ### Energy

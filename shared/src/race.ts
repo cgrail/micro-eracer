@@ -5,7 +5,7 @@ import {
 } from './car.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
 import {
-  type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, TRACKS, buildTrack, gridPose, inPuddle, lapOf, lateralOf, nearestSample,
+  type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, TRACKS, buildTrack, gridPose, inPuddle, lapOf, lateralOf, nearestSample, sameLevel,
   poseAt, resetToCheckpoint, right, startProgress, updateProgress,
 } from './track.ts';
 
@@ -53,7 +53,7 @@ export interface Seat {
   lastZ: number;
 }
 
-export interface Battery { id: number; x: number; z: number; idx: number; until: number }
+export interface Battery { id: number; x: number; y: number; z: number; idx: number; until: number }
 export interface PoseReport extends Pose { vx: number; vz: number; spawn: number }
 
 /** Things that happened this tick, for sounds and effects in the browsers. `s` is a Seat index. */
@@ -110,7 +110,7 @@ export class RaceSim {
       return {
         index: i, name: prev?.name ?? botName(i), kind, owner,
         car: createCar(this.world, kind, pose, !owner),
-        progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.z)),
+        progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
         position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, shield: false, nextShotAt: 0,
         lockedUntil: 0, strandedUntil: 0, airliftUntil: 0,
         spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
@@ -163,7 +163,7 @@ export class RaceSim {
       const t = s.car.rb.translation();
       const locked = !live || this.time < s.lockedUntil || this.isAirlifted(s);
       const input = this.isStranded(s) ? { throttle: -0.6, steer: 0 } : locked ? NO_INPUT : botInput(this, s);
-      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) : 1, inPuddle(this.track, t.x, t.z));
+      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) : 1, inPuddle(this.track, t));
       if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
     this.world.step();
@@ -175,7 +175,7 @@ export class RaceSim {
       if (!s.owner) {
         const v = s.car.rb.linvel();
         s.vx = v.x; s.vz = v.z;
-        if (t.y < FALL_Y) {
+        if (t.y < this.track.samples[s.progress.idx].y + FALL_Y) {
           teleport(s.car, resetToCheckpoint(this.track, s.progress));
           s.lockedUntil = this.time + RESPAWN_LOCK;
           s.lastX = s.car.rb.translation().x; s.lastZ = s.car.rb.translation().z;
@@ -247,14 +247,14 @@ export class RaceSim {
       if (s) {
         const idx = (s.progress.idx + (front ? 35 : 15) + Math.floor(Math.random() * 20)) % this.track.n;
         const pose = poseAt(this.track, idx, (Math.random() * 2 - 1) * (HALF_WIDTH - 1.2));
-        this.batteries.push({ id: ++this.batteryId, x: pose.x, z: pose.z, idx, until: this.time + BATTERY_LIFE });
+        this.batteries.push({ id: ++this.batteryId, x: pose.x, y: this.track.samples[idx].y, z: pose.z, idx, until: this.time + BATTERY_LIFE });
       }
       this.nextBatteryAt = this.time + BATTERY_EVERY;
     }
     for (const s of this.seats) {
       if (this.isAirlifted(s)) continue;
       const t = s.car.rb.translation();
-      const hit = this.batteries.find((b) => (b.x - t.x) ** 2 + (b.z - t.z) ** 2 < PICKUP_RADIUS ** 2);
+      const hit = this.batteries.find((b) => (b.x - t.x) ** 2 + (b.z - t.z) ** 2 < PICKUP_RADIUS ** 2 && sameLevel(b.y, t.y));
       if (!hit) continue;
       s.energy = Math.min(MAX_ENERGY, s.energy + BATTERY_CHARGE);
       this.batteries = this.batteries.filter((b) => b !== hit);

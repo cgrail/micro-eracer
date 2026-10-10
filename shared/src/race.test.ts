@@ -1,15 +1,41 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DT, MAX_ENERGY, initPhysics } from './car.ts';
+import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
 import { FIRST_GRID_TIME, RaceSim, STRANDED_TIME } from './race.ts';
-import { TRACKS, buildTrack, lapOf, startProgress, updateProgress } from './track.ts';
+import { RISE, TRACKS, buildTrack, lapOf, nearestSample, poseAt, startProgress, updateProgress } from './track.ts';
 
 test('every Track closes and its start grid sits behind the finish line', () => {
   for (const def of TRACKS) {
     const track = buildTrack(def);
     assert.ok(def.pieces.replace(/\s/g, '').endsWith('SS'), `${def.id} needs two straights for the grid`);
-    assert.equal(track.checkpoints.length, def.pieces.replace(/[^SLR]/g, '').length);
+    assert.equal(track.checkpoints.length, def.pieces.replace(/[^SLRUDJ]/g, '').length);
   }
+});
+
+test('a Track may cross itself only over a bridge', () => {
+  // the garden's figure of eight: up, over the start straight, and down again
+  const garden = buildTrack(TRACKS.find((t) => t.id === 'garden')!);
+  const under = garden.samples[40], over = nearestSample(garden, under.x, under.y + RISE + 0.5, under.z);
+  assert.ok(garden.samples[over].y > under.y + RISE - 0.1, 'the bridge is above the road it crosses');
+  assert.equal(nearestSample(garden, under.x, under.y + 0.5, under.z), 40);
+  // the same loop on one level would be a shortcut
+  assert.throws(() => buildTrack({ ...garden.def, pieces: garden.def.pieces.replace('U*', 'S*').replace('D*', 'S*') }), /runs into itself/);
+});
+
+test('a jump throws an E-Car into the air', async () => {
+  await initPhysics();
+  const track = buildTrack(TRACKS.find((t) => t.id === 'desk')!);
+  const world = createTrackWorld(track), kick = track.samples.findIndex((s) => s.kick);
+  const pose = poseAt(track, kick - 12), car = createCar(world, 'roadster', pose, true);
+  teleport(car, pose, Math.sin(pose.yaw) * 20, Math.cos(pose.yaw) * 20);
+  let air = 0;
+  for (let i = 0; i < 90; i++) {
+    driveCar(world, car, { throttle: 1, steer: 0 });
+    world.step();
+    const t = car.rb.translation();
+    air = Math.max(air, t.y - track.samples[nearestSample(track, t.x, t.y, t.z)].y);
+  }
+  assert.ok(air > 1.5, `flew only ${air.toFixed(2)} m above the road`);
 });
 
 test('Laps count only when driven in order', () => {

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { BodyKind } from '../../shared/src/car.ts';
-import { type Theme, type Track, HALF_WIDTH, ROAD_Y, TILE, right } from '../../shared/src/track.ts';
+import { type Theme, type Track, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
 
 export const SEAT_COLORS = [0xff4d4d, 0x2f9bff, 0xffa62b, 0x1fd1b2, 0xa66cff, 0xffd60a, 0x5ad45a, 0xff6fb5];
 
@@ -139,11 +139,11 @@ const THEMES: Record<Theme, ThemeLook> = {
 
 export const themeOf = (theme: Theme) => THEMES[theme];
 
-/** A ribbon between two sideways offsets from the centreline; `keep` drops segments (dashes, kerb colours). */
-function ribbon(track: Track, from: number, to: number, y: number, mat: THREE.Material, keep: (i: number) => boolean = () => true) {
+/** A ribbon between two sideways offsets from the centreline, `lift` above the road; `keep` drops segments (dashes, kerb colours). */
+function ribbon(track: Track, from: number, to: number, lift: number, mat: THREE.Material, keep: (i: number) => boolean = () => true) {
   const pos: number[] = [], index: number[] = [];
   track.samples.forEach((s, i) => {
-    const r = right(s.dx, s.dz);
+    const r = right(s.dx, s.dz), y = s.y + lift;
     pos.push(s.x + r.x * from, y, s.z + r.z * from, s.x + r.x * to, y, s.z + r.z * to);
     if (!keep(i)) return;
     const j = (i + 1) % track.n;
@@ -156,7 +156,7 @@ function skirt(track: Track, offset: number, mat: THREE.Material) {
   const pos: number[] = [], index: number[] = [];
   track.samples.forEach((s, i) => {
     const r = right(s.dx, s.dz), x = s.x + r.x * offset, z = s.z + r.z * offset;
-    pos.push(x, ROAD_Y, z, x, ROAD_Y - 0.6, z);
+    pos.push(x, s.y, z, x, s.y - 0.6, z);
     const j = (i + 1) % track.n;
     index.push(2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j);
   });
@@ -238,30 +238,37 @@ export function buildTrackScene(track: Track): TrackScene {
   }
 
   // the road: asphalt, white edges on straights, red/white kerbs in turns, dashed centre line
-  statics.add(ribbon(track, -HALF_WIDTH, HALF_WIDTH, ROAD_Y, m(0x51565f, false)));
+  statics.add(ribbon(track, -HALF_WIDTH, HALF_WIDTH, 0, m(0x51565f, false)));
   const white = m(0xffffff, false), red = m(0xff3b3b, false), turn = (i: number) => track.samples[i].turn;
   for (const [a, b] of [[-HALF_WIDTH, -HALF_WIDTH + 0.45], [HALF_WIDTH - 0.45, HALF_WIDTH]]) {
-    statics.add(ribbon(track, a, b, ROAD_Y + 0.01, white, (i) => !turn(i)));
-    statics.add(ribbon(track, a - 0.15, b + 0.15, ROAD_Y + 0.012, red, (i) => turn(i) && Math.floor(i / 2) % 2 === 0));
-    statics.add(ribbon(track, a - 0.15, b + 0.15, ROAD_Y + 0.012, white, (i) => turn(i) && Math.floor(i / 2) % 2 === 1));
+    statics.add(ribbon(track, a, b, 0.01, white, (i) => !turn(i)));
+    statics.add(ribbon(track, a - 0.15, b + 0.15, 0.012, red, (i) => turn(i) && Math.floor(i / 2) % 2 === 0));
+    statics.add(ribbon(track, a - 0.15, b + 0.15, 0.012, white, (i) => turn(i) && Math.floor(i / 2) % 2 === 1));
   }
-  statics.add(ribbon(track, -0.15, 0.15, ROAD_Y + 0.01, m(0xfff3b0, false), (i) => !turn(i) && Math.floor(i / 3) % 2 === 0));
+  statics.add(ribbon(track, -0.15, 0.15, 0.01, m(0xfff3b0, false), (i) => !turn(i) && !track.samples[i].kick && Math.floor(i / 3) % 2 === 0));
+  // a jump's kicker in hazard stripes
+  statics.add(ribbon(track, -HALF_WIDTH, HALF_WIDTH, 0.01, m(0xffd60a, false), (i) => track.samples[i].kick && i % 2 === 0));
   const side = new THREE.MeshToonMaterial({ color: 0x3a3f47, gradientMap: GRADIENT, side: THREE.DoubleSide });
   side.userData.outlineParameters = { visible: false };
   statics.add(skirt(track, -HALF_WIDTH, side), skirt(track, HALF_WIDTH, side));
 
   track.walls.forEach((w, i) => {
-    const wall = rbox(0.5, 1, w.length + 0.06, 0.12, Math.floor(i / 4) % 2 ? m(0xffffff) : m(0xff3b3b), w.x, ROAD_Y + 0.5, w.z);
-    wall.rotation.y = w.yaw;
+    const wall = rbox(0.5, 1, w.length + 0.06, 0.12, Math.floor(i / 4) % 2 ? m(0xffffff) : m(0xff3b3b), w.x, w.y + 0.5, w.z);
+    wall.rotation.set(w.pitch, w.yaw, 0, 'YXZ');
     statics.add(wall);
   });
-  for (let i = 0; i < track.n; i += 12) statics.add(cyl(0.35, 0.5, ROAD_Y - look.groundY, m(0xb8c0cc), track.samples[i].x, (ROAD_Y + look.groundY) / 2 - 0.3, track.samples[i].z, 8));
+  // pillars hold the road up, except where they would stand on the road under a bridge
+  const overRoad = (p: Track['samples'][number]) => track.samples.some((o) => o.y < p.y - 1 && (o.x - p.x) ** 2 + (o.z - p.z) ** 2 < (HALF_WIDTH + 1) ** 2);
+  for (let i = 0; i < track.n; i += 12) {
+    const s = track.samples[i];
+    if (!overRoad(s)) statics.add(cyl(0.35, 0.5, s.y - look.groundY, m(0xb8c0cc), s.x, (s.y + look.groundY) / 2 - 0.3, s.z, 8));
+  }
 
   // start/finish: checkered line and a banner gantry
   const s0 = track.samples[0], yaw0 = Math.atan2(s0.dx, s0.dz);
   const checker = canvasTexture(16, 4, (g) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 4; y++) { g.fillStyle = (x + y) % 2 ? '#111' : '#fff'; g.fillRect(x, y, 1, 1); } });
   checker.magFilter = THREE.NearestFilter;
-  const line = mesh(new THREE.PlaneGeometry(HALF_WIDTH * 2, 2), toon(0xffffff, { outline: false, map: checker }), s0.x, ROAD_Y + 0.02, s0.z);
+  const line = mesh(new THREE.PlaneGeometry(HALF_WIDTH * 2, 2), toon(0xffffff, { outline: false, map: checker }), s0.x, s0.y + 0.02, s0.z);
   line.rotation.set(-Math.PI / 2, 0, Math.atan2(-s0.dx, -s0.dz));
   live.add(line);
   const banner = canvasTexture(512, 96, (g) => {
@@ -274,17 +281,17 @@ export function buildTrackScene(track: Track): TrackScene {
     cyl(0.4, 0.4, 6, m(0x333a44), HALF_WIDTH + 1.4, 3, 0, 10), cyl(0.4, 0.4, 6, m(0x333a44), -HALF_WIDTH - 1.4, 3, 0, 10),
     mesh(new THREE.BoxGeometry(HALF_WIDTH * 2 + 3.6, 1.6, 0.5), toon(0xffffff, { map: banner }), 0, 6, 0),
   );
-  gantry.position.set(s0.x, ROAD_Y, s0.z);
+  gantry.position.set(s0.x, s0.y, s0.z);
   gantry.rotation.y = yaw0;
   live.add(gantry);
 
   // Puddles on the road
   for (const p of track.puddles) {
-    const disc = mesh(new THREE.CircleGeometry(p.r, 32), toon(look.puddle, { outline: false, opacity: 0.85 }), p.x, ROAD_Y + 0.03, p.z);
+    const disc = mesh(new THREE.CircleGeometry(p.r, 32), toon(look.puddle, { outline: false, opacity: 0.85 }), p.x, p.y + 0.03, p.z);
     disc.rotation.x = -Math.PI / 2;
-    const shine = mesh(new THREE.RingGeometry(p.r * 0.5, p.r * 0.62, 24, 1, 0.4, 1.3), toon(0xffffff, { outline: false, opacity: 0.6 }), p.x, ROAD_Y + 0.04, p.z);
+    const shine = mesh(new THREE.RingGeometry(p.r * 0.5, p.r * 0.62, 24, 1, 0.4, 1.3), toon(0xffffff, { outline: false, opacity: 0.6 }), p.x, p.y + 0.04, p.z);
     shine.rotation.x = -Math.PI / 2;
-    live.add(disc, shine, ripple(p.x, ROAD_Y + 0.05, p.z, p.r * 0.9, random(), animated));
+    live.add(disc, shine, ripple(p.x, p.y + 0.05, p.z, p.r * 0.9, random(), animated));
   }
 
   // scenery in the tiles the road does not use

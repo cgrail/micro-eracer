@@ -30,7 +30,7 @@ Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the
 - `server/`: a Colyseus room that wraps `RaceSim` and syncs it to the browsers.
 - `client/`: the Vite + Three.js browser app. It drives your own E-Car locally and shows the others as the server reports them.
 
-Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), where a trailing `*` adds walls. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
+Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), `U` and `D` (ramps up and down) and `J` (a jump), where a trailing `*` adds walls. A Track may cross itself where a ramp has lifted one part over the other: that is a bridge. A crossing on one level is refused, because it would be a shortcut. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
 
 All sounds are synthesised in the browser with WebAudio, so there are no audio files: the motor, skids, splashes, beeps, explosions, the chiptune soundtrack from [Electro Car Racer](https://github.com/cgrail/e-racer) (one song per Track, in `client/src/songs.ts`), and the Racers' cartoon voices, a formant synth that laughs, yells "ow!", "hey!", "waaah!" or "nooo!" in each Seat's own voice.
 

@@ -3,35 +3,22 @@ import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import type { Room } from '@colyseus/sdk';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  type BodyKind, type Car, DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
+  type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
-import { AIRLIFT_TIME, LAPS, type Phase, type RaceEvent, SEATS, STRANDED_TIME } from '../../shared/src/race.ts';
+import { AIRLIFT_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
 import {
   type Pose, type Progress, type Track, FALL_Y, TRACKS, buildTrack, inPuddle, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
 import { Particles } from './effects.ts';
+import { type Hud, ITEM_ICONS, createHud } from './hud.ts';
 import type { Controls } from './input.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeCar, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
-
-/** Mirrors server/src/RaceRoom.ts. */
-interface CarState {
-  name: string; body: BodyKind; owner: string; x: number; y: number; z: number; yaw: number; vx: number; vz: number;
-  lap: number; position: number; finished: boolean; spawn: number; energy: number; mode: number; item: string; shield: boolean;
-}
-interface Spot { id: number; x: number; z: number }
-interface BoltState extends Spot { kind: string; vx: number; vz: number }
-interface List<T> { forEach(cb: (item: T, i: number) => void): void }
-interface RaceState {
-  phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>;
-  batteries: List<Spot>; bolts: List<BoltState>; mines: List<Spot>; boxes: List<boolean>;
-}
-
-const DRIVING = 0, STRANDED = 1, AIRLIFT = 2;
+import { AIRLIFT, type BoltState, type CarState, DRIVING, type List, type RaceState, STRANDED, type Spot } from './state.ts';
 
 interface CarView {
   mesh: THREE.Group; tag: THREE.Sprite; drone: THREE.Group; name: string; kind: BodyKind; mine: boolean; car: Car;
@@ -42,17 +29,19 @@ interface CarView {
   prevMode: number;
   modeSince: number;
   lastY: number;
+  /** Height of the road under the E-Car. */
+  roadY: number;
   wet: boolean;
 }
 
-export interface Hud {
-  pos: HTMLElement; lap: HTMLElement; msg: HTMLElement; results: HTMLOListElement; energy: HTMLElement; energyFill: HTMLElement;
-  popups: HTMLElement; item: HTMLElement; danger: HTMLElement;
-}
-
-const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
 const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 const smooth = (k: number) => k * k * (3 - 2 * k);
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+/** Rise of the road per metre along the Track at sample `i`. */
+const gradeAt = (track: Track, i: number) => {
+  const a = track.samples[(i - 1 + track.n) % track.n], b = track.samples[(i + 1) % track.n];
+  return (b.y - a.y) / Math.hypot(b.x - a.x, b.z - a.z);
+};
 
 function dispose(obj: THREE.Object3D) {
   obj.traverse((o) => {
@@ -65,6 +54,7 @@ function dispose(obj: THREE.Object3D) {
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
 export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound): () => void {
+  const ui = createHud(hud, sound);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   document.body.prepend(renderer.domElement);
@@ -114,7 +104,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     scene.add(look.group);
     scene.background = look.background;
     scene.fog = new THREE.Fog(new THREE.Color().setStyle(skyBottom(look.background.image as HTMLCanvasElement)), 140, 320);
-    boxes = track.itemBoxes.map((b) => { const box = makeItemBox(); box.position.set(b.x, 1.4, b.z); scene.add(box); return box; });
+    boxes = track.itemBoxes.map((b) => { const box = makeItemBox(); box.position.set(b.x, b.y + 0.8, b.z); box.userData.baseY = b.y + 0.8; scene.add(box); return box; });
   }
 
   function syncCar(c: CarState, i: number) {
@@ -130,7 +120,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       v = views[i] = {
         mesh, tag, drone, name: c.name, kind: c.body, mine, car: createCar(world!, c.body, pose, mine),
         target: { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }, shown: { ...pose },
-        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, wet: false,
+        energy: c.energy, mode: c.mode, prevMode: c.mode, modeSince: performance.now(), lastY: c.y, roadY: 0, wet: false,
       };
       if (mine) own = { view: v, seat: i, progress: startProgress(track!, 0), spawn: -1, lockedUntil: 0 };
     }
@@ -146,7 +136,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     if (!mine) { v.target = { ...pose, vx: c.vx, vz: c.vz, at: performance.now() }; return; }
     // Battery pickups, Rams and Hits show up as jumps; driving drains too slowly to trigger this
     const gained = me && c.mode === DRIVING && me.mode === DRIVING ? c.energy - me.energy : 0;
-    if (Math.abs(gained) > 4) popup(`${gained > 0 ? '+' : ''}${Math.round(gained)}`, gained > 0 ? 'gain' : 'loss');
+    if (Math.abs(gained) > 4) ui.popup(`${gained > 0 ? '+' : ''}${Math.round(gained)}`, gained > 0 ? 'gain' : 'loss');
     if (me && !me.finished && c.finished) sound.fanfare();
     if (roulette < performance.now()) hud.item.textContent = ITEM_ICONS[c.item] ?? '';
     me = { ...c };
@@ -154,18 +144,20 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       // the race moved our E-Car (new Race grid, Airlift, or we just took over a Bot)
       teleport(v.car, pose, c.vx, c.vz);
       own!.spawn = c.spawn;
-      own!.progress = startProgress(track!, nearestSample(track!, c.x, c.z));
+      own!.progress = startProgress(track!, nearestSample(track!, c.x, c.y, c.z));
     }
   }
 
-  function syncSpots(list: List<Spot>, map: Map<number, THREE.Group>, make: () => THREE.Group, y: number, gone?: (m: THREE.Group) => void) {
+  /** `lift`: how high above the reported height the model floats. */
+  function syncSpots(list: List<Spot>, map: Map<number, THREE.Group>, make: () => THREE.Group, lift: number, gone?: (m: THREE.Group) => void) {
     const seen = new Set<number>();
     list.forEach((b) => {
       seen.add(b.id);
       if (map.has(b.id)) return;
       const mesh = make();
-      mesh.position.set(b.x, y, b.z);
+      mesh.position.set(b.x, b.y + lift, b.z);
       mesh.userData.phase = b.id;
+      mesh.userData.baseY = b.y + lift;
       map.set(b.id, mesh);
       scene.add(mesh);
     });
@@ -185,17 +177,11 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       const known = bolts.get(b.id);
       if (known) { known.s = { ...b }; known.at = now; return; }
       const mesh = makeBolt(b.kind);
-      mesh.position.set(b.x, 0.9, b.z);
+      mesh.position.set(b.x, b.y + 0.45, b.z);
       scene.add(mesh);
       bolts.set(b.id, { mesh, s: { ...b }, at: now });
     });
     for (const [id, b] of bolts) if (!seen.has(id)) { scene.remove(b.mesh); dispose(b.mesh); bolts.delete(id); }
-  }
-
-  function popup(text: string, kind: 'gain' | 'loss') {
-    const el = Object.assign(document.createElement('div'), { textContent: text, className: `popup ${kind}` });
-    hud.popups.append(el);
-    setTimeout(() => el.remove(), 1200);
   }
 
   /** Louder the closer it happens to our E-Car. */
@@ -298,7 +284,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       const t = own.view.car.rb.translation();
       const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
       const input = me.mode === STRANDED ? { throttle: -0.6, steer: 0 } : locked ? NO_INPUT : controls.drive();
-      driveCar(world, own.view.car, input, limpScale(me.energy), inPuddle(track, t.x, t.z));
+      driveCar(world, own.view.car, input, limpScale(me.energy), inPuddle(track, t));
       if (!locked) {
         if (controls.firing() && now >= nextShot) { room.send('shoot'); nextShot = now + 340; }
         if (controls.takeItemPress()) room.send('item');
@@ -308,7 +294,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     clock += DT;
     if (!own) return;
     const rb = own.view.car.rb, t = rb.translation();
-    if (t.y < FALL_Y) {
+    if (t.y < track.samples[own.progress.idx].y + FALL_Y) {
       teleport(own.view.car, resetToCheckpoint(track, own.progress));
       own.lockedUntil = clock + 1;
     } else updateProgress(track, own.progress, t.x, t.z);
@@ -338,7 +324,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     const p = v.mesh.position;
     p.y += lift + Math.abs(Math.sin(time * 23)) * 0.15 * jerk;
     v.mesh.rotation.z = Math.sin(time * 31) * 0.1 * jerk;
-    v.mesh.rotation.x = Math.sin(time * 19) * 0.06 * jerk;
+    v.mesh.rotation.x += Math.sin(time * 19) * 0.06 * jerk;
     if (jerk > 0 && Math.random() < 0.3) soot.emit(p.x, p.y + 0.3, p.z, Math.random() - 0.5, 1.5, Math.random() - 0.5, 0.8, 0.9);
     v.drone.visible = droneY >= 0;
     if (v.drone.visible) {
@@ -360,15 +346,15 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       const fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
       const forward = vel.x * fx + vel.z * fz, sideways = vel.x * r.x + vel.z * r.z;
       for (const w of v.mesh.userData.wheels as THREE.Object3D[]) w.rotateY((-forward * dt) / 0.44);
-      const wet = inPuddle(track, p.x, p.z);
+      const wet = inPuddle(track, p);
       if (speed > 3 && wet) {
         for (let k = 0; k < Math.ceil(speed / 5); k++) {
-          splash.emit(p.x + (Math.random() - 0.5) * 2, 0.2, p.z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5 + vel.x * 0.3, 3 + Math.random() * 5, (Math.random() - 0.5) * 5 + vel.z * 0.3, 0.35 + Math.random() * 0.3, 0.7);
+          splash.emit(p.x + (Math.random() - 0.5) * 2, v.roadY + 0.2, p.z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5 + vel.x * 0.3, 3 + Math.random() * 5, (Math.random() - 0.5) * 5 + vel.z * 0.3, 0.35 + Math.random() * 0.3, 0.7);
         }
         if (!v.wet) sound.splash(v.mine ? 1 : near(p.x, p.z));
       }
       v.wet = wet;
-      if (Math.abs(sideways) > 3.5 && p.y > -0.2) smoke.emit(p.x - fx * 1.6 + (Math.random() - 0.5), 0.1, p.z - fz * 1.6 + (Math.random() - 0.5), 0, 0.5, 0, 0.7, 0.8);
+      if (Math.abs(sideways) > 3.5 && p.y > v.roadY - 0.2) smoke.emit(p.x - fx * 1.6 + (Math.random() - 0.5), v.roadY + 0.1, p.z - fz * 1.6 + (Math.random() - 0.5), 0, 0.5, 0, 0.7, 0.8);
       if (look.water && v.lastY > look.groundY && p.y <= look.groundY) {
         for (let k = 0; k < 50; k++) splash.emit(p.x, look.groundY, p.z, (Math.random() - 0.5) * 9, 5 + Math.random() * 8, (Math.random() - 0.5) * 9, 0.5 + Math.random() * 0.5, 1);
         sound.splash(v.mine ? 1.5 : near(p.x, p.z));
@@ -387,54 +373,22 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       const v = own.view.car.rb.linvel(), t = own.view.car.rb.translation();
       const yaw = yawOfBody(own.view.car.rb), r = right(Math.sin(yaw), Math.cos(yaw));
       const driving = me.mode === DRIVING && state?.phase !== 'grid';
-      sound.drive(driving ? Math.hypot(v.x, v.z) : 0, driving ? controls.drive().throttle : 0, driving && t.y > -0.2 ? (Math.abs(v.x * r.x + v.z * r.z) - 3) / 4 : 0);
+      sound.drive(driving ? Math.hypot(v.x, v.z) : 0, driving ? controls.drive().throttle : 0, driving && t.y > own.view.roadY - 0.2 ? (Math.abs(v.x * r.x + v.z * r.z) - 3) / 4 : 0);
       sound.setDrone(ownDrone);
       if (driving && me.energy < 25 && time > nextBeep) {
         sound.lowBattery(me.energy < 10);
         nextBeep = time + (me.energy < 10 ? 0.35 : 0.8);
       }
     }
-    for (const b of batteries.values()) { b.rotation.y = time * 2; b.position.y = 1.1 + Math.sin(time * 3 + b.userData.phase) * 0.25; }
-    boxes.forEach((b, i) => { b.rotation.y = time * 1.5 + i; b.rotation.x = Math.sin(time + i) * 0.3; b.position.y = 1.4 + Math.sin(time * 2 + i) * 0.2; });
+    for (const b of batteries.values()) { b.rotation.y = time * 2; b.position.y = b.userData.baseY + Math.sin(time * 3 + b.userData.phase) * 0.25; }
+    boxes.forEach((b, i) => { b.rotation.y = time * 1.5 + i; b.rotation.x = Math.sin(time + i) * 0.3; b.position.y = b.userData.baseY + Math.sin(time * 2 + i) * 0.2; });
     for (const m of mines.values()) (m.userData.light as THREE.MeshBasicMaterial).color.setHex(Math.floor(time * 3) % 2 ? 0xff2020 : 0x441111);
     const now = performance.now();
     for (const b of bolts.values()) {
       const age = Math.min((now - b.at) / 1000, 0.2);
-      b.mesh.position.set(b.s.x + b.s.vx * age, 0.9, b.s.z + b.s.vz * age);
+      b.mesh.position.set(b.s.x + b.s.vx * age, b.s.y + 0.45, b.s.z + b.s.vz * age);
       b.mesh.rotation.y = Math.atan2(b.s.vx, b.s.vz);
-      if (b.s.kind === 'missile') smoke.emit(b.mesh.position.x, 0.9, b.mesh.position.z, 0, 0.3, 0, 0.5, 0.5);
-    }
-  }
-
-  let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined, lastCount = -1;
-  function updateHud(now: number) {
-    if (!state) return;
-    if (lastPhase === 'grid' && state.phase === 'racing') { goUntil = now + 1000; sound.countdown(true); }
-    lastPhase = state.phase;
-    const left = Math.ceil(state.timer);
-    if (state.phase === 'grid' && left !== lastCount && left > 0 && left <= 3) sound.countdown(false);
-    lastCount = state.phase === 'grid' ? left : -1;
-    const names: string[] = [];
-    state.results.forEach((n) => names.push(n));
-    let msg = status;
-    if (!msg && state.phase === 'grid') msg = names.length ? `Next race in ${left}` : String(left);
-    else if (!msg && me?.mode === STRANDED) msg = 'Battery empty!';
-    else if (!msg && me?.mode === AIRLIFT) msg = 'Airlift!';
-    else if (!msg && me?.finished) msg = `Finished P${me.position}!`;
-    else if (!msg && state.phase === 'finishing') msg = `Race ends in ${left}`;
-    else if (!msg && now < goUntil) msg = 'GO!';
-    hud.pos.textContent = me ? `P${me.position}/${SEATS}` : '';
-    hud.lap.textContent = me ? `Lap ${me.lap}/${LAPS}` : '';
-    if (msg !== lastMsg) hud.msg.textContent = lastMsg = msg;
-    const energy = me?.energy ?? MAX_ENERGY;
-    hud.energyFill.style.width = `${energy}%`;
-    if (hud.energy.getAttribute('aria-valuenow') !== String(energy)) hud.energy.setAttribute('aria-valuenow', String(energy));
-    hud.energy.dataset.level = energy < 25 ? 'limp' : energy < 50 ? 'low' : 'ok';
-    hud.danger.hidden = !(me && state.phase !== 'grid' && (energy < 15 || me.mode === STRANDED));
-    const shown = state.phase === 'grid' ? names.join('\n') : '';
-    if (shown !== lastResults) {
-      lastResults = shown;
-      hud.results.replaceChildren(...(shown ? names : []).map((n) => Object.assign(document.createElement('li'), { textContent: n })));
+      if (b.s.kind === 'missile') smoke.emit(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, 0, 0.3, 0, 0.5, 0.5);
     }
   }
 
@@ -445,9 +399,13 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
     last = now;
     for (acc += dt; acc >= DT; acc -= DT) tick();
     for (const v of views) {
-      const p = v.mine ? v.car.rb.translation() : v.shown;
-      v.mesh.position.set(p.x, p.y, p.z);
-      v.mesh.rotation.set(0, v.mine ? yawOfBody(v.car.rb) : v.shown.yaw, 0);
+      const p = v.mine ? v.car.rb.translation() : v.shown, yaw = v.mine ? yawOfBody(v.car.rb) : v.shown.yaw;
+      const i = v.mine ? own!.progress.idx : nearestSample(track!, p.x, p.y, p.z), s = track!.samples[i];
+      v.roadY = s.y;
+      // the bodies stay level, so on a ramp tilt the model along it and set it down onto the road
+      const along = p.y - s.y < HALF.y + 0.8 ? clamp(gradeAt(track!, i), -0.4, 0.4) * (Math.sin(yaw) * s.dx + Math.cos(yaw) * s.dz) : 0;
+      v.mesh.position.set(p.x, p.y - Math.abs(along) * HALF.z, p.z);
+      v.mesh.rotation.set(-Math.atan(along), yaw, 0, 'YXZ');
     }
     animate(dt, now / 1000);
     for (const p of allParticles) p.update(dt);
@@ -470,7 +428,7 @@ export function startGame(room: Room, controls: Controls, hud: Hud, sound: Sound
       }
     }
     effect.render(scene, camera);
-    updateHud(now);
+    ui.update(now, state, me, status);
     raf = requestAnimationFrame(frame);
   }
   raf = requestAnimationFrame(frame);

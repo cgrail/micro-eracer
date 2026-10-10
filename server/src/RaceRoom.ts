@@ -11,9 +11,9 @@ const CarState = schema({
   mode: t.uint8(), item: t.string(), shield: t.boolean(),
 }, 'CarState');
 
-const BatteryState = schema({ id: t.uint32(), x: t.float32(), z: t.float32() }, 'BatteryState');
-const BoltState = schema({ id: t.uint32(), kind: t.string(), x: t.float32(), z: t.float32(), vx: t.float32(), vz: t.float32() }, 'BoltState');
-const MineState = schema({ id: t.uint32(), x: t.float32(), z: t.float32() }, 'MineState');
+const BatteryState = schema({ id: t.uint32(), x: t.float32(), y: t.float32(), z: t.float32() }, 'BatteryState');
+const BoltState = schema({ id: t.uint32(), kind: t.string(), x: t.float32(), y: t.float32(), z: t.float32(), vx: t.float32(), vz: t.float32() }, 'BoltState');
+const MineState = schema({ id: t.uint32(), x: t.float32(), y: t.float32(), z: t.float32() }, 'MineState');
 
 const RaceState = schema({
   phase: t.string(), timer: t.float32(), trackId: t.string(),
@@ -74,7 +74,7 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     if (state.results.join() !== sim.results.join()) { state.results.clear(); state.results.push(...sim.results); }
     if (state.batteries.map((b) => b.id).join() !== sim.batteries.map((b) => b.id).join()) {
       state.batteries.clear();
-      state.batteries.push(...sim.batteries.map(({ id, x, z }) => Object.assign(new BatteryState(), { id, x, z })));
+      state.batteries.push(...sim.batteries.map(({ id, x, y, z }) => Object.assign(new BatteryState(), { id, x, y, z })));
     }
     const { combat } = sim;
     if (state.bolts.length !== combat.bolts.length || combat.bolts.some((b, i) => state.bolts[i].id !== b.id)) {
@@ -82,10 +82,10 @@ export class RaceRoom extends Room<{ state: RaceState }> {
       state.bolts.push(...combat.bolts.map(() => new BoltState()));
     }
     // missiles turn, so their position and heading go out every patch
-    combat.bolts.forEach(({ id, kind, x, z, vx, vz }, i) => Object.assign(state.bolts[i], { id, kind, x, z, vx, vz }));
+    combat.bolts.forEach(({ id, kind, x, y, z, vx, vz }, i) => Object.assign(state.bolts[i], { id, kind, x, y, z, vx, vz }));
     if (state.mines.map((m) => m.id).join() !== combat.mines.map((m) => m.id).join()) {
       state.mines.clear();
-      state.mines.push(...combat.mines.map(({ id, x, z }) => Object.assign(new MineState(), { id, x, z })));
+      state.mines.push(...combat.mines.map(({ id, x, y, z }) => Object.assign(new MineState(), { id, x, y, z })));
     }
     const boxes = combat.boxes.map((at) => at <= sim.time);
     if (state.boxes.join() !== boxes.join()) { state.boxes.clear(); state.boxes.push(...boxes); }

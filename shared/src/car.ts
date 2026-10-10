@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { type Pose, type Track, HALF_WIDTH, ROAD_Y, right } from './track.ts';
+import { type Pose, type Track, HALF_WIDTH, right } from './track.ts';
 
 export type BodyKind = 'microbus' | 'roadster';
 export const BODY_KINDS: BodyKind[] = ['microbus', 'roadster'];
@@ -24,6 +24,11 @@ export interface Car { rb: RAPIER.RigidBody; kind: BodyKind; drifting: boolean; 
 
 export const initPhysics = () => RAPIER.init();
 export const yawQuat = (yaw: number) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
+/** Turned by `yaw`, then tilted by `pitch` around its own x axis (negative tips its front up). */
+const yawPitchQuat = (yaw: number, pitch: number) => {
+  const cy = Math.cos(yaw / 2), sy = Math.sin(yaw / 2), cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
+  return { x: cy * sp, y: sy * cp, z: -sy * sp, w: cy * cp };
+};
 // valid because E-Cars only rotate around the vertical axis
 export const yawOfBody = (rb: RAPIER.RigidBody) => { const q = rb.rotation(); return 2 * Math.atan2(q.y, q.w); };
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -34,14 +39,14 @@ export function createTrackWorld(track: Track): RAPIER.World {
   const verts = new Float32Array(track.n * 6), idx = new Uint32Array(track.n * 6);
   track.samples.forEach((s, i) => {
     const r = right(s.dx, s.dz);
-    verts.set([s.x - r.x * HALF_WIDTH, ROAD_Y, s.z - r.z * HALF_WIDTH, s.x + r.x * HALF_WIDTH, ROAD_Y, s.z + r.z * HALF_WIDTH], i * 6);
+    verts.set([s.x - r.x * HALF_WIDTH, s.y, s.z - r.z * HALF_WIDTH, s.x + r.x * HALF_WIDTH, s.y, s.z + r.z * HALF_WIDTH], i * 6);
     const j = (i + 1) % track.n;
     idx.set([2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j], i * 6);
   });
   world.createCollider(RAPIER.ColliderDesc.trimesh(verts, idx, RAPIER.TriMeshFlags.FIX_INTERNAL_EDGES).setFriction(0));
   for (const w of track.walls) {
     world.createCollider(RAPIER.ColliderDesc.cuboid(0.2, 0.5, w.length / 2 + 0.05)
-      .setTranslation(w.x, ROAD_Y + 0.5, w.z).setRotation(yawQuat(w.yaw)).setFriction(0).setRestitution(0.3));
+      .setTranslation(w.x, w.y + 0.5, w.z).setRotation(yawPitchQuat(w.yaw, w.pitch)).setFriction(0).setRestitution(0.3));
   }
   return world;
 }
@@ -81,7 +86,8 @@ export const limpScale = (energy: number) => (energy >= LIMP_BELOW ? 1 : 0.5 + (
 export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale = 1, wet = false) {
   const { rb } = car;
   const t = rb.translation();
-  const grounded = world.castRay(new RAPIER.Ray(t, { x: 0, y: -1, z: 0 }), HALF.y + 0.3, true, undefined, undefined, undefined, rb);
+  // the body stays level, so on a ramp it rides on one edge, higher above the road under its middle
+  const grounded = world.castRay(new RAPIER.Ray(t, { x: 0, y: -1, z: 0 }), HALF.y + 0.9, true, undefined, undefined, undefined, rb);
   if (!grounded) return;
   const p = BODIES[car.kind], maxSpeed = p.maxSpeed * speedScale;
   const yaw = yawOfBody(rb), fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);

@@ -20,7 +20,7 @@ Do **not** batch items. For each item, in order:
 2. **Locate it.** [CLAUDE.md](../../../CLAUDE.md) maps the three folders. A change usually touches more than one layer, so follow a feature through every layer it touches:
    - **Simulation:** `shared/src/race.ts`, `combat.ts`, `car.ts`, `track.ts`.
    - **Sync:** the schema and `sync()` in `server/src/RaceRoom.ts`, plus a message handler if the browser sends something new.
-   - **Browser:** the state sync and `onEvent` in `client/src/game.ts`, models in `scene.ts`, sound in `audio.ts`, the HUD in `index.html`, `style.css` and `game.ts`, and controls in `input.ts` (keys and a touch button).
+   - **Browser:** the state sync and `onEvent` in `client/src/game.ts`, models in `scene.ts`, sound in `audio.ts`, the HUD in `index.html`, `style.css` and `hud.ts`, and controls in `input.ts` (keys and a touch button).
 3. **Implement.** Match the surrounding code's idiom: terse, data-driven, comments only for the why, glossary terms from [CONTEXT.md](../../../CONTEXT.md).
 4. **Check the constraints in CLAUDE.md** that the change touches. The ones that bite most often:
    - **Ownership:** each browser drives only its own E-Car. Anything the server does to a Player's E-Car goes out as a `RaceEvent` (applied by that browser) or a `spawn` bump (a jump), never by moving its body on the server.

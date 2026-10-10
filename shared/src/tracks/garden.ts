@@ -4,7 +4,8 @@ export const garden: TrackDef = {
   id: 'garden',
   name: 'Garden',
   theme: 'garden',
-  pieces: 'S S S R* S S R L R* S R L R L R L R* R* S S',
-  puddles: [1, 5, 9, 13],
-  items: [4, 11],
+  // a figure of eight: the second loop climbs onto a bridge over the start straight
+  pieces: 'S S S S R S R U* R* S* S* S* L* D* S S S L S L S S',
+  puddles: [1, 5, 15, 18],
+  items: [3, 16],
 };

@@ -1,7 +1,7 @@
 # Todo
 
 [x] roadster and microbus should drive differently. the bus is heavier and slower, but it must still be possible to win with it
-[ ] the tracks are flat. add ramps, jumps and bridges, still small and without shortcuts
+[x] the tracks are flat. add ramps, jumps and bridges, still small and without shortcuts
 [ ] offline race against bots when the server can't be reached on play
 [ ] on mobile the steering is to sensitive. give a little bit more control
 [ ] the copter should not flow you back, but just recharge you

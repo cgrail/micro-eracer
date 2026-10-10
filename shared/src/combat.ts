@@ -1,13 +1,13 @@
 import { BODIES, yawOfBody } from './car.ts';
 import type { RaceSim, Seat } from './race.ts';
-import { right } from './track.ts';
+import { right, sameLevel } from './track.ts';
 
 export type ItemKind = 'missile' | 'mine' | 'shield';
 export const ITEMS: ItemKind[] = ['missile', 'mine', 'shield'];
 export type HitKind = 'shot' | 'missile' | 'mine';
 
-export interface Bolt { id: number; kind: 'shot' | 'missile'; owner: number; x: number; z: number; vx: number; vz: number; until: number; target: number }
-export interface Mine { id: number; owner: number; x: number; z: number; armedAt: number; until: number }
+export interface Bolt { id: number; kind: 'shot' | 'missile'; owner: number; x: number; y: number; z: number; vx: number; vz: number; until: number; target: number }
+export interface Mine { id: number; owner: number; x: number; y: number; z: number; armedAt: number; until: number }
 
 export const SHOT_COST = 5;
 const SHOT_EVERY = 1 / 3, SHOT_SPEED = 45, SHOT_LIFE = 1.1;
@@ -34,7 +34,7 @@ export class Combat {
 
   private pose(s: Seat) {
     const t = s.car.rb.translation(), yaw = yawOfBody(s.car.rb);
-    return { x: t.x, z: t.z, fx: Math.sin(yaw), fz: Math.cos(yaw) };
+    return { x: t.x, y: t.y, z: t.z, fx: Math.sin(yaw), fz: Math.cos(yaw) };
   }
 
   /** The weapon built into every E-Car: costs the shooter Energy, at most three per second. */
@@ -43,21 +43,21 @@ export class Combat {
     if (!sim.canAct(s) || sim.time < s.nextShotAt || s.energy <= SHOT_COST) return;
     s.energy -= SHOT_COST;
     s.nextShotAt = sim.time + SHOT_EVERY;
-    const { x, z, fx, fz } = this.pose(s);
-    this.bolts.push({ id: ++this.id, kind: 'shot', owner: s.index, x: x + fx * 2.4, z: z + fz * 2.4, vx: fx * SHOT_SPEED + s.vx, vz: fz * SHOT_SPEED + s.vz, until: sim.time + SHOT_LIFE, target: -1 });
+    const { x, y, z, fx, fz } = this.pose(s);
+    this.bolts.push({ id: ++this.id, kind: 'shot', owner: s.index, x: x + fx * 2.4, y, z: z + fz * 2.4, vx: fx * SHOT_SPEED + s.vx, vz: fz * SHOT_SPEED + s.vz, until: sim.time + SHOT_LIFE, target: -1 });
     sim.emit({ t: 'shot', s: s.index });
   }
 
   useItem(s: Seat) {
     const { sim } = this;
     if (!s.item || !sim.canAct(s)) return;
-    const { x, z, fx, fz } = this.pose(s);
+    const { x, y, z, fx, fz } = this.pose(s);
     if (s.item === 'missile') {
       // homes in on the Racer one Position ahead
       const target = sim.seats.find((o) => o.position === s.position - 1);
-      this.bolts.push({ id: ++this.id, kind: 'missile', owner: s.index, x: x + fx * 2.6, z: z + fz * 2.6, vx: fx * MISSILE_SPEED, vz: fz * MISSILE_SPEED, until: sim.time + MISSILE_LIFE, target: target?.index ?? -1 });
+      this.bolts.push({ id: ++this.id, kind: 'missile', owner: s.index, x: x + fx * 2.6, y, z: z + fz * 2.6, vx: fx * MISSILE_SPEED, vz: fz * MISSILE_SPEED, until: sim.time + MISSILE_LIFE, target: target?.index ?? -1 });
     } else if (s.item === 'mine') {
-      this.mines.push({ id: ++this.id, owner: s.index, x: x - fx * 3, z: z - fz * 3, armedAt: sim.time + MINE_ARM, until: sim.time + MINE_LIFE });
+      this.mines.push({ id: ++this.id, owner: s.index, x: x - fx * 3, y: y - 0.45, z: z - fz * 3, armedAt: sim.time + MINE_ARM, until: sim.time + MINE_LIFE });
     } else s.shield = true;
     sim.emit({ t: 'item', s: s.index, item: s.item });
     s.item = '';
@@ -65,12 +65,12 @@ export class Combat {
 
   step(dt: number) {
     const { sim } = this;
-    const near = (s: Seat, x: number, z: number, r: number) => { const t = s.car.rb.translation(); return (t.x - x) ** 2 + (t.z - z) ** 2 < r * r; };
+    const near = (s: Seat, p: { x: number; y: number; z: number }, r: number) => { const t = s.car.rb.translation(); return (t.x - p.x) ** 2 + (t.z - p.z) ** 2 < r * r && sameLevel(t.y, p.y); };
 
     sim.track.itemBoxes.forEach((box, i) => {
       if (this.boxes[i] > sim.time) return;
       // holding an Item already, driving through a box does nothing
-      const s = sim.seats.find((o) => !o.item && sim.canAct(o) && near(o, box.x, box.z, BOX_RADIUS));
+      const s = sim.seats.find((o) => !o.item && sim.canAct(o) && near(o, box, BOX_RADIUS));
       if (!s) return;
       s.item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
       this.boxes[i] = sim.time + BOX_RESPAWN;
@@ -87,7 +87,7 @@ export class Combat {
       }
       b.x += b.vx * dt;
       b.z += b.vz * dt;
-      const victim = sim.seats.find((o) => o.index !== b.owner && !sim.isAirlifted(o) && near(o, b.x, b.z, HIT_RADIUS));
+      const victim = sim.seats.find((o) => o.index !== b.owner && !sim.isAirlifted(o) && near(o, b, HIT_RADIUS));
       if (victim) {
         const speed = Math.hypot(b.vx, b.vz);
         this.hit(victim, b.kind, b.vx / speed, b.vz / speed, b.owner);
@@ -99,7 +99,7 @@ export class Combat {
     this.mines = this.mines.filter((m) => {
       if (m.until < sim.time) return false;
       if (m.armedAt > sim.time) return true;
-      const victim = sim.seats.find((o) => !sim.isAirlifted(o) && near(o, m.x, m.z, HIT_RADIUS));
+      const victim = sim.seats.find((o) => !sim.isAirlifted(o) && near(o, m, HIT_RADIUS));
       if (!victim) return true;
       const v = Math.hypot(victim.vx, victim.vz) || 1;
       this.hit(victim, 'mine', victim.vx / v, victim.vz / v, m.owner);
