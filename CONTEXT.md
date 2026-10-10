@@ -79,7 +79,7 @@ _Avoid_: Crash, out of bounds
 ### Energy
 
 **Energy**:
-An E-Car's charge level, drained by distance driven, by shooting and by Hits; when it runs out, the E-Car is Airlifted.
+An E-Car's charge level, drained by distance driven, by shooting and by Hits; when it runs out, the E-Car is Stranded until a drone Recharges it.
 _Avoid_: Fuel, health, HP
 
 **Limp Mode**:
@@ -91,12 +91,12 @@ A pickup that instantly adds Energy; Batteries keep appearing on the Track just 
 _Avoid_: Power-up, coin, item
 
 **Stranded**:
-The moment after an E-Car's Energy runs out: it jerks to a halt on the spot, unable to drive, until the Airlift picks it up.
+The moment after an E-Car's Energy runs out: it jerks to a halt on the spot, unable to drive, while a drone flies in to Recharge it.
 _Avoid_: Dead, broken down
 
-**Airlift**:
-What follows being Stranded: a drone lifts the E-Car and sets it down just behind the last Racer, on that Racer's Lap, with full Energy. A Racer already in last Position is only recharged.
-_Avoid_: Respawn, reset
+**Recharge**:
+What follows being Stranded: a drone hovers over the E-Car and charges it to full Energy where it stands; it can't drive until the drone is done. The time lost standing is the price of running dry.
+_Avoid_: Airlift, respawn, reset
 
 **Ram**:
 A hard hit by one E-Car into another that moves Energy from the hit E-Car to the rammer.

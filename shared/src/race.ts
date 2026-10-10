@@ -1,6 +1,6 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  BODIES, type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
+  BODIES, type Car, type BodyKind, type Input, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from './car.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
@@ -14,9 +14,9 @@ export const LAPS = 3;
 export const FIRST_GRID_TIME = 3;
 export const GRID_TIME = 5;
 export const FINISH_TIME = 10;
-/** Out of Energy: first stranded on the spot, then the drone carries the E-Car to the back. */
+/** Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands. */
 export const STRANDED_TIME = 1.6;
-export const AIRLIFT_TIME = 1.6;
+export const RECHARGE_TIME = 1.6;
 const RESPAWN_LOCK = 1;
 /** A full Roadster battery lasts this many Laps of driving, on every Track. */
 const TANK_LAPS = 2.2;
@@ -44,7 +44,7 @@ export interface Seat {
   nextShotAt: number;
   lockedUntil: number;
   strandedUntil: number;
-  airliftUntil: number;
+  rechargeUntil: number;
   /** Bumped whenever the E-Car is moved by the race itself, so its driver knows to jump there. */
   spawn: number;
   vx: number;
@@ -61,7 +61,7 @@ export type RaceEvent =
   | { t: 'ram'; a: number; b: number; n: number }
   | { t: 'hit'; s: number; by: number; kind: HitKind; ix: number; iz: number; hop: number; spin: number }
   | { t: 'boom'; x: number; z: number }
-  | { t: 'block' | 'battery' | 'shot' | 'stranded' | 'airlift'; s: number }
+  | { t: 'block' | 'battery' | 'shot' | 'stranded' | 'recharge'; s: number }
   | { t: 'box' | 'item'; s: number; item: ItemKind };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -82,7 +82,7 @@ export class RaceSim {
   combat!: Combat;
   events: RaceEvent[] = [];
   /** Counters for tests and tuning. */
-  stats = { airlifts: 0, leaderAirlifts: 0, pickups: 0, rams: 0, hits: 0 };
+  stats = { recharges: 0, leaderRecharges: 0, pickups: 0, rams: 0, hits: 0 };
   /** Multiplies the Energy drain; only for trying out running dry. */
   drainScale = 1;
   private nextBatteryAt = 0;
@@ -112,7 +112,7 @@ export class RaceSim {
         car: createCar(this.world, kind, pose, !owner),
         progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
         position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, shield: false, nextShotAt: 0,
-        lockedUntil: 0, strandedUntil: 0, airliftUntil: 0,
+        lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0,
         spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
       };
     });
@@ -149,9 +149,9 @@ export class RaceSim {
     seat.vz = report.vz;
   }
 
-  isAirlifted = (s: Seat) => this.time < s.airliftUntil;
+  isRecharging = (s: Seat) => this.time < s.rechargeUntil;
   isStranded = (s: Seat) => this.time < s.strandedUntil;
-  canAct = (s: Seat) => this.phase !== 'grid' && !this.isAirlifted(s) && !this.isStranded(s);
+  canAct = (s: Seat) => this.phase !== 'grid' && !this.isRecharging(s) && !this.isStranded(s);
   botsAttack = () => this.time > this.startedAt + 4;
   emit = (e: RaceEvent) => { this.events.push(e); };
 
@@ -161,8 +161,8 @@ export class RaceSim {
     for (const s of this.seats) {
       if (s.owner) continue;
       const t = s.car.rb.translation();
-      const locked = !live || this.time < s.lockedUntil || this.isAirlifted(s);
-      const input = this.isStranded(s) ? { throttle: -0.6, steer: 0 } : locked ? NO_INPUT : botInput(this, s);
+      const locked = !live || this.time < s.lockedUntil || this.isRecharging(s);
+      const input = this.isStranded(s) ? haltInput(s.car) : locked ? NO_INPUT : botInput(this, s);
       driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) : 1, inPuddle(this.track, t));
       if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
@@ -200,10 +200,17 @@ export class RaceSim {
     if (live) {
       this.updateBatteries(ranked);
       for (const s of this.seats) {
-        if (s.strandedUntil && !this.isStranded(s)) { s.strandedUntil = 0; this.airlift(s, ranked); }
-        else if (s.energy <= 0 && !s.finished && !s.strandedUntil && !this.isAirlifted(s)) {
+        if (s.strandedUntil && !this.isStranded(s)) {
+          s.strandedUntil = 0;
+          s.rechargeUntil = this.time + RECHARGE_TIME;
+          this.stats.recharges++;
+          this.emit({ t: 'recharge', s: s.index });
+        }
+        // the drone fills the battery up over the Recharge, so the Energy bar can be seen filling
+        if (this.isRecharging(s)) s.energy = MAX_ENERGY * (1 - (s.rechargeUntil - this.time) / RECHARGE_TIME);
+        else if (s.energy <= 0 && !s.finished && !s.strandedUntil && !this.isRecharging(s)) {
           s.strandedUntil = this.time + STRANDED_TIME;
-          if (s.position === 1) this.stats.leaderAirlifts++;
+          if (s.position === 1) this.stats.leaderRecharges++;
           this.emit({ t: 'stranded', s: s.index });
         }
       }
@@ -217,24 +224,6 @@ export class RaceSim {
   }
 
   lap = (s: Seat) => clamp(lapOf(this.track, s.progress), 1, LAPS);
-
-  /** Out of Energy: a drone sets the E-Car down just behind the last Racer, on that Racer's Lap, with full Energy. */
-  airlift(s: Seat, ranked: Seat[]) {
-    this.stats.airlifts++;
-    s.energy = MAX_ENERGY;
-    s.airliftUntil = this.time + AIRLIFT_TIME;
-    this.emit({ t: 'airlift', s: s.index });
-    const last = ranked[ranked.length - 1];
-    if (last === s || last.finished) return;
-    const idx = last.progress.idx - 6;
-    const pose = poseAt(this.track, idx);
-    s.progress = { idx: ((idx % this.track.n) + this.track.n) % this.track.n, u: last.progress.u - 6 };
-    s.lastX = pose.x; s.lastZ = pose.z;
-    s.vx = s.vz = 0;
-    teleport(s.car, pose);
-    // a Player's driver jumps there when it sees the new spawn
-    if (s.owner) s.spawn++;
-  }
 
   private updateBatteries(ranked: Seat[]) {
     this.batteries = this.batteries.filter((b) => b.until > this.time);
@@ -252,7 +241,7 @@ export class RaceSim {
       this.nextBatteryAt = this.time + BATTERY_EVERY;
     }
     for (const s of this.seats) {
-      if (this.isAirlifted(s)) continue;
+      if (this.isRecharging(s)) continue;
       const t = s.car.rb.translation();
       const hit = this.batteries.find((b) => (b.x - t.x) ** 2 + (b.z - t.z) ** 2 < PICKUP_RADIUS ** 2 && sameLevel(b.y, t.y));
       if (!hit) continue;
@@ -267,7 +256,7 @@ export class RaceSim {
   private judgeRams() {
     for (let i = 0; i < SEATS; i++) for (let j = i + 1; j < SEATS; j++) {
       const a = this.seats[i], b = this.seats[j], key = i * SEATS + j;
-      if (this.isAirlifted(a) || this.isAirlifted(b) || this.time < (this.ramCooldown.get(key) ?? 0)) continue;
+      if (this.isRecharging(a) || this.isRecharging(b) || this.time < (this.ramCooldown.get(key) ?? 0)) continue;
       let touching = false;
       this.world.contactPair(a.car.rb.collider(0), b.car.rb.collider(0), (m) => { if (m.numContacts() > 0) touching = true; });
       if (!touching) continue;

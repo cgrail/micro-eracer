@@ -8,7 +8,7 @@ const CarState = schema({
   name: t.string(), body: t.string(), owner: t.string(),
   x: t.float32(), y: t.float32(), z: t.float32(), yaw: t.float32(), vx: t.float32(), vz: t.float32(),
   lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(), energy: t.uint8(),
-  /** 0 driving, 1 stranded (out of Energy), 2 being airlifted */
+  /** 0 driving, 1 Stranded (out of Energy), 2 being Recharged by the drone */
   mode: t.uint8(), item: t.string(), shield: t.boolean(),
 }, 'CarState');
 
@@ -34,7 +34,7 @@ export class RaceRoom extends Room<{ state: RaceState }> {
   private sim = new RaceSim(process.env.TRACK);
 
   onCreate() {
-    // DRAIN_SCALE=10 makes batteries run dry fast, for trying out stranding and the Airlift
+    // DRAIN_SCALE=10 makes batteries run dry fast, for trying out Stranded and the Recharge
     this.sim.drainScale = Number(process.env.DRAIN_SCALE) || 1;
     const state = new RaceState();
     for (let i = 0; i < SEATS; i++) state.cars.push(new CarState());

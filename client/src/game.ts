@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {
-  type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, limpScale, setKinematicPose,
+  type BodyKind, type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, haltInput, limpScale, setKinematicPose,
   teleport, yawOfBody,
 } from '../../shared/src/car.ts';
-import { AIRLIFT_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
+import { RECHARGE_TIME, type RaceEvent, STRANDED_TIME } from '../../shared/src/race.ts';
 import {
   type Pose, type Progress, type Track, FALL_Y, TRACKS, buildTrack, inPuddle, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
@@ -17,7 +17,7 @@ import type { Controls } from './input.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeCar, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
-import { AIRLIFT, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
+import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
 
 interface CarView {
   mesh: THREE.Group; tag: THREE.Sprite; drone: THREE.Group; name: string; kind: BodyKind; mine: boolean; car: Car;
@@ -140,7 +140,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     if (roulette < performance.now()) hud.item.textContent = ITEM_ICONS[c.item] ?? '';
     me = { ...c };
     if (own!.spawn !== c.spawn) {
-      // the race moved our E-Car (new Race grid, Airlift, or we just took over a Bot)
+      // the race moved our E-Car (new Race grid, or we just took over a Bot)
       teleport(v.car, pose, c.vx, c.vz);
       own!.spawn = c.spawn;
       own!.progress = startProgress(track!, nearestSample(track!, c.x, c.y, c.z));
@@ -247,7 +247,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       const p = posOf(e.s);
       if (e.s === mySeat) sound.powerDown();
       sound.cry('despair', e.s, e.s === mySeat ? 1 : near(p.x, p.z), 0.3);
-    }
+    } else if (e.t === 'recharge' && e.s === mySeat) sound.battery();
   }
 
   room.onStateChange((s: RaceState) => {
@@ -282,7 +282,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     if (own && me) {
       const t = own.view.car.rb.translation();
       const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
-      const input = me.mode === STRANDED ? { throttle: -0.6, steer: 0 } : locked ? NO_INPUT : controls.drive();
+      const input = me.mode === STRANDED ? haltInput(own.view.car) : locked ? NO_INPUT : controls.drive();
       driveCar(world, own.view.car, input, limpScale(me.energy), inPuddle(track, t));
       if (!locked) {
         if (controls.firing() && now >= nextShot) { room.send('shoot'); nextShot = now + 340; }
@@ -304,24 +304,22 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
   }
 
   /**
-   * Out of Energy: stranded and jerking on the spot while a drone flies in and lifts the E-Car,
-   * then (after the server moved it to the back) the drone lowers it onto the road and leaves.
+   * Out of energy: Stranded and jerking on the spot while a drone flies in, then the drone hovers
+   * over the E-Car sending charge down into it (the Recharge), and flies off once it's full.
    */
-  function airliftPose(v: CarView, time: number) {
+  function dronePose(v: CarView, time: number) {
     const since = (performance.now() - v.modeSince) / 1000;
-    let lift = 0, droneY = -1, jerk = 0;
+    let droneY = -1, jerk = 0;
     if (v.mode === STRANDED) {
       jerk = Math.max(0, 1 - since / (STRANDED_TIME - 0.4));
       if (since > 0.6) droneY = 14 - smooth(Math.min(1, (since - 0.6) / 0.6)) * 11.4;
-      lift = smooth(Math.min(1, Math.max(0, (since - 1.2) / 0.4))) * 2;
-    } else if (v.mode === AIRLIFT || (v.prevMode === AIRLIFT && since < 0.6)) {
-      // lowered onto the road, then the drone flies off (a moment past the Airlift's end)
-      const t = v.mode === AIRLIFT ? since : AIRLIFT_TIME + since;
-      lift = 2 * (1 - smooth(Math.min(1, t / 1.1)));
-      droneY = 2.6 + (t > 1.1 ? (t - 1.1) ** 2 * 40 : 0);
-    }
+    } else if (v.mode === RECHARGE) {
+      droneY = 2.6 + Math.sin(time * 5) * 0.15;
+      const p = v.mesh.position;
+      if (Math.random() < 0.6) sparks.emit(p.x + (Math.random() - 0.5) * 0.6, p.y + 2.2, p.z + (Math.random() - 0.5) * 0.6, 0, -6, 0, 0.3, 0.35);
+    } else if (v.prevMode === RECHARGE && since < 0.6) droneY = 2.6 + since ** 2 * 40;
     const p = v.mesh.position;
-    p.y += lift + Math.abs(Math.sin(time * 23)) * 0.15 * jerk;
+    p.y += Math.abs(Math.sin(time * 23)) * 0.15 * jerk;
     v.mesh.rotation.z = Math.sin(time * 31) * 0.1 * jerk;
     v.mesh.rotation.x += Math.sin(time * 19) * 0.06 * jerk;
     if (jerk > 0 && Math.random() < 0.3) soot.emit(p.x, p.y + 0.3, p.z, Math.random() - 0.5, 1.5, Math.random() - 0.5, 0.8, 0.9);
@@ -359,13 +357,13 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
         sound.splash(v.mine ? 1.5 : near(p.x, p.z));
       }
       v.lastY = p.y;
-      const flying = airliftPose(v, time);
+      const flying = dronePose(v, time);
       if (v.mine) ownDrone = flying;
       // red roof light: slow below a quarter of the Energy, fast when nearly or completely empty
       const low = v.energy < 25 || v.mode === STRANDED;
       const urgent = v.energy < 10 || v.mode === STRANDED;
       const beacon = v.mesh.userData.beacon as THREE.Object3D;
-      beacon.visible = low && v.mode !== AIRLIFT;
+      beacon.visible = low && v.mode !== RECHARGE;
       (v.mesh.userData.halo as THREE.Object3D).visible = Math.floor(time * (urgent ? 8 : 4)) % 2 === 0;
     }
     if (own && me) {
@@ -415,7 +413,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       // portrait phones see little sideways, so look down more steeply
       const [back, up] = camera.aspect < 1 ? [9, 24] : [13, 14];
       const desired = new THREE.Vector3(target.position.x - fx * back, target.position.y + up, target.position.z - fz * back);
-      // a far jump (Airlift, new Race) cuts instead of flying the camera across the Track
+      // a far jump (a new Race) cuts instead of flying the camera across the Track
       if (lastTarget.distanceTo(target.position) > 25) camera.position.copy(desired);
       else camera.position.lerp(desired, 1 - Math.exp(-dt * 4));
       lastTarget.copy(target.position);

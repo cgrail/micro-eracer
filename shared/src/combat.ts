@@ -87,7 +87,7 @@ export class Combat {
       }
       b.x += b.vx * dt;
       b.z += b.vz * dt;
-      const victim = sim.seats.find((o) => o.index !== b.owner && !sim.isAirlifted(o) && near(o, b, HIT_RADIUS));
+      const victim = sim.seats.find((o) => o.index !== b.owner && !sim.isRecharging(o) && near(o, b, HIT_RADIUS));
       if (victim) {
         const speed = Math.hypot(b.vx, b.vz);
         this.hit(victim, b.kind, b.vx / speed, b.vz / speed, b.owner);
@@ -99,7 +99,7 @@ export class Combat {
     this.mines = this.mines.filter((m) => {
       if (m.until < sim.time) return false;
       if (m.armedAt > sim.time) return true;
-      const victim = sim.seats.find((o) => !sim.isAirlifted(o) && near(o, m, HIT_RADIUS));
+      const victim = sim.seats.find((o) => !sim.isRecharging(o) && near(o, m, HIT_RADIUS));
       if (!victim) return true;
       const v = Math.hypot(victim.vx, victim.vz) || 1;
       this.hit(victim, 'mine', victim.vx / v, victim.vz / v, m.owner);

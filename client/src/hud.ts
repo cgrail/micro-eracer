@@ -1,7 +1,7 @@
 import { LAPS, type Phase, SEATS } from '../../shared/src/race.ts';
 import { MAX_ENERGY } from '../../shared/src/car.ts';
 import type { Sound } from './audio.ts';
-import { AIRLIFT, type CarState, type RaceState, STRANDED } from './state.ts';
+import { RECHARGE, type CarState, type RaceState, STRANDED } from './state.ts';
 
 export interface Hud {
   pos: HTMLElement; lap: HTMLElement; msg: HTMLElement; results: HTMLOListElement; energy: HTMLElement; energyFill: HTMLElement;
@@ -27,7 +27,7 @@ export function createHud(hud: Hud, sound: Sound) {
       let msg = status;
       if (!msg && state.phase === 'grid') msg = names.length ? `Next race in ${left}` : String(left);
       else if (!msg && me?.mode === STRANDED) msg = 'Battery empty!';
-      else if (!msg && me?.mode === AIRLIFT) msg = 'Airlift!';
+      else if (!msg && me?.mode === RECHARGE) msg = 'Recharging…';
       else if (!msg && me?.finished) msg = `Finished P${me.position}!`;
       else if (!msg && state.phase === 'finishing') msg = `Race ends in ${left}`;
       else if (!msg && now < goUntil) msg = 'GO!';

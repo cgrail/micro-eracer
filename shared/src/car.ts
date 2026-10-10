@@ -6,7 +6,7 @@ export const BODY_KINDS: BodyKind[] = ['microbus', 'roadster'];
 
 /**
  * How each Body drives. The Microbus is slower and turns wider, and pays it back: `mass` wins Rams and softens Hits,
- * `grip` keeps it on the Track, and `tank` (battery size, times the Roadster's) means fewer Airlifts.
+ * `grip` keeps it on the Track, and `tank` (battery size, times the Roadster's) means fewer Recharges.
  */
 export const BODIES: Record<BodyKind, { maxSpeed: number; accel: number; steer: number; mass: number; grip: number; tank: number }> = {
   microbus: { maxSpeed: 19, accel: 15, steer: 2.1, mass: 2.2, grip: 12, tank: 1.3 },
@@ -32,6 +32,12 @@ const yawPitchQuat = (yaw: number, pitch: number) => {
 // valid because E-Cars only rotate around the vertical axis
 export const yawOfBody = (rb: RAPIER.RigidBody) => { const q = rb.rotation(); return 2 * Math.atan2(q.y, q.w); };
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** Brakes hard to a halt without reversing: how a Stranded E-Car stops where it ran dry. */
+export function haltInput(car: Car): Input {
+  const v = car.rb.linvel(), yaw = yawOfBody(car.rb);
+  return { throttle: v.x * Math.sin(yaw) + v.z * Math.cos(yaw) > 0.5 ? -1 : 0, steer: 0 };
+}
 
 export function createTrackWorld(track: Track): RAPIER.World {
   const world = new RAPIER.World({ x: 0, y: -20, z: 0 });

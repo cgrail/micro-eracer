@@ -22,7 +22,7 @@ Bodies: the Roadster is fast, quick off the line and drifts easily. The Microbus
 
 Controls: on desktop, arrows or WASD drive, Space shoots and E or Shift uses the Item. On mobile the E-Car accelerates by itself: drag the left pad to steer, and use the Brake, Zap and Item buttons on the right.
 
-`DRAIN_SCALE=10 npm run dev` makes batteries run dry ten times faster, so you can try out being Stranded and the Airlift.
+`DRAIN_SCALE=10 npm run dev` makes batteries run dry ten times faster, so you can try out being Stranded and the drone's Recharge.
 
 ## Code layout
 

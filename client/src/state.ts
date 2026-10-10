@@ -15,7 +15,7 @@ export interface RaceState {
 }
 
 /** `CarState.mode` */
-export const DRIVING = 0, STRANDED = 1, AIRLIFT = 2;
+export const DRIVING = 0, STRANDED = 1, RECHARGE = 2;
 
 /** What the game needs of a Race: the online room, or an Offline Race in this browser (`offline.ts`). */
 export interface RaceLink {

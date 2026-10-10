@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
-import { FIRST_GRID_TIME, RaceSim, STRANDED_TIME } from './race.ts';
+import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
 import { RISE, TRACKS, buildTrack, lapOf, nearestSample, poseAt, startProgress, updateProgress } from './track.ts';
 
 test('every Track closes and its start grid sits behind the finish line', () => {
@@ -60,12 +60,12 @@ for (const def of TRACKS) {
     for (let t = 0; t < 240 && sim.results.length === 0; t += DT) {
       const before = sim.seats.map((s) => s.progress.u);
       sim.step(DT);
-      sim.seats.forEach((s, i) => { if (s.progress.u < before[i] - 3 && !sim.isAirlifted(s)) fallOffs++; });
+      sim.seats.forEach((s, i) => { if (s.progress.u < before[i] - 3) fallOffs++; });
     }
     assert.equal(sim.results.length, 8, 'Race should end within 4 minutes');
     assert.ok(sim.stats.pickups > 0, 'Bots should pick up Batteries');
     const st = sim.stats;
-    console.log(`${def.id}: ${sim.time.toFixed(1)}s, ${fallOffs} Fall-offs, ${st.pickups} Batteries, ${st.airlifts} Airlifts (${st.leaderAirlifts} of the Leader), ${st.rams} Rams, ${st.hits} Hits`);
+    console.log(`${def.id}: ${sim.time.toFixed(1)}s, ${fallOffs} Fall-offs, ${st.pickups} Batteries, ${st.recharges} Recharges (${st.leaderRecharges} of the Leader), ${st.rams} Rams, ${st.hits} Hits`);
   });
 }
 
@@ -84,21 +84,24 @@ test('either Body can win: half the field in Microbuses, half in Roadsters', asy
   assert.ok(wins.microbus > 0 && wins.roadster > 0);
 });
 
-test('an empty E-Car is stranded, then airlifted behind the last Racer, on its Lap, with full Energy', async () => {
+test('an empty E-Car is Stranded, then Recharged where it stands to full Energy', async () => {
   await initPhysics();
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   for (let i = 0; i < 120; i++) sim.step(DT);
-  const ranked = [...sim.seats].sort((a, b) => a.position - b.position);
-  const leader = ranked[0];
+  const leader = sim.seats.find((s) => s.position === 1)!;
   leader.energy = 0;
   sim.step(DT);
   assert.ok(sim.isStranded(leader));
+  const at = { ...leader.progress };
   for (let t = 0; t <= STRANDED_TIME; t += DT) sim.step(DT);
-  assert.ok(sim.isAirlifted(leader));
-  assert.ok(leader.energy > MAX_ENERGY - 1);
-  // the last Racer keeps driving while we are stranded, so check we landed behind everyone
-  assert.ok(sim.seats.every((o) => o === leader || o.progress.u > leader.progress.u));
+  assert.ok(sim.isRecharging(leader));
+  assert.ok(leader.energy < MAX_ENERGY / 2, 'the battery fills up during the Recharge');
+  for (let t = 0; t <= RECHARGE_TIME; t += DT) sim.step(DT);
+  assert.ok(!sim.isRecharging(leader) && leader.energy > MAX_ENERGY - 1);
+  // no trip to the back and no reversing; it brakes to a halt, though the pack behind may Ram it along a bit
+  const moved = leader.progress.u - at.u;
+  assert.ok(moved >= 0 && moved < 60, `moved ${moved} samples`);
 });
 
 test('a Shield blocks the next Hit, then the Hit after it lands', async () => {
