@@ -11,8 +11,13 @@ export const RECHARGE_TIME = 1.6;
 const RECHARGE_MAX = 9;
 /** How many Racers must be able to get past a Stranded E-Car in the top three before its Recharge is done (three for the Leader). */
 const MUST_PASS = [3, 2, 1];
-/** A Leader more than LEAD_FREE samples clear is slowed, down to LEAD_SLOWEST of top speed at LEAD_FULL clear. */
-const LEAD_FREE = 25, LEAD_FULL = 80, LEAD_SLOWEST = 0.85;
+/**
+ * Keeping the front three fighting: the Leader is slowed once more than `free` metres clear of second, down to `slowest` of
+ * top speed at `full` clear, so second is always in sight; second the same against third, but milder.
+ */
+const PACK = [{ free: 2, full: 20, slowest: 0.75 }, { free: 4, full: 25, slowest: 0.88 }];
+/** Second and third get a tow, up to TOW of top speed, once the E-Car ahead is more than TOW_FROM metres away. */
+const TOW = 1.06, TOW_FROM = 6, TOW_FULL = 25;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -59,10 +64,13 @@ export function rechargeLength(s: Seat, ranked: Seat[]) {
   return clamp(gap / speed + 1, RECHARGE_TIME, RECHARGE_MAX);
 }
 
-/** Slows a Leader who is far ahead, so the others can catch up; everyone else drives at full pace. */
+/** Holds the front three together (`PACK`, `TOW`); everyone else drives at full pace. */
 export function leadPace(ranked: Seat[]) {
   for (const s of ranked) s.pace = 1;
-  const [first, second] = ranked;
-  if (!second || first.finished) return;
-  first.pace = 1 - (1 - LEAD_SLOWEST) * clamp((first.progress.u - second.progress.u - LEAD_FREE) / (LEAD_FULL - LEAD_FREE), 0, 1);
+  const gap = (i: number) => ranked[i].progress.u - ranked[i + 1].progress.u;
+  const racing = (i: number) => ranked[i + 1] && !ranked[i].finished && !ranked[i + 1].finished;
+  PACK.forEach(({ free, full, slowest }, i) => {
+    if (racing(i)) ranked[i].pace = 1 - (1 - slowest) * clamp((gap(i) - free) / (full - free), 0, 1);
+  });
+  for (const i of [0, 1]) if (racing(i)) ranked[i + 1].pace *= 1 + (TOW - 1) * clamp((gap(i) - TOW_FROM) / (TOW_FULL - TOW_FROM), 0, 1);
 }

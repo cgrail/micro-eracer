@@ -47,7 +47,7 @@ A Racer's current rank in the Race, from first to last.
 _Avoid_: Place, rank
 
 **Leader**:
-The Racer in first Position. A Leader far ahead of the rest is slowed down a little so the others can catch up.
+The Racer in first Position. The Leader is slowed down as soon as they pull away and second gets a tow, so first, second and third keep fighting.
 _Avoid_: Pole position, first place
 
 ### Track

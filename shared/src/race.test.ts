@@ -246,14 +246,21 @@ test('a Leader who runs dry stays on the drone until three Racers have got past'
   assert.ok(leader.position >= 4, `back in P${leader.position} after its Recharge`);
 });
 
-test('a Leader far ahead is slowed so the others can catch up', async () => {
+test('the front three are held together: the Leader slowed, second towed', async () => {
   await initPhysics();
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
-  sim.seats.forEach((s, i) => (s.progress = startProgress(sim.track, i ? 10 : 120)));
+  // first 5 m ahead of second, second 15 m ahead of third, the rest further back
+  sim.seats.forEach((s, i) => (s.progress = startProgress(sim.track, [60, 55, 40][i] ?? 10 - i)));
   sim.step(DT);
-  const leader = sim.seats.find((s) => s.position === 1)!;
-  assert.ok(leader.pace < 0.9 && sim.seats.every((s) => s === leader || s.pace === 1));
+  const [first, second, third, fourth] = [1, 2, 3, 4].map((p) => sim.seats.find((s) => s.position === p)!);
+  assert.ok(first.pace < 1, 'even a small lead slows the Leader a little');
+  assert.ok(third.pace > 1, 'third gets a tow once second pulls away');
+  assert.ok(second.pace < 1 && fourth.pace === 1);
+  // far ahead, the Leader is slowed a lot
+  first.progress.u += 60;
+  sim.step(DT);
+  assert.ok(first.pace < 0.8);
 });
 
 test('a Shield blocks the next Hit, then the Hit after it lands', async () => {
