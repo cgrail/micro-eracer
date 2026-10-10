@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
+import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
 import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
 import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress } from './track.ts';
 
@@ -159,6 +160,8 @@ test('Bots keep shooting at a Player in the lead', async () => {
   sim.startedAt = -10;
   const player = sim.join('p', 'Player', 'roadster')!;
   const bot = sim.seats.find((s) => !s.owner)!;
+  // a Bot back in the field with a big Zap
+  Object.assign(bot, { item: 'zap', ammo: 50 });
   // the Player leads on the first straight with one Bot 15 m behind; the other Bots are far away
   sim.seats.forEach((s, i) => { s.position = s === player ? 1 : s === bot ? 2 : i + 3; teleport(s.car, poseAt(sim.track, s === player ? 40 : s === bot ? 25 : 150 + i * 12)); });
   let shots = 0, hits = 0;
@@ -182,6 +185,25 @@ test('a Player taking over a Bot is announced, and only Bots wear the robot', as
   sim.leave('p');
   assert.ok(!seat.owner && seat.name.startsWith('🤖'));
   assert.ok(sim.events.some((e) => e.t === 'leave' && e.was === 'Sneaky'));
+});
+
+test('Item Boxes are only for Racers from fourth place back, and a Zap holds five Shots', async () => {
+  await initPhysics();
+  const sim = new RaceSim('kitchen');
+  sim.phase = 'racing';
+  const [s] = sim.seats, box = sim.track.itemBoxes[0];
+  const atBox = () => { teleport(s.car, { ...box, y: box.y - 0.15 }); sim.combat.step(DT); };
+  s.position = GOODIES_FROM - 1;
+  atBox();
+  assert.equal(s.item, '', 'the top three get nothing');
+  s.position = GOODIES_FROM;
+  atBox();
+  assert.notEqual(s.item, '');
+  Object.assign(s, { item: 'zap', ammo: ZAP_SHOTS });
+  let shots = 0;
+  for (let i = 0; i < 20; i++) { sim.time += 0.4; sim.combat.useItem(s); shots += sim.events.filter((e) => e.t === 'shot').length; sim.events = []; }
+  assert.equal(shots, ZAP_SHOTS);
+  assert.equal(s.item, '');
 });
 
 test('a Shield blocks the next Hit, then the Hit after it lands', async () => {

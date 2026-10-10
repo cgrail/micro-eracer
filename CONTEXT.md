@@ -79,7 +79,7 @@ _Avoid_: Crash, out of bounds
 ### Energy
 
 **Energy**:
-An E-Car's charge level, drained by distance driven, by shooting and by Hits; when it runs out, the E-Car is Stranded until a drone Recharges it.
+An E-Car's charge level, drained by distance driven and by Hits; when it runs out, the E-Car is Stranded until a drone Recharges it.
 _Avoid_: Fuel, health, HP
 
 **Limp Mode**:
@@ -113,15 +113,19 @@ A Shot, Missile or Mine striking an E-Car; it drains Energy and throws the E-Car
 _Avoid_: Damage
 
 **Shot**:
-A fire from the weapon built into every E-Car; it costs the shooter Energy.
+One fire of a Zap, flying straight ahead.
 _Avoid_: Bullet, laser
 
+**Zap**:
+The commonest Item: five Shots, fired one per press or rapidly while held.
+_Avoid_: Gun, ammo pack
+
 **Item Box**:
-A pickup at a fixed spot on the Track that gives a Racer without an Item one random Item, and comes back a few seconds after being taken.
+A pickup at a fixed spot on the Track that gives a Racer without an Item one random Item, and comes back a few seconds after being taken. Only Racers from fourth place back get one; for the top three it stays where it is, for those behind.
 _Avoid_: Mystery box, crate
 
 **Item**:
-A one-use weapon from an Item Box: a Missile, a Mine or a Shield.
+A goodie from an Item Box: a Zap, a Missile, a Mine or a Shield. Without one an E-Car can't shoot.
 _Avoid_: Power-up, pickup
 
 **Missile**:

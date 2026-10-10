@@ -12,7 +12,9 @@ export interface Hud {
   news: HTMLElement;
 }
 
-export const ITEM_ICONS: Record<string, string> = { missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
+export const ITEM_ICONS: Record<string, string> = { zap: '⚡', missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
+/** The Item an E-Car holds, with the Shots left in a Zap. */
+export const itemLabel = (c: CarState) => `${ITEM_ICONS[c.item] ?? ''}${c.item === 'zap' ? c.ammo : ''}`;
 
 /**
  * The HUD over the game: Position, Lap, Energy, messages and results. It touches the DOM only when something changed.
@@ -41,7 +43,7 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
       else if (!msg && now < goUntil) msg = 'GO!';
       hud.pos.textContent = me ? `P${me.position}/${SEATS}` : '';
       hud.lap.textContent = me ? `Lap ${me.lap}/${LAPS}` : '';
-      const action = me?.item ? ITEM_ICONS[me.item] : 'Zap';
+      const action = me ? itemLabel(me) : '';
       if (hud.action.textContent !== action) hud.action.textContent = action;
       if (msg !== lastMsg) hud.msg.textContent = lastMsg = msg;
       const energy = me?.energy ?? MAX_ENERGY;

@@ -9,7 +9,7 @@ const CarState = schema({
   x: t.float32(), y: t.float32(), z: t.float32(), yaw: t.float32(), vx: t.float32(), vz: t.float32(),
   lap: t.uint8(), position: t.uint8(), finished: t.boolean(), spawn: t.uint32(), energy: t.uint8(),
   /** 0 driving, 1 Stranded (out of Energy), 2 being Recharged by the drone */
-  mode: t.uint8(), item: t.string(), shield: t.boolean(),
+  mode: t.uint8(), item: t.string(), ammo: t.uint8(), shield: t.boolean(),
 }, 'CarState');
 
 const BatteryState = schema({ id: t.uint32(), x: t.float32(), y: t.float32(), z: t.float32() }, 'BatteryState');
@@ -45,7 +45,6 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     this.sync();
     this.onMessage('pose', (client, msg) => { if (isPose(msg)) this.sim.setPose(client.sessionId, msg); });
     const seatOf = (client: Client) => this.sim.seats.find((s) => s.owner === client.sessionId);
-    this.onMessage('shoot', (client) => { const s = seatOf(client); if (s) this.sim.combat.shoot(s); });
     this.onMessage('item', (client) => { const s = seatOf(client); if (s) this.sim.combat.useItem(s); });
     this.setSimulationInterval(() => {
       this.sim.step(DT);

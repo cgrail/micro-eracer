@@ -62,7 +62,7 @@ form.addEventListener('submit', async (e) => {
     form.hidden = true;
     hudEl.hidden = mute.hidden = false;
     touch.hidden = !isTouch;
-    // so Space shoots instead of pressing the (now hidden) Play button again
+    // so Space uses the Item instead of pressing the (now hidden) Play button again
     (document.activeElement as HTMLElement | null)?.blur();
     const stop = startGame(room, controls, hud, sound);
     room.onLeave(() => {

@@ -46,6 +46,8 @@ export interface Seat {
   finishTime: number;
   energy: number;
   item: ItemKind | '';
+  /** Shots left in a Zap. */
+  ammo: number;
   shield: boolean;
   nextShotAt: number;
   lockedUntil: number;
@@ -122,7 +124,7 @@ export class RaceSim {
         index: i, name: prev?.name ?? botName(i), kind, owner,
         car: createCar(this.world, kind, pose, !owner),
         progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
-        position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, shield: false, nextShotAt: 0,
+        position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, ammo: 0, shield: false, nextShotAt: 0,
         lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0,
         spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
       };

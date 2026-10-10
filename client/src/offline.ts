@@ -33,7 +33,6 @@ export function offlineRace(name: string, body: BodyKind): RaceLink {
     onDrop() {}, onReconnect() {}, onLeave() {},
     send: (type, msg) => {
       if (type === 'pose') sim.setPose(ME, msg as PoseReport);
-      else if (type === 'shoot') sim.combat.shoot(seat());
       else if (type === 'item') sim.combat.useItem(seat());
     },
   };

@@ -11,21 +11,21 @@ function steerCurve(dx: number) {
 
 export interface Controls {
   drive(): Input;
-  /** True while the fire key or the action button is held. */
+  /** True while Space or the action button is held, for a Zap's rapid fire. */
   firing(): boolean;
   /** True once per press of the Item key or the action button. */
   takeItemPress(): boolean;
 }
 
 /**
- * Desktop: arrows/WASD, Space shoots, E or Shift uses the Item. Mobile: the E-Car accelerates by itself, the left thumb steers,
- * and the right thumb has one action button that shoots, or uses the Item when there is one (the game decides which).
+ * Desktop: arrows/WASD drive, Space, E or Shift uses the Item (held, a Zap keeps firing). Mobile: the E-Car accelerates by
+ * itself, the left thumb steers, and the right thumb has one action button that uses the Item.
  */
 export function createInput(pad: { steer: HTMLElement; action: HTMLElement }): Controls {
   const keys = new Set<string>();
   let itemPressed = false;
   addEventListener('keydown', (e) => {
-    if (['KeyE', 'ShiftLeft', 'ShiftRight'].includes(e.code) && !e.repeat) itemPressed = true;
+    if (['Space', 'KeyE', 'ShiftLeft', 'ShiftRight'].includes(e.code) && !e.repeat) itemPressed = true;
     if (e.code === 'Space' && e.target === document.body) e.preventDefault();
     keys.add(e.code);
   });

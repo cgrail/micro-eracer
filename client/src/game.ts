@@ -14,7 +14,7 @@ import type { Sound } from './audio.ts';
 import { makeCar } from './cars.ts';
 import { type CarView, angleDiff, glide, place } from './motion.ts';
 import { Particles } from './effects.ts';
-import { type Hud, ITEM_ICONS, createHud } from './hud.ts';
+import { type Hud, ITEM_ICONS, createHud, itemLabel } from './hud.ts';
 import type { Controls } from './input.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
@@ -119,7 +119,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     const gained = me && c.mode === DRIVING && me.mode === DRIVING ? c.energy - me.energy : 0;
     if (Math.abs(gained) > 4) ui.popup(`${gained > 0 ? '+' : ''}${Math.round(gained)}`, gained > 0 ? 'gain' : 'loss');
     if (me && !me.finished && c.finished) sound.fanfare();
-    if (roulette < performance.now()) hud.item.textContent = ITEM_ICONS[c.item] ?? '';
+    if (roulette < performance.now()) hud.item.textContent = itemLabel(c);
     me = { ...c };
     if (own!.spawn !== c.spawn) {
       // the race moved our E-Car (new Race grid, or we just took over a Bot)
@@ -224,7 +224,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       roulette = performance.now() + 500;
       const icons = Object.values(ITEM_ICONS).filter(Boolean);
       for (let k = 0; k < 5; k++) setTimeout(() => (hud.item.textContent = icons[k % icons.length]), k * 100);
-      setTimeout(() => (hud.item.textContent = ITEM_ICONS[e.item]), 500);
+      setTimeout(() => (hud.item.textContent = me ? itemLabel(me) : ''), 500);
     } else if (e.t === 'stranded') {
       const p = posOf(e.s);
       if (e.s === mySeat) sound.powerDown();
@@ -262,11 +262,9 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       if (pit && !inPit) sound.battery();
       inPit = pit;
       driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1), inPuddle(track, t));
-      if (!locked) {
-        // a press uses the Item when there is one, and only shoots otherwise (on touch both come from one button)
-        if (controls.takeItemPress() && me.item) { room.send('item'); nextShot = now + 600; }
-        else if (controls.firing() && now >= nextShot) { room.send('shoot'); nextShot = now + 340; }
-      }
+      // one key or button uses the Item; held down, a Zap keeps firing (the server allows three Shots a second)
+      const press = controls.takeItemPress();
+      if (!locked && me.item && (press || (me.item === 'zap' && controls.firing())) && now >= nextShot) { room.send('item'); nextShot = now + 340; }
     }
     world.step();
     clock += DT;

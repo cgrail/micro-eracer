@@ -4,7 +4,7 @@ import type { Phase, RaceEvent } from '../../shared/src/race.ts';
 /** Mirrors server/src/RaceRoom.ts. */
 export interface CarState {
   name: string; body: BodyKind; owner: string; x: number; y: number; z: number; yaw: number; vx: number; vz: number;
-  lap: number; position: number; finished: boolean; spawn: number; energy: number; mode: number; item: string; shield: boolean;
+  lap: number; position: number; finished: boolean; spawn: number; energy: number; mode: number; item: string; ammo: number; shield: boolean;
 }
 export interface Spot { id: number; x: number; y: number; z: number }
 export interface BoltState extends Spot { kind: string; vx: number; vz: number }
@@ -25,5 +25,5 @@ export interface RaceLink {
   onDrop(cb: () => void): void;
   onReconnect(cb: () => void): void;
   onLeave(cb: () => void): void;
-  send(type: 'pose' | 'shoot' | 'item', msg?: unknown): void;
+  send(type: 'pose' | 'item', msg?: unknown): void;
 }
