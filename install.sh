@@ -124,7 +124,7 @@ RestartSec=2
 LimitNOFILE=65535
 
 # resource ceilings — the server keeps no state, a kill+restart is harmless
-MemoryMax=384M
+MemoryMax=512M
 TasksMax=32
 
 # sandbox: read-only everything; no capabilities needed on an
