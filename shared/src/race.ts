@@ -4,6 +4,7 @@ import {
   teleport, yawOfBody,
 } from './car.ts';
 import { botInput } from './bots.ts';
+import { judgeRams, unstack } from './contact.ts';
 import { RECHARGE_TIME, leadPace, rechargeLength, updateBatteries } from './energy.ts';
 
 export { BATTERY_CHARGE, RECHARGE_TIME } from './energy.ts';
@@ -26,7 +27,6 @@ const RESPAWN_LOCK = 1;
 const TANK_LAPS = 1.6;
 /** Energy per second in the Charging Station. */
 const STATION_RATE = 35;
-const RAM_MIN_SPEED = 3, RAM_ENERGY_PER_MS = 3, RAM_MAX = 25, RAM_COOLDOWN = 1;
 
 /** grid: E-Cars wait on the start grid; finishing: someone has won and the Race ends soon. */
 export type Phase = 'grid' | 'racing' | 'finishing';
@@ -55,6 +55,8 @@ export interface Seat {
   rechargeLength: number;
   /** Times the top speed; below 1 for a Leader far ahead (`leadPace`). */
   pace: number;
+  /** How long it has been resting on another E-Car (`unstack`). */
+  stackedFor: number;
   /** Bumped whenever the E-Car is moved by the race itself, so its driver knows to jump there. */
   spawn: number;
   vx: number;
@@ -103,7 +105,8 @@ export class RaceSim {
   /** Kept by `energy.ts`. */
   nextBatteryAt = 0;
   batteryId = 0;
-  private ramCooldown = new Map<number, number>();
+  /** Per pair of Seats, when they can next Ram each other (`contact.ts`). */
+  ramCooldown = new Map<number, number>();
 
   constructor(trackId?: string) {
     this.newRace(FIRST_GRID_TIME, trackId);
@@ -128,7 +131,7 @@ export class RaceSim {
         car: createCar(this.world, kind, pose, !owner),
         progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
         position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, ammo: 0, shield: false, nextShotAt: 0,
-        lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0, rechargeLength: RECHARGE_TIME, pace: 1,
+        lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0, rechargeLength: RECHARGE_TIME, pace: 1, stackedFor: 0,
         spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
       };
     });
@@ -189,7 +192,8 @@ export class RaceSim {
     }
     this.world.step();
     // uses the velocities from before this step, i.e. how the E-Cars came into the contact
-    if (live) { this.judgeRams(); this.combat.step(dt); }
+    if (live) { judgeRams(this); this.combat.step(dt); }
+    unstack(this, dt);
 
     for (const s of this.seats) {
       const t = s.car.rb.translation();
@@ -248,29 +252,6 @@ export class RaceSim {
   }
 
   lap = (s: Seat) => clamp(lapOf(this.track, s.progress), 1, LAPS);
-
-  /** A Ram moves Energy from the hit E-Car to the one that drove into the contact harder (speed times weight). */
-  private judgeRams() {
-    for (let i = 0; i < SEATS; i++) for (let j = i + 1; j < SEATS; j++) {
-      const a = this.seats[i], b = this.seats[j], key = i * SEATS + j;
-      if (this.isRecharging(a) || this.isRecharging(b) || this.time < (this.ramCooldown.get(key) ?? 0)) continue;
-      let touching = false;
-      this.world.contactPair(a.car.rb.collider(0), b.car.rb.collider(0), (m) => { if (m.numContacts() > 0) touching = true; });
-      if (!touching) continue;
-      const pa = a.car.rb.translation(), pb = b.car.rb.translation();
-      const d = Math.hypot(pb.x - pa.x, pb.z - pa.z) || 1, nx = (pb.x - pa.x) / d, nz = (pb.z - pa.z) / d;
-      const sa = a.vx * nx + a.vz * nz, sb = -(b.vx * nx + b.vz * nz);
-      if (sa + sb < RAM_MIN_SPEED) continue;
-      const [rammer, victim] = sa * BODIES[a.kind].mass >= sb * BODIES[b.kind].mass ? [a, b] : [b, a];
-      this.ramCooldown.set(key, this.time + RAM_COOLDOWN);
-      if (victim.shield) { victim.shield = false; this.emit({ t: 'block', s: victim.index }); continue; }
-      const amount = Math.min(RAM_MAX, 5 + (sa + sb - RAM_MIN_SPEED) * RAM_ENERGY_PER_MS, victim.energy);
-      victim.energy -= amount;
-      rammer.energy = Math.min(MAX_ENERGY, rammer.energy + amount);
-      this.stats.rams++;
-      this.emit({ t: 'ram', a: rammer.index, b: victim.index, n: Math.round(amount) });
-    }
-  }
 
   /** Bots stay close to the Players: faster when far behind the nearest one, slower when far ahead. */
   private catchUp(bot: Seat) {

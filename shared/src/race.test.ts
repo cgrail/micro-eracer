@@ -48,6 +48,19 @@ test('a Fall-off never puts an E-Car on top of another', () => {
   assert.deepEqual(resetToCheckpoint(track, startProgress(track, cp + 5)), blocker);
 });
 
+test('an E-Car that ends up on another is put down beside it', async () => {
+  await initPhysics();
+  const sim = new RaceSim('kitchen');
+  const [a, b, ...rest] = sim.seats;
+  rest.forEach((s, i) => teleport(s.car, poseAt(sim.track, 100 + i * 15)));
+  const pose = poseAt(sim.track, 30);
+  teleport(a.car, pose);
+  teleport(b.car, { ...pose, y: pose.y + 1 });
+  for (let t = 0; t < 1.5; t += DT) sim.step(DT);
+  const pa = a.car.rb.translation(), pb = b.car.rb.translation();
+  assert.ok(Math.hypot(pa.x - pb.x, pa.z - pb.z) > 2.5 && Math.abs(pa.y - pb.y) < 0.5, `still stacked: ${pb.y - pa.y} m apart in height`);
+});
+
 test('Laps count only when driven in order', () => {
   const track = buildTrack(TRACKS[0]);
   const p = startProgress(track, track.n - 5);

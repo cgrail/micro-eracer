@@ -99,7 +99,8 @@ export function driveCar(world: RAPIER.World, car: Car, input: Input, speedScale
   const { rb } = car;
   const t = rb.translation();
   // the body stays level, so on a ramp it rides on one edge, higher above the road under its middle
-  const grounded = world.castRay(new RAPIER.Ray(t, { x: 0, y: -1, z: 0 }), HALF.y + 0.9, true, undefined, undefined, undefined, rb);
+  // only the road counts as ground: on another E-Car's roof it can't drive, and gets put down beside it (`unstack`)
+  const grounded = world.castRay(new RAPIER.Ray(t, { x: 0, y: -1, z: 0 }), HALF.y + 0.9, true, RAPIER.QueryFilterFlags.ONLY_FIXED);
   if (!grounded) return;
   const p = BODIES[car.kind], maxSpeed = p.maxSpeed * speedScale;
   const yaw = yawOfBody(rb), fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);

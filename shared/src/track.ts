@@ -192,16 +192,20 @@ export function resetToCheckpoint(track: Track, p: Progress, others: Point[] = [
   for (const c of track.checkpoints) if (c <= p.idx) cp = c;
   p.u -= p.idx - cp;
   p.idx = cp;
-  // never onto another E-Car: try across the road, then a little further back (it has to drive past the Checkpoint again)
-  const free = (pose: Pose) => others.every((o) => (o.x - pose.x) ** 2 + (o.z - pose.z) ** 2 > CLEAR ** 2 || !sameLevel(o.y, pose.y));
-  for (const back of [0, 6, 12]) for (const lateral of [0, -2.6, 2.6]) {
-    const pose = poseAt(track, cp - back, lateral);
-    if (!free(pose)) continue;
-    p.u -= back;
-    p.idx = (cp - back + track.n) % track.n;
-    return pose;
+  // never onto another E-Car: across the road, or a little further back (it has to drive past the Checkpoint again)
+  const spot = freeSpot(track, [cp, cp - 6, cp - 12], others);
+  if (!spot) return poseAt(track, cp);
+  p.u -= cp - spot.idx;
+  p.idx = (spot.idx + track.n) % track.n;
+  return spot.pose;
+}
+
+/** The first spot clear of `others` at the given samples, trying the middle of the road and then either side. */
+export function freeSpot(track: Track, idxs: number[], others: Point[]): { pose: Pose; idx: number } | undefined {
+  for (const idx of idxs) for (const lateral of [0, -2.6, 2.6]) {
+    const pose = poseAt(track, idx, lateral);
+    if (others.every((o) => (o.x - pose.x) ** 2 + (o.z - pose.z) ** 2 > CLEAR ** 2 || !sameLevel(o.y, pose.y))) return { pose, idx };
   }
-  return poseAt(track, cp);
 }
 
 /** Nearest sample in 3D, so on a bridge it is the bridge and under it the road below. */
