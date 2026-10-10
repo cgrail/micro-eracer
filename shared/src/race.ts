@@ -14,7 +14,8 @@ export const SEATS = 8;
 export const LAPS = 3;
 export const FIRST_GRID_TIME = 3;
 export const GRID_TIME = 5;
-export const FINISH_TIME = 10;
+/** The next Race's grid comes this long after the first Racer finishes. */
+export const FINISH_TIME = 7;
 /** Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands. */
 export const STRANDED_TIME = 1.6;
 export const RECHARGE_TIME = 1.6;

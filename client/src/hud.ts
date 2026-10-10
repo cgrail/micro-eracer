@@ -53,10 +53,19 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
       // no filter at all otherwise: a full-screen filter costs phones a pass every frame
       const filter = grey > 0.02 ? `grayscale(${grey.toFixed(2)}) contrast(${(1 + grey * 0.2).toFixed(2)})` : '';
       if (filter !== lastFilter) view.style.filter = lastFilter = filter;
-      const shown = state.phase === 'grid' ? names.join('\n') : '';
+      // once someone has finished, the standings fill up as each Racer crosses the line; on the grid, the last Race's final order
+      const board: string[] = [];
+      if (state.phase === 'grid') board.push(...names);
+      else if (state.phase === 'finishing') {
+        const done: CarState[] = [];
+        state.cars.forEach((c) => { if (c.finished) done.push(c); });
+        board.push(...done.sort((a, b) => a.position - b.position).map((c) => c.name));
+      }
+      const shown = `${state.phase}:${board.join('\n')}`;
       if (shown !== lastResults) {
         lastResults = shown;
-        hud.results.replaceChildren(...(shown ? names : []).map((n) => Object.assign(document.createElement('li'), { textContent: n })));
+        hud.results.classList.toggle('live', state.phase === 'finishing');
+        hud.results.replaceChildren(...board.map((n) => Object.assign(document.createElement('li'), { textContent: n, className: n === me?.name ? 'me' : '' })));
       }
     },
 

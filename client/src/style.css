@@ -49,6 +49,9 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #results { position: absolute; top: calc(26% + 116px); left: 50%; transform: translateX(-50%) rotate(1deg); margin: 0; padding: 12px 20px 12px 44px;
   background: var(--paper); color: var(--ink); border: 3px solid #111; border-radius: 12px; box-shadow: 5px 5px 0 #111; font-size: 22px; }
 #results:empty { display: none; }
+/* while the others are still racing, the standings sit out of the way under the Lap counter */
+#results.live { top: max(124px, calc(env(safe-area-inset-top) + 116px)); right: 16px; left: auto; transform: rotate(1deg); padding: 8px 14px 8px 36px; font-size: 18px; }
+#results .me { color: var(--accent); }
 #news { position: absolute; top: calc(26% + 76px); width: 100%; padding: 0 16px; text-align: center; font-size: 24px; color: #fff;
   -webkit-text-stroke: 1.5px #111; paint-order: stroke fill; text-shadow: 2px 2px 0 #111; }
 #offline { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); margin: 0; padding: 4px 12px;

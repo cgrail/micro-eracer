@@ -1,16 +1,7 @@
 # Todo
 
-[x] roadster and microbus should drive differently. the bus is heavier and slower, but it must still be possible to win with it
-[x] the tracks are flat. add ramps, jumps and bridges, still small and without shortcuts
-[x] offline race against bots when the server can't be reached on play
-[x] on mobile the steering is to sensitive. give a little bit more control
-[x] the copter should not flow you back, but just recharge you
-[x] keep only the action button which either shoots or triggers an action. brake is also useless on mobile. only one action button is ok
-[x] if you're on first place, bots should shoot at you all the time. it should be really hard to stay at the top
-[x] add more cars like a a  suv, a truck like the f150 lightinign, an electric trailer
-[x] add a recharge gas station near the finish line with a detour if you can't find battery.
-[x] if you run empty, the whole screen should turn grey or black and white. it should be real obvious that something is wrong
-[x] the music is not loud enough in comparison (split off the next line)
-[x] the voices are not great. replace them with something real (CC0 recordings from Freesound, as decided)
-[x] in the track some things overlay each which doesn't look good. check the map and separate things which should be separated
-[x] give the bots some fun names. but make it opvious that they are bots. when a human replaces a bot it should be obvius that a human has replaced them
+[x] once the first player has finished show the leader which fills up with 2nd place, third place etc. start new race after 7 seconds
+[ ] sometimes cars are dropped ontop of each other. avoid that
+[ ] when driving its stuttering and flickering. it seems like this a client/server refresh issue. try to minimize that. allow some drift and optimze for smooth animation rather than correctness.
+[ ] if you're first the batteries still appear. it should be really hard to stay first. also other bots don't shoot at you. batteries appear to plenty. if you're on place 3,4 or farther behind you fight for batteries. in the back there should be plenty of batteries. in the front batteries should be really scarce. it should happen often that you run out of energy
+[ ] 
