@@ -89,4 +89,4 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 
 - The backlog is `todo.md`, worked through with the `/todo` skill. Each item gets its own commit, and done items are ticked `[x]` and kept.
 - Commit messages use an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the reason isn't obvious.
-- Don't push unless asked: pushing to `main` deploys.
+- Push every commit straight to `main`, without asking, once the checks above pass: no feature branches, no pull requests. A push to `main` deploys, so never push red checks. If the push is rejected because `main` moved, rebase onto `origin/main`, resolve any conflicts keeping both sides' intent, run the checks again and push. Never force-push `main`.

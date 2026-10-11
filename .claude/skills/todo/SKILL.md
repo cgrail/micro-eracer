@@ -44,7 +44,7 @@ Do **not** batch items. For each item, in order:
    - A new or changed game concept: its entry in [CONTEXT.md](../../../CONTEXT.md), as a glossary entry only.
    - A bug fix that changes no rule: none of them.
 7. **Tick the item** in `todo.md`: `[ ]` → `[x]`. If the work revealed a follow-up the user should decide on, append it as a new `[ ]` line rather than doing it silently.
-8. **Commit everything for that item together:** code, test additions, `todo.md` and docs. Use the repo's message style: an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the *why* isn't obvious from the subject. **Do not push:** a push to `main` goes live on the server within 5 minutes.
+8. **Commit everything for that item together:** code, test additions, `todo.md` and docs. Use the repo's message style: an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the *why* isn't obvious from the subject. **Then push it straight to `main`**, without asking: it goes live on the server within 5 minutes, so only with every check green. If the push is rejected because `main` moved, rebase onto `origin/main`, resolve any conflicts keeping both sides' intent, run the checks again and push. Never force-push.
 
 ## Reporting
 
