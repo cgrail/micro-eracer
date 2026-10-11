@@ -7,6 +7,7 @@ import { deployHook } from './deployHook.ts';
 import { RaceRoom } from './RaceRoom.ts';
 
 await initPhysics();
+const dist = fileURLToPath(new URL('../../client/dist', import.meta.url));
 
 const server = defineServer({
   rooms: { race: defineRoom(RaceRoom) },
@@ -15,7 +16,9 @@ const server = defineServer({
   // in development Vite serves the browser app; in production this one process does both
   express: (app) => {
     deployHook(app);
-    app.use(express.static(fileURLToPath(new URL('../../client/dist', import.meta.url))));
+    // the build names everything in assets/ after a hash of its content, so browsers keep those files across deploys
+    app.use('/assets', express.static(`${dist}/assets`, { immutable: true, maxAge: '1y' }));
+    app.use(express.static(dist));
   },
 });
 

@@ -1,7 +1,8 @@
 # Todo
 
 
-[ ] bundle size. vite v8.3.4 building client environment for production...
+[x] on mobile instead of slider offer option with left right buttons
+[x] bundle size. vite v8.3.4 building client environment for production...
 ✓ 80 modules transformed.
 computing gzip size...
 client/dist/index.html                                               2.27 kB │ gzip:     0.91 kB
@@ -21,3 +22,5 @@ client/dist/assets/index-C2ooV7Pc.js                             5,122.45 kB │
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 ==> deployed 51c05d465aa164d47ac9d3a80e29a96675470015
+
+[ ] Rapier's WASM is now most of the download: 3 MB (1.2 MB gzipped), as 0.21 also brings soft bodies and more we don't use. Shrinking it means an older Rapier (and re-checking the driving) or building our own
