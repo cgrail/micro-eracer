@@ -29,13 +29,16 @@ export class Combat {
   bolts: Bolt[] = [];
   mines: Mine[] = [];
   /** Per Item Box: the time it is back after being taken (0 = there). */
-  boxes: number[];
+  private boxes: number[];
+  /** Per Item Box: out on the Track. A box comes out once third place has passed it and goes once the last Racer has. */
+  out: boolean[];
   /** When the Bots may next fire at a Player in the lead; shared, so the Leader is shot about once a second, not once per Bot. */
   private leaderShotAt = 0;
   private id = 0;
 
   constructor(private sim: RaceSim) {
     this.boxes = sim.track.itemBoxes.map(() => 0);
+    this.out = this.boxes.map(() => false);
   }
 
   private pose(s: Seat) {
@@ -80,14 +83,19 @@ export class Combat {
     const { sim } = this;
     const near = (s: Seat, p: { x: number; y: number; z: number }, r: number) => { const t = s.car.rb.translation(); return (t.x - p.x) ** 2 + (t.z - p.z) ** 2 < r * r && sameLevel(t.y, p.y); };
 
+    // how far third place and the last Racer have come, and how often each has passed a sample
+    const u = sim.seats.map((o) => o.progress.u).sort((a, b) => b - a), third = u[GOODIES_FROM - 2], last = u[u.length - 1];
+    const passes = (at: number, idx: number) => Math.floor((at - idx) / sim.track.n);
     sim.track.itemBoxes.forEach((box, i) => {
-      if (this.boxes[i] > sim.time) return;
-      // holding an Item already, or in the top three, driving through a box does nothing (it stays for those behind)
+      this.out[i] = this.boxes[i] <= sim.time && passes(third, box.idx) > passes(last, box.idx);
+      if (!this.out[i]) return;
+      // holding an Item already, or in the top three (a Leader about to lap the last), driving through a box does nothing
       const s = sim.seats.find((o) => !o.item && o.position >= GOODIES_FROM && sim.canAct(o) && near(o, box, BOX_RADIUS));
       if (!s) return;
       s.item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
       if (s.item === 'zap') s.ammo = ZAP_SHOTS;
       this.boxes[i] = sim.time + BOX_RESPAWN;
+      this.out[i] = false;
       sim.emit({ t: 'box', s: s.index, item: s.item });
     });
 

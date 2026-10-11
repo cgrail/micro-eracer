@@ -42,7 +42,8 @@ export interface Track {
   /** Centre of every tile the road (or the Charging Station beside it) uses, so scenery can avoid them. */
   tiles: { x: number; z: number }[];
   puddles: Circle[];
-  itemBoxes: Pose[];
+  /** `idx`: the sample the box stands at. */
+  itemBoxes: (Pose & { idx: number })[];
 }
 
 export const TRACKS: TrackDef[] = [kitchen, garden, desk, bathtub];
@@ -133,7 +134,7 @@ export function buildTrack(def: TrackDef): Track {
   const middle = (piece: number) => Math.floor((checkpoints[piece] + (checkpoints[piece + 1] ?? n)) / 2);
   const puddles = def.puddles.map((piece) => { const { x, y, z } = samples[middle(piece)]; return { x, y, z, r: 3.2 }; });
   const track: Track = { def, samples, n, checkpoints, walls, tiles, puddles, itemBoxes: [] };
-  track.itemBoxes = def.items.flatMap((piece) => [-2.8, 0, 2.8].map((lateral) => poseAt(track, middle(piece), lateral)));
+  track.itemBoxes = def.items.flatMap((piece) => [-2.8, 0, 2.8].map((lateral) => ({ ...poseAt(track, middle(piece), lateral), idx: middle(piece) })));
   return track;
 }
 

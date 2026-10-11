@@ -121,7 +121,7 @@ The commonest Item: five Shots, fired one per press or rapidly while held.
 _Avoid_: Gun, ammo pack
 
 **Item Box**:
-A pickup at a fixed spot on the Track that gives a Racer without an Item one random Item, and comes back a few seconds after being taken. Only Racers from fourth place back get one; for the top three it stays where it is, for those behind.
+A pickup at a fixed spot on the Track that gives a Racer without an Item one random Item, and comes back a few seconds after being taken. It is only out on the Track between third place and the last Racer: it appears once third place has passed its spot and goes once the last Racer has. Only Racers from fourth place back get one, and the top three never see one.
 _Avoid_: Mystery box, crate
 
 **Item**:

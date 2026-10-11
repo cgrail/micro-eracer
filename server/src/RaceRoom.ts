@@ -91,8 +91,7 @@ export class RaceRoom extends Room<{ state: RaceState }> {
       state.mines.clear();
       state.mines.push(...combat.mines.map(({ id, x, y, z }) => Object.assign(new MineState(), { id, x, y, z })));
     }
-    const boxes = combat.boxes.map((at) => at <= sim.time);
-    if (state.boxes.join() !== boxes.join()) { state.boxes.clear(); state.boxes.push(...boxes); }
+    if (state.boxes.join() !== combat.out.join()) { state.boxes.clear(); state.boxes.push(...combat.out); }
     sim.seats.forEach((s, i) => Object.assign(state.cars[i], seatState(sim, s)));
   }
 }

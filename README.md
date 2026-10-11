@@ -32,7 +32,7 @@ Leading is meant to be hard: the Leader is slowed as soon as they pull away and 
 
 Controls: on desktop, arrows or WASD drive, and Space, E or Shift uses your Item (hold it down and a Zap keeps firing). On mobile the E-Car accelerates by itself: drag the left pad to steer (or, if you pick Buttons steering on the start screen, hold its ◀ or ▶ half; the wheel in the middle turns as you steer), and tap the one action button on the right, which shows the Item you hold and uses it. There is no brake on mobile; pushing against a wall while steering turns the E-Car free, and if you're stuck a Back button appears: hold it to reverse. On desktop a map in the bottom-left corner shows the Track from above with every E-Car on it: Players with their Position and name, Bots with their Position and 🤖.
 
-Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes like the Missile, Mine and Shield, and Item Boxes only give to Racers from fourth place back.
+Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes like the Missile, Mine and Shield, and Item Boxes are only for Racers from fourth place back: one appears once third place has passed its spot and goes once the last Racer has, so the top three never see one.
 
 `DRAIN_SCALE=10 npm run dev` makes batteries run dry ten times faster, so you can try out being Stranded and the drone's Recharge.
 

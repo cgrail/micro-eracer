@@ -4,6 +4,7 @@ import {
   type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
   teleport,
 } from '../../shared/src/car.ts';
+import { GOODIES_FROM } from '../../shared/src/combat.ts';
 import type { World } from '../../shared/src/physics.ts';
 import type { RaceEvent } from '../../shared/src/race.ts';
 import {
@@ -251,7 +252,8 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     });
     syncSpots(s.mines, mines, makeMine, 0);
     syncBolts(s.bolts);
-    s.boxes.forEach((on, i) => { if (boxes[i]) boxes[i].visible = on; });
+    // the top three never see an Item Box: goodies are for those behind
+    s.boxes.forEach((on, i) => { if (boxes[i]) boxes[i].visible = on && (me?.position ?? 0) >= GOODIES_FROM; });
   });
   room.onMessage('events', (list: RaceEvent[]) => list.forEach(onEvent));
   room.onDrop(() => (status = 'Reconnecting…'));

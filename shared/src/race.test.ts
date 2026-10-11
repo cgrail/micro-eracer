@@ -205,17 +205,26 @@ test('a Player taking over a Bot is announced, and only Bots wear the robot', ()
   assert.ok(sim.events.some((e) => e.t === 'leave' && e.was === 'Sneaky'));
 });
 
-test('Item Boxes are only for Racers from fourth place back, and a Zap holds five Shots', () => {
+test('Item Boxes come out behind third place, go after the last Racer, only give from fourth back; a Zap holds five Shots', () => {
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
-  const [s] = sim.seats, box = sim.track.itemBoxes[0];
+  const at = (p: number) => sim.seats.find((o) => o.position === p)!;
+  const s = at(GOODIES_FROM), box = sim.track.itemBoxes[0];
+  const passed = (upTo: number) => sim.seats.forEach((o) => { if (o.position <= upTo) o.progress.u = box.idx + 1; });
   const atBox = () => { teleport(s.car, { ...box, y: box.y - 0.15 }); sim.combat.step(DT); };
-  s.position = GOODIES_FROM - 1;
   atBox();
-  assert.equal(s.item, '', 'the top three get nothing');
-  s.position = GOODIES_FROM;
+  assert.ok(!sim.combat.out[0] && s.item === '', 'not out before third place has passed it');
+  passed(GOODIES_FROM - 1);
   atBox();
   assert.notEqual(s.item, '');
+  assert.ok(!sim.combat.out[0], 'taken');
+  Object.assign(s, { item: '', position: GOODIES_FROM - 1 });
+  sim.time += 5;
+  atBox();
+  assert.ok(sim.combat.out[0] && s.item === '', 'back, but the top three get nothing');
+  passed(sim.seats.length);
+  sim.combat.step(DT);
+  assert.ok(!sim.combat.out[0], 'gone once the last Racer has passed it');
   Object.assign(s, { item: 'zap', ammo: ZAP_SHOTS });
   let shots = 0;
   for (let i = 0; i < 20; i++) { sim.time += 0.4; sim.combat.useItem(s); shots += sim.events.filter((e) => e.t === 'shot').length; sim.events = []; }
