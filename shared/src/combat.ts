@@ -1,4 +1,4 @@
-import { BODIES, yawOfBody } from './car.ts';
+import { BODIES } from './car.ts';
 import type { RaceSim, Seat } from './race.ts';
 import { right, sameLevel } from './track.ts';
 
@@ -39,7 +39,7 @@ export class Combat {
   }
 
   private pose(s: Seat) {
-    const t = s.car.rb.translation(), yaw = yawOfBody(s.car.rb);
+    const t = s.car.rb.translation(), yaw = s.car.rb.yaw;
     return { x: t.x, y: t.y, z: t.z, fx: Math.sin(yaw), fz: Math.cos(yaw) };
   }
 
@@ -134,7 +134,7 @@ export class Combat {
     const ix = (dx * h.shove) / mass, iz = (dz * h.shove) / mass, hop = h.hop / mass;
     if (!victim.owner) {
       const v = victim.car.rb.linvel();
-      victim.car.rb.setLinvel({ x: v.x + ix, y: v.y + hop, z: v.z + iz }, true);
+      victim.car.rb.setLinvel({ x: v.x + ix, y: v.y + hop, z: v.z + iz });
       victim.car.spin = spin;
     }
     // a Player's browser drives their E-Car, so it applies the same shove when it gets this

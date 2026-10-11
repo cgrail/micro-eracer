@@ -1,8 +1,8 @@
 import type * as THREE from 'three';
-import type RAPIER from '@dimforge/rapier3d-compat';
 import { BODIES, type BodyKind, type Car, HALF } from '../../shared/src/car.ts';
 import { RAM_MIN_SPEED, ramResponse } from '../../shared/src/contact.ts';
 import { STRANDED_TIME } from '../../shared/src/race.ts';
+import type { World } from '../../shared/src/physics.ts';
 import type { Particles } from './effects.ts';
 import { RECHARGE, STRANDED } from './state.ts';
 import type { Pose, Track } from '../../shared/src/track.ts';
@@ -72,13 +72,11 @@ export function place(v: CarView, track: Track, i: number, p: { x: number; y: nu
  * we drive into one, we shove it at once and keep the way the collision leaves us, as the server works out too.
  * `before` is our velocity going into this physics step.
  */
-export function ourRams(world: RAPIER.World, own: CarView, views: CarView[], before: { x: number; z: number }) {
+export function ourRams(world: World, own: CarView, views: CarView[], before: { x: number; z: number }) {
   const rb = own.car.rb, t = rb.translation(), now = performance.now();
   for (const v of views) {
     if (v.mine || now - v.kickedAt < 500) continue;
-    let touching = false;
-    world.contactPair(rb.collider(0), v.car.rb.collider(0), (m) => { if (m.numContacts() > 0) touching = true; });
-    if (!touching) continue;
+    if (!world.touching(rb, v.car.rb)) continue;
     const o = v.car.rb.translation(), d = Math.hypot(o.x - t.x, o.z - t.z) || 1, n = { x: (o.x - t.x) / d, z: (o.z - t.z) / d };
     const ours = before.x * n.x + before.z * n.z, theirs = -(v.target.vx * n.x + v.target.vz * n.z);
     // only when we drove into them; when they drive into us, the server's Ram shoves us
@@ -88,7 +86,7 @@ export function ourRams(world: RAPIER.World, own: CarView, views: CarView[], bef
     v.target.vz += n.z * kick;
     v.kickedAt = now;
     const after = rb.linvel(), along = after.x * n.x + after.z * n.z, want = -theirs + keep;
-    rb.setLinvel({ x: after.x + n.x * (want - along), y: after.y, z: after.z + n.z * (want - along) }, true);
+    rb.setLinvel({ x: after.x + n.x * (want - along), y: after.y, z: after.z + n.z * (want - along) });
   }
 }
 

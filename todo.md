@@ -23,4 +23,4 @@ client/dist/assets/index-C2ooV7Pc.js                             5,122.45 kB │
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 ==> deployed 51c05d465aa164d47ac9d3a80e29a96675470015
 
-[ ] Rapier's WASM is now most of the download: 3 MB (1.2 MB gzipped), as 0.21 also brings soft bodies and more we don't use. Shrinking it means an older Rapier (and re-checking the driving) or building our own
+[x] Rapier's WASM is now most of the download: 3 MB (1.2 MB gzipped), as 0.21 also brings soft bodies and more we don't use. Shrinking it means an older Rapier (and re-checking the driving) or building our own

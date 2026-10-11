@@ -27,7 +27,8 @@ export interface TrackDef {
 export interface Sample { x: number; y: number; z: number; dx: number; dz: number; walls: boolean; turn: boolean; kick: boolean; bay: number }
 export interface Circle { x: number; y: number; z: number; r: number }
 export interface Pose { x: number; y: number; z: number; yaw: number }
-export interface WallSegment { x: number; y: number; z: number; yaw: number; pitch: number; length: number }
+/** `idx`: the sample the wall starts at. */
+export interface WallSegment { x: number; y: number; z: number; yaw: number; pitch: number; length: number; idx: number }
 type Point = { x: number; y: number; z: number };
 
 export interface Track {
@@ -126,7 +127,7 @@ export function buildTrack(def: TrackDef): Track {
       const ra = right(a.dx, a.dz), rb = right(b.dx, b.dz);
       const ax = a.x + ra.x * off, az = a.z + ra.z * off, bx = b.x + rb.x * off, bz = b.z + rb.z * off;
       const flat = Math.hypot(bx - ax, bz - az);
-      walls.push({ x: (ax + bx) / 2, y: (a.y + b.y) / 2, z: (az + bz) / 2, yaw: yawOf(bx - ax, bz - az), pitch: -Math.atan2(b.y - a.y, flat), length: Math.hypot(flat, b.y - a.y) });
+      walls.push({ x: (ax + bx) / 2, y: (a.y + b.y) / 2, z: (az + bz) / 2, yaw: yawOf(bx - ax, bz - az), pitch: -Math.atan2(b.y - a.y, flat), length: Math.hypot(flat, b.y - a.y), idx: i });
     }
   }
   const middle = (piece: number) => Math.floor((checkpoints[piece] + (checkpoints[piece + 1] ?? n)) / 2);

@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-import type RAPIER from '@dimforge/rapier3d-compat';
 import {
   type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
-  teleport, yawOfBody,
+  teleport,
 } from '../../shared/src/car.ts';
+import type { World } from '../../shared/src/physics.ts';
 import type { RaceEvent } from '../../shared/src/race.ts';
 import {
   type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
@@ -60,7 +60,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
   resize();
   addEventListener('resize', resize);
 
-  let track: Track | undefined, world: RAPIER.World | undefined, look: TrackScene | undefined;
+  let track: Track | undefined, world: World | undefined, look: TrackScene | undefined;
   let state: RaceState | undefined, me: CarState | undefined;
   let own: { view: CarView; seat: number; progress: Progress; spawn: number; lockedUntil: number } | undefined;
   const views: CarView[] = [];
@@ -75,7 +75,6 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     for (const m of [...batteries.values(), ...mines.values(), ...[...bolts.values()].map((b) => b.mesh), ...boxes]) { scene.remove(m); dispose(m); }
     batteries.clear(); mines.clear(); bolts.clear();
     own = undefined;
-    world?.free();
     if (look) { scene.remove(look.group); dispose(look.group); look.background.dispose(); }
     track = buildTrack(TRACKS.find((t) => t.id === id) ?? TRACKS[0]);
     // every Track has its own song
@@ -93,7 +92,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     const pose = { x: c.x, y: c.y, z: c.z, yaw: c.yaw };
     let v = views[i];
     if (!v || v.kind !== c.body || v.mine !== mine) {
-      if (v) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); world!.removeRigidBody(v.car.rb); }
+      if (v) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); world!.remove(v.car.rb); }
       const mesh = makeCar(c.body, SEAT_COLORS[i]), tag = makeNameTag(c.name, !!c.owner), drone = makeDrone();
       mesh.add(tag);
       drone.visible = false;
@@ -205,7 +204,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       if (mine && own) {
         // we drive our own E-Car, so we apply the shove the server worked out
         const v = own.view.car.rb.linvel();
-        own.view.car.rb.setLinvel({ x: v.x + e.ix, y: v.y + e.hop, z: v.z + e.iz }, true);
+        own.view.car.rb.setLinvel({ x: v.x + e.ix, y: v.y + e.hop, z: v.z + e.iz });
         own.view.car.spin = e.spin;
         shake = e.kind === 'shot' ? 0.15 : 0.5;
       }
@@ -273,7 +272,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       // the server slows a Leader who is far ahead (`pace`, in percent)
       driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1) * ((me.pace || 100) / 100), inPuddle(track, t));
       // pushing on but hardly moving for a moment means stuck (nose on a wall, after a spin): touch gets its reverse button
-      const v = own.view.car.rb.linvel(), yaw = yawOfBody(own.view.car.rb), forward = v.x * Math.sin(yaw) + v.z * Math.cos(yaw);
+      const v = own.view.car.rb.linvel(), yaw = own.view.car.rb.yaw, forward = v.x * Math.sin(yaw) + v.z * Math.cos(yaw);
       stuckFor = !locked && forward < 1 ? stuckFor + DT : 0;
       controls.showBack(stuckFor > 0.8);
       // one key or button uses the Item; held down, a Zap keeps firing (the server allows three Shots a second)
@@ -293,7 +292,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     // 30 times a second, as often as the server sends its state
     if (++ticks % 2 === 0) {
       const v = rb.linvel();
-      room.send('pose', { x: t.x, y: t.y, z: t.z, yaw: yawOfBody(rb), vx: v.x, vz: v.z, spawn: own.spawn });
+      room.send('pose', { x: t.x, y: t.y, z: t.z, yaw: rb.yaw, vx: v.x, vz: v.z, spawn: own.spawn });
     }
   }
 
@@ -334,7 +333,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     }
     if (own && me) {
       const v = own.view.car.rb.linvel(), t = own.view.car.rb.translation();
-      const yaw = yawOfBody(own.view.car.rb), r = right(Math.sin(yaw), Math.cos(yaw));
+      const yaw = own.view.car.rb.yaw, r = right(Math.sin(yaw), Math.cos(yaw));
       const driving = me.mode === DRIVING && state?.phase !== 'grid';
       sound.drive(driving ? Math.hypot(v.x, v.z) : 0, driving ? controls.drive().throttle : 0, driving && t.y > own.view.roadY - 0.2 ? (Math.abs(v.x * r.x + v.z * r.z) - 3) / 4 : 0);
       sound.setDrone(ownDrone);
@@ -362,7 +361,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     for (acc += dt; acc >= DT; acc -= DT) {
-      if (own) { const t = own.view.car.rb.translation(); ownBefore.set(t.x, t.y, t.z); ownBeforeYaw = yawOfBody(own.view.car.rb); }
+      if (own) { const t = own.view.car.rb.translation(); ownBefore.set(t.x, t.y, t.z); ownBeforeYaw = own.view.car.rb.yaw; }
       tick();
     }
     glide(views, dt);
@@ -372,7 +371,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
         // drawn between its last two physics steps, so it moves evenly at any frame rate (a jump isn't blended)
         const t = v.car.rb.translation(), k = ownBefore.distanceTo(t) < 5 ? acc / DT : 1;
         p = { x: ownBefore.x + (t.x - ownBefore.x) * k, y: ownBefore.y + (t.y - ownBefore.y) * k, z: ownBefore.z + (t.z - ownBefore.z) * k };
-        yaw = ownBeforeYaw + angleDiff(ownBeforeYaw, yawOfBody(v.car.rb)) * k;
+        yaw = ownBeforeYaw + angleDiff(ownBeforeYaw, v.car.rb.yaw) * k;
       }
       place(v, track!, v.mine ? own!.progress.idx : nearestSample(track!, p.x, p.y, p.z), p, yaw, dt);
     }
@@ -408,7 +407,6 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     sound.silenceLoops();
     dispose(scene);
     look?.background.dispose();
-    world?.free();
     renderer.dispose();
     renderer.domElement.remove();
   };

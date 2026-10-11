@@ -38,7 +38,7 @@ Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes l
 
 ## Code layout
 
-- `shared/`: Tracks, car physics (Rapier) and the Race simulation (`RaceSim`). The server runs it, and the browser reuses the Track and physics code. It's kept free of networking, so when Play can't reach the server within 5 seconds the browser runs the same simulation itself: an Offline Race against the Bots.
+- `shared/`: Tracks, car physics (our own, in `physics.ts` and `collide.ts`) and the Race simulation (`RaceSim`). The server runs it, and the browser reuses the Track and physics code. It's kept free of networking, so when Play can't reach the server within 5 seconds the browser runs the same simulation itself: an Offline Race against the Bots.
 - `server/`: a Colyseus room that wraps `RaceSim` and syncs it to the browsers.
 - `client/`: the Vite + Three.js browser app. It drives your own E-Car locally and shows the others as the server reports them.
 

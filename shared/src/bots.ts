@@ -1,4 +1,4 @@
-import { type Input, yawOfBody } from './car.ts';
+import type { Input } from './car.ts';
 import type { RaceSim, Seat } from './race.ts';
 import { BAY_WIDTH, HALF_WIDTH, inStation, lateralOf, poseAt, right } from './track.ts';
 
@@ -11,7 +11,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 export function botInput(sim: RaceSim, s: Seat): Input {
   const { track } = sim, { rb } = s.car;
   const t = rb.translation(), v = rb.linvel();
-  const yaw = yawOfBody(rb), fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
+  const yaw = rb.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
   const speed = Math.hypot(v.x, v.z);
   const look = Math.round(4 + speed * 0.4);
   const ahead = (idx: number) => (idx - s.progress.idx + track.n) % track.n;

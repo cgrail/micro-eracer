@@ -12,6 +12,6 @@ Each Player's browser simulates its own E-Car and reports its position to the se
 - A modified browser can fake its own E-Car's position and speed. We accept this.
 - Hits on Players are judged against slightly old positions, so on a bad connection some hits will look unfair.
 - Each side resolves collisions only for the bodies it owns: a browser bounces its own E-Car off the others, and the server bounces Bots off Players. Only the server moves Energy.
-- The same physics (Rapier) and car tuning run in the browser and in Node, as shared TypeScript.
+- The same physics (our own since [ADR 0002](0002-own-physics-instead-of-rapier.md), Rapier before) and car tuning run in the browser and in Node, as shared TypeScript.
 - Because of the Offline Race, everything the server owns (Bots, Energy, Hits, Items) must also live in shared code that can run in the browser.
 - Races map onto Colyseus rooms. That locks us into Colyseus's room and state-sync model.

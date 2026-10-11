@@ -1,10 +1,10 @@
-import type RAPIER from '@dimforge/rapier3d-compat';
 import {
   BODIES, BODY_KINDS, type Car, type BodyKind, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
-  teleport, yawOfBody,
+  teleport,
 } from './car.ts';
 import { botInput } from './bots.ts';
 import { judgeRams, unstack } from './contact.ts';
+import type { World } from './physics.ts';
 import { RECHARGE_TIME, leadPace, rechargeLength, updateBatteries } from './energy.ts';
 
 export { BATTERY_CHARGE, RECHARGE_TIME } from './energy.ts';
@@ -87,7 +87,7 @@ const botName = (i: number) => `${BOT} ${BOT_NAMES[i % BOT_NAMES.length]}`;
 /** One Race and everything the server owns in it. Kept free of networking so an Offline Race can run it too. */
 export class RaceSim {
   track!: Track;
-  world!: RAPIER.World;
+  world!: World;
   seats: Seat[] = [];
   batteries: Battery[] = [];
   phase: Phase = 'grid';
@@ -115,7 +115,6 @@ export class RaceSim {
   newRace(gridTime: number, trackId?: string) {
     const others = TRACKS.filter((t) => t.id !== this.track?.def.id);
     const def = TRACKS.find((t) => t.id === trackId) ?? (others.length ? others[Math.floor(Math.random() * others.length)] : TRACKS[0]);
-    this.world?.free();
     this.track = buildTrack(def);
     this.world = createTrackWorld(this.track);
     this.combat = new Combat(this);
@@ -262,8 +261,8 @@ export class RaceSim {
 
   private replaceCar(seat: Seat, dynamic: boolean) {
     const t = seat.car.rb.translation();
-    const pose = { x: t.x, y: t.y, z: t.z, yaw: yawOfBody(seat.car.rb) };
-    this.world.removeRigidBody(seat.car.rb);
+    const pose = { x: t.x, y: t.y, z: t.z, yaw: seat.car.rb.yaw };
+    this.world.remove(seat.car.rb);
     seat.car = createCar(this.world, seat.kind, pose, dynamic);
     if (dynamic) teleport(seat.car, pose, seat.vx, seat.vz);
     seat.spawn++;

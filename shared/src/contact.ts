@@ -1,4 +1,4 @@
-import { BODIES, type Car, MAX_ENERGY, teleport, yawOfBody } from './car.ts';
+import { BODIES, type Car, MAX_ENERGY, teleport } from './car.ts';
 import type { RaceSim } from './race.ts';
 import { freeSpot, right } from './track.ts';
 
@@ -15,7 +15,7 @@ const RAM_BOUNCE = 0.3, RAM_SWING = 0.12, RAM_SKID = 0.6;
  */
 export function ramResponse(rammer: Car, victim: Car, n: { x: number; z: number }, closing: number) {
   const mr = BODIES[rammer.kind].mass, mv = BODIES[victim.kind].mass;
-  const yaw = yawOfBody(victim.rb), fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
+  const yaw = victim.rb.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
   const rp = rammer.rb.translation(), vp = victim.rb.translation();
   // hit at the nose or tail rather than the middle, the victim swings round
   const along = (rp.x - vp.x) * fx + (rp.z - vp.z) * fz, side = n.x * r.x + n.z * r.z;
@@ -29,7 +29,7 @@ export function ramResponse(rammer: Car, victim: Car, n: { x: number; z: number 
 /** The victim's side of a Ram: shoved (`ix`, `iz`), skidding, maybe swinging round. Each side applies it to its own E-Cars. */
 export function shove(car: Car, ix: number, iz: number, spin: number) {
   const v = car.rb.linvel();
-  car.rb.setLinvel({ x: v.x + ix, y: v.y, z: v.z + iz }, true);
+  car.rb.setLinvel({ x: v.x + ix, y: v.y, z: v.z + iz });
   car.slide = RAM_SKID;
   if (Math.abs(spin) > Math.abs(car.spin)) car.spin = spin;
 }
@@ -45,9 +45,7 @@ export function judgeRams(sim: RaceSim) {
   for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     const a = sim.seats[i], b = sim.seats[j], key = i * n + j;
     if (sim.isRecharging(a) || sim.isRecharging(b) || sim.time < (sim.ramCooldown.get(key) ?? 0)) continue;
-    let touching = false;
-    sim.world.contactPair(a.car.rb.collider(0), b.car.rb.collider(0), (m) => { if (m.numContacts() > 0) touching = true; });
-    if (!touching) continue;
+    if (!sim.world.touching(a.car.rb, b.car.rb)) continue;
     const pa = a.car.rb.translation(), pb = b.car.rb.translation();
     const d = Math.hypot(pb.x - pa.x, pb.z - pa.z) || 1, nx = (pb.x - pa.x) / d, nz = (pb.z - pa.z) / d;
     const sa = a.vx * nx + a.vz * nz, sb = -(b.vx * nx + b.vz * nz);

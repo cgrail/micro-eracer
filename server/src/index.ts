@@ -3,11 +3,9 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import express from 'express';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { initPhysics } from '../../shared/src/car.ts';
 import { deployHook } from './deployHook.ts';
 import { RaceRoom } from './RaceRoom.ts';
 
-await initPhysics();
 const dist = fileURLToPath(new URL('../../client/dist', import.meta.url));
 
 const server = defineServer({

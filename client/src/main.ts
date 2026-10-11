@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import '@fontsource/bangers';
 import { Client } from '@colyseus/sdk';
-import { type BodyKind, BODY_KINDS, initPhysics } from '../../shared/src/car.ts';
+import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createInput, isTouch, type Steering, STEERINGS } from './input.ts';
@@ -40,7 +40,6 @@ const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.
 sound.setMuted(load('muted') === '1');
 showMute();
 mute.addEventListener('click', () => { sound.setMuted(!sound.muted); save('muted', sound.muted ? '1' : '0'); showMute(); mute.blur(); });
-const physics = initPhysics();
 const serverUrl = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
 // waiting longer than this for the server, Play starts an Offline Race instead
 const JOIN_TIMEOUT = 5000;
@@ -56,7 +55,7 @@ form.addEventListener('submit', async (e) => {
   sound.unlock();
   try {
     // name tags and the banner are drawn on canvases, which need the comic font loaded first
-    await Promise.all([physics, document.fonts.load('40px Bangers').catch(() => undefined)]);
+    await document.fonts.load('40px Bangers').catch(() => undefined);
     const join = new Client(serverUrl).joinOrCreate('race', { name, body });
     let room: RaceLink;
     try {

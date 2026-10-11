@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, initPhysics, teleport } from './car.ts';
+import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, teleport } from './car.ts';
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
 import { ramResponse, shove } from './contact.ts';
 import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
@@ -24,8 +24,7 @@ test('a Track may cross itself only over a bridge', () => {
   assert.throws(() => buildTrack({ ...garden.def, pieces: garden.def.pieces.replace('U*', 'S*').replace('D*', 'S*') }), /runs into itself/);
 });
 
-test('a jump throws an E-Car into the air', async () => {
-  await initPhysics();
+test('a jump throws an E-Car into the air', () => {
   const track = buildTrack(TRACKS.find((t) => t.id === 'desk')!);
   const world = createTrackWorld(track), kick = track.samples.findIndex((s) => s.kick);
   const pose = poseAt(track, kick - 12), car = createCar(world, 'roadster', pose, true);
@@ -49,8 +48,7 @@ test('a Fall-off never puts an E-Car on top of another', () => {
   assert.deepEqual(resetToCheckpoint(track, startProgress(track, cp + 5)), blocker);
 });
 
-test('an E-Car that ends up on another is put down beside it', async () => {
-  await initPhysics();
+test('an E-Car that ends up on another is put down beside it', () => {
   const sim = new RaceSim('kitchen');
   const [a, b, ...rest] = sim.seats;
   rest.forEach((s, i) => teleport(s.car, poseAt(sim.track, 100 + i * 15)));
@@ -62,8 +60,7 @@ test('an E-Car that ends up on another is put down beside it', async () => {
   assert.ok(Math.hypot(pa.x - pb.x, pa.z - pb.z) > 2.5 && Math.abs(pa.y - pb.y) < 0.5, `still stacked: ${pb.y - pa.y} m apart in height`);
 });
 
-test('a side Ram shoves the victim away, harder from a heavier rammer, and makes it skid', async () => {
-  await initPhysics();
+test('a side Ram shoves the victim away, harder from a heavier rammer, and makes it skid', () => {
   const track = buildTrack(TRACKS[0]), world = createTrackWorld(track), at = poseAt(track, 40);
   const car = (kind: 'roadster' | 'semi', lateral: number) => createCar(world, kind, poseAt(track, 40, lateral), true);
   const victim = car('roadster', 0), n = { x: -Math.cos(at.yaw), z: Math.sin(at.yaw) }; // from the rammer on its left, across it
@@ -90,8 +87,7 @@ test('Laps count only when driven in order', () => {
 });
 
 for (const def of TRACKS) {
-  test(`Bots finish a Race on their own: ${def.name}`, async () => {
-    await initPhysics();
+  test(`Bots finish a Race on their own: ${def.name}`, () => {
     const sim = new RaceSim(def.id);
     let fallOffs = 0;
     for (let t = 0; t < 240 && sim.results.length === 0; t += DT) {
@@ -107,8 +103,7 @@ for (const def of TRACKS) {
 }
 
 // the slowest Body against the quickest: if the Semi can beat Roadsters, the Bodies in between can too
-test('every Body can win: half the field in Semis, half in Roadsters', async () => {
-  await initPhysics();
+test('every Body can win: half the field in Semis, half in Roadsters', () => {
   const wins: Record<string, number> = { semi: 0, roadster: 0 };
   // the Semi wins about 30% of these, so 20 Races leave it no win less than once in a thousand runs
   for (let k = 0; k < 20; k++) {
@@ -123,8 +118,7 @@ test('every Body can win: half the field in Semis, half in Roadsters', async () 
   assert.ok(wins.semi > 0 && wins.roadster > 0);
 });
 
-test('Batteries are plentiful at the back and scarce at the front', async () => {
-  await initPhysics();
+test('Batteries are plentiful at the back and scarce at the front', () => {
   const byPosition = Array(8).fill(0);
   for (const def of TRACKS) {
     const sim = new RaceSim(def.id), emit = sim.emit;
@@ -135,8 +129,7 @@ test('Batteries are plentiful at the back and scarce at the front', async () => 
   assert.ok(back > 2 * front, `Batteries by Position: ${byPosition}`);
 });
 
-test('an empty E-Car is Stranded, then Recharged where it stands to full Energy', async () => {
-  await initPhysics();
+test('an empty E-Car is Stranded, then Recharged where it stands to full Energy', () => {
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   for (let i = 0; i < 120; i++) sim.step(DT);
@@ -158,8 +151,7 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   assert.ok(moved >= 0 && moved < 12, `moved ${moved} samples`);
 });
 
-test('a Bot low on Energy pulls into the Charging Station and leaves charged', async () => {
-  await initPhysics();
+test('a Bot low on Energy pulls into the Charging Station and leaves charged', () => {
   const sim = new RaceSim('desk');
   sim.phase = 'racing';
   const { n } = sim.track, [bot, ...others] = sim.seats;
@@ -181,8 +173,7 @@ test('a Bot low on Energy pulls into the Charging Station and leaves charged', a
   assert.ok(bot.energy > 45, `left with ${bot.energy.toFixed(0)} Energy`);
 });
 
-test('Bots keep shooting at a Player in the lead', async () => {
-  await initPhysics();
+test('Bots keep shooting at a Player in the lead', () => {
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   sim.startedAt = -10;
@@ -203,8 +194,7 @@ test('Bots keep shooting at a Player in the lead', async () => {
   assert.ok(shots >= 2 && hits >= 1, `${shots} Shots, ${hits} Hits`);
 });
 
-test('a Player taking over a Bot is announced, and only Bots wear the robot', async () => {
-  await initPhysics();
+test('a Player taking over a Bot is announced, and only Bots wear the robot', () => {
   const sim = new RaceSim('kitchen');
   const seat = sim.join('p', '🤖 Sneaky', 'roadster')!;
   assert.equal(seat.name, 'Sneaky');
@@ -215,8 +205,7 @@ test('a Player taking over a Bot is announced, and only Bots wear the robot', as
   assert.ok(sim.events.some((e) => e.t === 'leave' && e.was === 'Sneaky'));
 });
 
-test('Item Boxes are only for Racers from fourth place back, and a Zap holds five Shots', async () => {
-  await initPhysics();
+test('Item Boxes are only for Racers from fourth place back, and a Zap holds five Shots', () => {
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   const [s] = sim.seats, box = sim.track.itemBoxes[0];
@@ -234,8 +223,7 @@ test('Item Boxes are only for Racers from fourth place back, and a Zap holds fiv
   assert.equal(s.item, '');
 });
 
-test('a Leader who runs dry stays on the drone until three Racers have got past', async () => {
-  await initPhysics();
+test('a Leader who runs dry stays on the drone until three Racers have got past', () => {
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   for (let i = 0; i < 240; i++) sim.step(DT);
@@ -246,8 +234,7 @@ test('a Leader who runs dry stays on the drone until three Racers have got past'
   assert.ok(leader.position >= 4, `back in P${leader.position} after its Recharge`);
 });
 
-test('the front three are held together: the Leader slowed, second towed', async () => {
-  await initPhysics();
+test('the front three are held together: the Leader slowed, second towed', () => {
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   // first 5 m ahead of second, second 15 m ahead of third, the rest further back
@@ -263,8 +250,7 @@ test('the front three are held together: the Leader slowed, second towed', async
   assert.ok(first.pace < 0.8);
 });
 
-test('a Shield blocks the next Hit, then the Hit after it lands', async () => {
-  await initPhysics();
+test('a Shield blocks the next Hit, then the Hit after it lands', () => {
   const sim = new RaceSim('garden');
   const [victim] = sim.seats;
   victim.shield = true;
