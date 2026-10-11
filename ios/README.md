@@ -75,6 +75,8 @@ thread only when it changes, and the controls hand their state over through a lo
 
 The look: cel shading in three tones is a SceneKit shader modifier on the lighting (`TOON_LIGHTING` in `Toon.swift`), and the
 black outlines are inverted hulls (`outline`), which like the browsers' `OutlineEffect` draw every outlined mesh twice.
+A moving camera aims with `look(at:up:localFront:)` and world up, never the one-argument `look(at:)`, which keeps the
+camera's own up and so rolls the horizon as it follows the E-Car round corners (three.js's `lookAt` always uses world up).
 SceneKit rather than RealityKit because it can do both, runs on the watch too, is what mech-vs-mech's port uses, and the
 scene is small.
 

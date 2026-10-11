@@ -157,7 +157,8 @@ final class Game: NSObject, SCNSceneRendererDelegate {
             cameraNode.simdPosition += (desired - cameraNode.simdPosition) * Float(1 - exp(-dt * 4))
         }
         lastTarget = at
-        cameraNode.simdLook(at: SIMD3(at.x + fx * 3, at.y, at.z + fz * 3))
+        // world up, as three.js's lookAt: SceneKit's one-argument look(at:) keeps the camera's own up, so the horizon rolls as it turns
+        cameraNode.simdLook(at: SIMD3(at.x + fx * 3, at.y, at.z + fz * 3), up: [0, 1, 0], localFront: [0, 0, -1])
         if shake > 0 {
             shake = max(0, shake - dt)
             cameraNode.simdPosition += SIMD3(Float.random(in: -0.5..<0.5) * Float(shake) * 1.5, Float.random(in: -0.5..<0.5) * Float(shake) * 1.5, 0)

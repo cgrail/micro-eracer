@@ -283,7 +283,7 @@ private func placeProps(_ track: Track, _ look: ThemeLook, _ m: @escaping Mats, 
             let a = Double(i) / 8 * .pi * 2, d = 170 + random() * 40
             let cloud = group(sph(8, m(0xffffff, true)), sph(6, m(0xffffff, true), 8, -1, 0), sph(6, m(0xffffff, true), -8, -1.5, 0), sph(5, m(0xffffff, true), 3, 4, 0))
             cloud.position = SCNVector3(cx + cos(a) * d, 45 + random() * 20, cz + sin(a) * d)
-            cloud.look(at: SCNVector3(cx, Double(cloud.position.y), cz))
+            cloud.look(at: SCNVector3(cx, Double(cloud.position.y), cz), up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
             statics.addChildNode(cloud)
         }
     }
