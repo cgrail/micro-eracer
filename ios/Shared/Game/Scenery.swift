@@ -203,8 +203,20 @@ func buildTrackScene(_ track: Track) -> TrackScene {
     let outlined = SCNNode(), flat = SCNNode()
     for child in statics.childNodes {
         var wantsOutline = false
-        child.enumerateHierarchy { n, _ in if n.geometry?.materials.contains(where: { $0.name == nil }) == true { wantsOutline = true } }
-        (wantsOutline ? outlined : flat).addChildNode(child)
+        var parts: [SCNNode] = []
+        child.enumerateHierarchy { n, _ in
+            guard let g = n.geometry else { return }
+            parts.append(n)
+            if g.materials.contains(where: { $0.name == nil }) { wantsOutline = true }
+        }
+        // each part goes in at its own place: flattenedClone drops the transform of a group without geometry (a prop's,
+        // a cloud's), which left them all piled up at the origin, on the start line
+        let places = parts.map(\.simdWorldTransform)
+        for (part, place) in zip(parts, places) {
+            part.removeFromParentNode()
+            part.simdTransform = place
+            (wantsOutline ? outlined : flat).addChildNode(part)
+        }
     }
     let merged = outlined.flattenedClone()
     outline(merged, thick: true)

@@ -77,6 +77,8 @@ The look: cel shading in three tones is a SceneKit shader modifier on the lighti
 black outlines are inverted hulls (`outline`), which like the browsers' `OutlineEffect` draw every outlined mesh twice.
 A moving camera aims with `look(at:up:localFront:)` and world up, never the one-argument `look(at:)`, which keeps the
 camera's own up and so rolls the horizon as it follows the E-Car round corners (three.js's `lookAt` always uses world up).
+The static scenery is merged per material with `flattenedClone`, which drops the transform of a node without geometry (a
+prop's or a cloud's group), so `buildTrackScene` hands it every mesh at its world transform, not the groups.
 SceneKit rather than RealityKit because it can do both, runs on the watch too, is what mech-vs-mech's port uses, and the
 scene is small.
 
