@@ -32,7 +32,8 @@ happens. Everything before 1.0 is in the git history.
 - Two buttons under the Lap counter: the sound switch, and ✕ to leave the Race and go back to the start screen (in a
   browser, that's the back button).
 - The app icon is the browser tab's lightning bolt, drawn from the same code (`client/share/art.ts`).
-- Not on iOS yet: the halftone overlay, and the desktop map (a phone's browser doesn't show it either).
+- The browsers' faint halftone dot screen lies over the game, under the HUD, on iPhone, iPad and the watch.
+- Not on iOS: the desktop map (a phone's browser doesn't show it either).
 
 ### Apple Watch
 

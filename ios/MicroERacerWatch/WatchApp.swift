@@ -112,6 +112,7 @@ struct WatchRaceView: View {
             ZStack {
                 SceneView(scene: game.scene, pointOfView: game.cameraNode, options: [.rendersContinuously], preferredFramesPerSecond: 60, antialiasingMode: .none, delegate: game)
                     .ignoresSafeArea()
+                Halftone()
                 WatchHUD(hud: model.hud)
             }
             .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }

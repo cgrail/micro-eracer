@@ -107,6 +107,7 @@ struct RaceView: View {
     var body: some View {
         ZStack {
             GameView(game: game).ignoresSafeArea()
+            Halftone()
             HUDView(hud: model.hud)
             TouchControls(controls: model.controls, steering: model.steering, action: model.hud.action, showBack: model.hud.showBack)
             VStack(spacing: 10) {
