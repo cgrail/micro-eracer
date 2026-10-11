@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import { BODIES, type BodyKind, type Car, HALF } from '../../shared/src/car.ts';
 import { RAM_MIN_SPEED, ramResponse } from '../../shared/src/contact.ts';
 import { STRANDED_TIME } from '../../shared/src/race.ts';
+import { roadAt } from '../../shared/src/collide.ts';
 import type { World } from '../../shared/src/physics.ts';
 import type { Particles } from './effects.ts';
 import { RECHARGE, STRANDED } from './state.ts';
@@ -30,11 +31,6 @@ export const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), M
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const smooth = (k: number) => k * k * (3 - 2 * k);
 
-/** Rise of the road per metre along the Track at sample `i`. */
-const gradeAt = (track: Track, i: number) => {
-  const a = track.samples[(i - 1 + track.n) % track.n], b = track.samples[(i + 1) % track.n];
-  return (b.y - a.y) / Math.hypot(b.x - a.x, b.z - a.z);
-};
 
 /**
  * The other E-Cars glide on at their reported speed every frame and are only nudged towards where the server says they
@@ -55,15 +51,24 @@ export function glide(views: CarView[], dt: number) {
 }
 
 /**
- * Puts the model where the E-Car is drawn. The bodies stay level, so on a ramp the model is tilted along it and set down onto
- * the road; eased, as the road's slope only changes from one sample to the next. `i` is the sample the E-Car is on.
+ * Puts the model where the E-Car is drawn. The bodies stay level, so on a ramp the model is tilted along the road from its tail
+ * to its nose (eased) and set down as low as it goes with no part of its underside in the road: where the slope changes
+ * under it (the top of a climb, the foot of a descent) it rests on its middle, not sunk in at one end. In the air it
+ * levels out and follows the body. `i` is the sample the E-Car is on.
  */
 export function place(v: CarView, track: Track, i: number, p: { x: number; y: number; z: number }, yaw: number, dt: number) {
-  const s = track.samples[i];
-  v.roadY = s.y;
-  const along = p.y - s.y < HALF.y + 0.8 ? clamp(gradeAt(track, i), -0.4, 0.4) * (Math.sin(yaw) * s.dx + Math.cos(yaw) * s.dz) : 0;
-  v.tilt += (along - v.tilt) * (1 - Math.exp(-dt * 12));
-  v.mesh.position.set(p.x, p.y - Math.abs(v.tilt) * BODIES[v.kind].length, p.z);
+  v.roadY = track.samples[i].y;
+  const fx = Math.sin(yaw), fz = Math.cos(yaw), length = BODIES[v.kind].length;
+  const under = [-1, -0.5, 0, 0.5, 1].flatMap((k) => {
+    const a = k * length, road = roadAt(track, i, p.x + fx * a, p.z + fz * a);
+    return road ? [{ a, y: road.y }] : [];
+  });
+  // the body rests on the highest road under it; well above that it is in the air
+  const top = Math.max(...under.map((r) => r.y)), first = under[0], last = under[under.length - 1];
+  const slope = under.length > 1 && p.y - HALF.y - top < 0.3 ? (last.y - first.y) / (last.a - first.a) : 0;
+  v.tilt += (clamp(slope, -0.4, 0.4) - v.tilt) * (1 - Math.exp(-dt * 12));
+  const drop = under.length ? Math.max(...under.map((r) => r.y - v.tilt * r.a)) - top : 0;
+  v.mesh.position.set(p.x, p.y + drop, p.z);
   v.mesh.rotation.set(-Math.atan(v.tilt), yaw, 0, 'YXZ');
 }
 
