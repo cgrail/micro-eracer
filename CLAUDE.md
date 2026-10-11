@@ -2,7 +2,7 @@
 
 A Micro Machines–style 3D racing game in the browser, online first. You enter a name, press Play, and take over a Bot's E-Car in a Race that is already running, against up to 7 others (Players or Bots). The E-Cars are electric: Energy drains as you drive and when you are hit, Batteries on the Track charge it, and an empty E-Car is Stranded and then Recharged by a drone where it stands. There are Shots, Item Boxes (Missile, Mine, Shield), Rams, Drifts, Puddles and Fall-offs on four small themed Tracks (kitchen, garden, office desk, bathtub). It runs on desktop and mobile.
 
-It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus on a Node server, and our own small physics in both ([ADR 0002](docs/adr/0002-own-physics-instead-of-rapier.md)). Every model, texture, sound and song is generated in code, and so are the picture a shared link shows and the icon. The only asset files are the Bangers font (`@fontsource/bangers`) and the Racers' voices: short CC0 recordings in `client/public/voices`, credited in its `CREDITS.md`.
+It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus on a Node server, and our own small physics in both ([ADR 0002](docs/adr/0002-own-physics-instead-of-rapier.md)). It is also a native app for iPhone and iPad in `ios/`: a Swift port (SwiftUI, SceneKit, the Colyseus Swift SDK) that races in the same Races as the browsers. Every model, texture, sound and song is generated in code, and so are the picture a shared link shows and the icon. The only asset files are the Bangers font (`@fontsource/bangers`; the app bundles a copy of the same WOFF) and the Racers' voices: short CC0 recordings in `client/public/voices`, credited in its `CREDITS.md`. The app's icon is a PNG, but rendered from the same code as the browsers' (`npx tsx ios/icon.ts`).
 
 - **Terms:** [CONTEXT.md](CONTEXT.md) is the glossary (Race, Seat, Player, Bot, E-Car, Body, Energy, Stranded, Recharge, Ram, Hit, Item…). Use its capitalised terms in code, comments and UI text. A new or changed game concept gets its entry there. It is a glossary only, so no implementation details go in it.
 - **Decisions:** [docs/adr/](docs/adr/). An ADR is only for a decision that is hard to reverse, surprising without context and the result of a real trade-off.
@@ -16,8 +16,12 @@ It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus
   - `npm run typecheck` (`tsc --noEmit`; nothing is emitted, since Vite and tsx run the TypeScript as it is).
   - `npm test` (`shared/src/*.test.ts` and `client/src/*.test.ts`, node:test through tsx). `race.test.ts` checks that every Track closes and counts Laps only in order. It runs a headless Race on every Track in which 8 Bots must finish, and checks Stranded → Recharge and Shield. It logs balance stats per Track: Race time, Recharges, Leader Recharges, pickups, Rams, Hits. Extend it when you add a mechanic, and look at the stats after balance changes. Running dry should be common, most of all at the front (the Leader about once a Race in Bot-only Races). `physics.test.ts` replays `physics.fixture.json`: set-ups, and where each E-Car is after every 10 steps. A port (the iOS app) replays the same file to drive the same way. After a deliberate change to the physics or to `driveCar`, run `UPDATE_FIXTURE=1 npm test` and commit the new fixture.
   - `npm run build`, to confirm Vite bundles cleanly, with no chunk-size warning. The build (`client/vite.config.ts`) puts the libraries in a `vendor` chunk and writes a Brotli copy (`.br`) of each script and stylesheet, which the server sends instead (Caddy only compresses on the fly, about 20% bigger). It also draws the link preview card and warns if it grows past WhatsApp's 300 kB.
+- After a change to `shared/`, to what the room sends (schema, messages, `RaceEvent`), to anything a player sees or hears, or to `ios/`, also check the iOS app, from `ios/`:
+  - `swift test` (about a minute): builds `ios/MicroERacer/Core` (the port of `shared/src`) on the Mac and checks it against the TypeScript: it replays `physics.fixture.json`, compares the Track data with `shared/src/tracks/*.ts` and the songs with `client/src/songs.ts`, and runs a headless Race in which 8 Bots finish on every Track, plus Stranded → Recharge.
+  - `xcodebuild -project MicroERacer.xcodeproj -scheme MicroERacer -destination 'generic/platform=iOS Simulator' build`, with no warnings.
+  - If `xcode-select -p` is the Command Line Tools, put `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in front of both.
 - The link preview card is at `/social.png` and the icon at `/icon.png` on the dev server, to look at after changing `client/share/art.ts`. Shared links themselves only unfurl from the deployed game.
-- The user does all in-browser testing, so never launch a browser or headless Chrome. After each change, list the manual checks to run instead: how it looks, sounds and plays, on desktop and on a phone.
+- The user does all in-browser testing, so never launch a browser or headless Chrome. After each change, list the manual checks to run instead: how it looks, sounds and plays, on desktop and on a phone, and in the app on an iPhone and an iPad when it changed too. The iOS Simulator is fine for a screenshot (`-autoplay YES -name Tester -server ws://localhost:2600` launches a Debug build straight into a Race on your own server).
 - `install.sh` deploys onto the box that mech-vs-mech's `install.sh` set up (Caddy in Let's Encrypt mode), next to Electro Car Racer and calvo:
   - code in `/opt/micro-eracer`, run as user `mer`
   - systemd unit `micro-eracer` on `127.0.0.1:8091`, started with `node --import tsx server/src/index.ts`
@@ -36,6 +40,7 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 | `server/src/` | `index.ts` (Colyseus server; in production it also serves `client/dist` with Express, and the hashed files in `assets/` are cached for a year and sent as their Brotli copies to browsers that take them; it puts `https://$DOMAIN` in front of the page's link preview URLs, since Slack, Teams, X and WhatsApp only follow absolute ones), `RaceRoom.ts` (state schema, messages, `sync()`), `deployHook.ts` (GitHub's push webhook: asks systemd for a deploy) | One Colyseus room per Race wraps a `RaceSim` and steps it at 60 Hz. Each tick broadcasts that tick's `events` and copies the sim into the schema state (`sync()`) |
 | `client/src/` | `main.ts` (start form, mute, joining), `game.ts` (`startGame`: renderer, state sync, own E-Car, events, camera), `motion.ts` (how E-Cars move on screen), `hud.ts` (`createHud`), `state.ts` (the room state as the browser sees it, and `RaceLink`), `offline.ts` (`offlineRace`), `scene.ts` (toon materials, Track scenery per theme, `makeDrone`, `makeBattery`, …), `cars.ts` (`makeCar`: one look per Body), `effects.ts` (`Particles`), `input.ts` (keyboard and touch `Controls`), `audio.ts` (`Sound`: effects, motor, cartoon voices, music player), `songs.ts` (soundtrack data), `index.html`, `style.css`, and `client/vite.config.ts` | The browser app. It drives the Player's own E-Car locally and shows everything else as the server reports it |
 | `client/share/` | `art.ts` (the link preview card and the icon, drawn as SVG), `plugin.ts` (`sharePreview`: renders them into PNGs with resvg's WASM and the bundled Bangers, and adds the `og:` tags and icon links to the page) | Build time only, in Node: what a link to the game looks like in Slack, Teams, X and WhatsApp. Nothing of it runs in the browser |
+| `ios/` | `MicroERacer/Core/` (the port of `shared/src`, file by file), `Net/` (`OnlineRace`: the room through the Colyseus Swift SDK; `OfflineRace`), `Game/` (`game.ts`, `motion.ts`, `scene.ts`, `cars.ts`, `effects.ts`), `Audio/`, `UI/`, `AppModel.swift` (`main.ts`); `Package.swift` and `Tests/` (`swift test`); `icon.ts`; [ios/README.md](ios/README.md) maps every file to its TypeScript | The iPhone and iPad app. Like a browser, it drives the Player's own E-Car on the device and shows everything else as the server reports it |
 
 ### Core model
 
@@ -66,6 +71,25 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
   - one chiptune song per Track, from Electro Car Racer (github.com/cgrail/e-racer)
   - one mute switch for everything
 
+## Web and iOS stay in lockstep
+
+The browsers and the app are one product, in the same Races on the same server. A change to the rules (`shared/`), to what the room sends, or to what a player sees, hears or does in the browser is made in `ios/` in the same commit, or the two disagree mid-Race: an iPhone that drives differently puts its E-Car somewhere else than the server's Bots think, and Rams and Hits land wrong.
+
+- **Where:** names of types, functions and constants are the same on both sides, so a grep finds the Swift; [ios/README.md](ios/README.md) maps each file.
+- **What catches drift:** `swift test` reads the web side's own files. After a deliberate physics change and `UPDATE_FIXTURE=1 npm test`, it fails until the Swift steps the same way again; a Track or song changed on one side fails it too.
+- **The wire:** `OnlineRace.swift` reads the room's schema by field name and `RaceEvent(wire:)` decodes the events; a field renamed on the server reads as its default there. A phone may run an App Store build older than the deployed server for weeks, so the wire only grows: add fields, messages and event kinds, never rename or remove one (an old app drops events it doesn't know). The Colyseus Swift SDK (0.18.x) must match the server's Colyseus (0.18): a new major needs a new app version out first.
+- **Assets:** the app bundles `client/public/voices` itself (a folder reference, not a copy), its own copy of `Bangers.woff`, and an icon rendered by `ios/icon.ts` from `client/share/art.ts`.
+- **Saved data:** `UserDefaults` keys `name`, `body`, `muted` and `steer`, as in `localStorage`, with the same values.
+
+## Every change ends in the changelog
+
+[CHANGELOG.md](CHANGELOG.md) is updated as part of the change, in the same commit, never afterwards and never in a batch.
+
+- Write it under the top version section (`## <version> (current)`), in the group it belongs to, adding a group if none fits. The version is the app's `MARKETING_VERSION`; when that is bumped, the top section is closed and a new current one opens above it.
+- One entry per change a player would notice: rules, controls, Tracks, the look and sound, what the start screen offers, what the wire carries. Refactors that change nothing observable stay out. Say what the game does now, not what the diff did.
+- Both builds, one entry: there is no web and no iOS column, because a change that only reached one of them is a bug.
+- [ios/WHATS-NEW.md](ios/WHATS-NEW.md) is the player-facing cut for the App Store, written when a version ships, not per commit. It is plain ASCII (App Store Connect rejects bullets, emoji and typographic dashes or quotes there).
+
 ## Rules for changes
 
 - **Everything stays procedural:** no image, model, audio or font files beyond the bundled Bangers font and the CC0 voice clips. No requests to Google Fonts or other third parties (the audience is in Germany, so GDPR applies).
@@ -90,4 +114,4 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 
 - The backlog is `todo.md`, worked through with the `/todo` skill. Each item gets its own commit, and done items are ticked `[x]` and kept.
 - Commit messages use an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the reason isn't obvious.
-- Push every commit straight to `main`, without asking, once the checks above pass: no feature branches, no pull requests. A push to `main` deploys, so never push red checks. If the push is rejected because `main` moved, rebase onto `origin/main`, resolve any conflicts keeping both sides' intent, run the checks again and push. Never force-push `main`.
+- Push every commit straight to `main`, without asking, once the checks above pass: no feature branches, no pull requests. A push to `main` deploys the server and the browser game, so never push red checks. The app ships separately, through the App Store, when the user releases a version. If the push is rejected because `main` moved, rebase onto `origin/main`, resolve any conflicts keeping both sides' intent, run the checks again and push. Never force-push `main`.

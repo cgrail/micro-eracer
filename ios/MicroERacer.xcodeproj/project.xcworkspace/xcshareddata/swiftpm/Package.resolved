@@ -1,0 +1,15 @@
+{
+  "originHash" : "fa73b1a40e4c0a4704c33a2ee9b921926dd2fa925f8aff300d7b056551c076d2",
+  "pins" : [
+    {
+      "identity" : "colyseus-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/colyseus/colyseus-swift",
+      "state" : {
+        "revision" : "c55202d81bc76da5e66c33002f1baa22411c8d7f",
+        "version" : "0.18.9"
+      }
+    }
+  ],
+  "version" : 3
+}

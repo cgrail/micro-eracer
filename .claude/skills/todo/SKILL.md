@@ -17,10 +17,11 @@ Arguments, if any, name which item(s) to take (a number, a keyword, "all"). With
 Do **not** batch items. For each item, in order:
 
 1. **Read the item as a bug report, not a spec.** Most entries are one line of the user's shorthand ("when I was first I always ran out of battery"). Find the actual code before deciding what the fix is: the symptom is usually a small piece of a shared code path. For balance complaints, the stats `npm test` logs are the place to start.
-2. **Locate it.** [CLAUDE.md](../../../CLAUDE.md) maps the three folders. A change usually touches more than one layer, so follow a feature through every layer it touches:
+2. **Locate it.** [CLAUDE.md](../../../CLAUDE.md) maps the four folders. A change usually touches more than one layer, so follow a feature through every layer it touches:
    - **Simulation:** `shared/src/race.ts`, `combat.ts`, `car.ts`, `track.ts`.
    - **Sync:** the schema and `sync()` in `server/src/RaceRoom.ts`, plus a message handler if the browser sends something new.
    - **Browser:** the state sync and `onEvent` in `client/src/game.ts`, models in `scene.ts`, sound in `audio.ts`, the HUD in `index.html`, `style.css` and `hud.ts`, and controls in `input.ts` (keys, and the touch pad and action button).
+   - **iOS:** the same change in `ios/MicroERacer/` (the Swift port; [ios/README.md](../../../ios/README.md) maps each file to its TypeScript). Web and iOS stay in lockstep (CLAUDE.md), so a change that only reaches one of them is unfinished.
 3. **Implement.** Match the surrounding code's idiom: terse, data-driven, comments only for the why, glossary terms from [CONTEXT.md](../../../CONTEXT.md).
 4. **Check the constraints in CLAUDE.md** that the change touches. The ones that bite most often:
    - **Ownership:** each browser drives only its own E-Car. Anything the server does to a Player's E-Car goes out as a `RaceEvent` (applied by that browser) or a `spawn` bump (a jump), never by moving its body on the server.
@@ -36,15 +37,18 @@ Do **not** batch items. For each item, in order:
    npm run typecheck   # tsc --noEmit over client, server and shared
    npm test            # Track checks, a headless Race per Track, Stranded/Recharge, Shield; logs balance stats
    npm run build       # Vite bundles cleanly, without a chunk-size warning
+   cd ios && swift test  # the Swift port against the TypeScript (when shared/, the wire, the browser or ios/ changed)
+   cd ios && xcodebuild -project MicroERacer.xcodeproj -scheme MicroERacer -destination 'generic/platform=iOS Simulator' build
    ```
    When the item adds a mechanic or changes one, **extend `shared/src/race.test.ts`** with a check that would fail without it. For balance changes, compare the logged stats before and after. If a check needs a running server, start your own on another port (`PORT=2600`) and never stop the user's `npm run dev`. **Never** launch Chrome or a headless browser. The user does all in-browser testing; how it *looks*, *sounds* and *feels* is theirs to judge.
-6. **Docs, only if something significant changed.**
+6. **The changelog, and docs if something significant changed.**
+   - Anything a player would notice: an entry in [CHANGELOG.md](../../../CHANGELOG.md) under the current version, one entry for both builds.
    - A new subsystem, a changed invariant, or a rule a future edit could break: the matching section of [CLAUDE.md](../../../CLAUDE.md).
    - A player-visible feature, control or setting: [README.md](../../../README.md).
    - A new or changed game concept: its entry in [CONTEXT.md](../../../CONTEXT.md), as a glossary entry only.
    - A bug fix that changes no rule: none of them.
 7. **Tick the item** in `todo.md`: `[ ]` → `[x]`. If the work revealed a follow-up the user should decide on, append it as a new `[ ]` line rather than doing it silently.
-8. **Commit everything for that item together:** code, test additions, `todo.md` and docs. Use the repo's message style: an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the *why* isn't obvious from the subject. **Then push it straight to `main`**, without asking: it goes live on the server within 5 minutes, so only with every check green. If the push is rejected because `main` moved, rebase onto `origin/main`, resolve any conflicts keeping both sides' intent, run the checks again and push. Never force-push.
+8. **Commit everything for that item together:** code on both sides, test additions, `todo.md`, the changelog and docs. Use the repo's message style: an imperative subject of about 60 characters with no scope prefix ("Add soundtrack and systemd deployment"). Add a body only when the *why* isn't obvious from the subject. **Then push it straight to `main`**, without asking: it goes live on the server within 5 minutes, so only with every check green. If the push is rejected because `main` moved, rebase onto `origin/main`, resolve any conflicts keeping both sides' intent, run the checks again and push. Never force-push.
 
 ## Reporting
 
