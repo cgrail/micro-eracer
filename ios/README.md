@@ -65,7 +65,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Shared/Game/Particles.swift` | `client/src/effects.ts` |
 | `Shared/Audio/Synth.swift`, `Sound.swift`, `Songs.swift` | `client/src/audio.ts`, `songs.ts` |
 | `Shared/HudFeed.swift`, `MicroERacer/UI/HUD.swift`, the watch's `WatchHUD` | `client/src/hud.ts` |
-| `Shared/Controls.swift`, `MicroERacer/UI/TouchControls.swift` | `client/src/input.ts` (touch) |
+| `Shared/Controls.swift`, `MicroERacer/UI/TouchControls.swift`, `MicroERacer/Pads.swift` | `client/src/input.ts` (touch, and the keys on an iPad's keyboard; `Pads.swift` adds game controllers) |
 | `MicroERacer/UI/StartView.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts` |
 | `MicroERacer/AppModel.swift` | `client/src/main.ts` |
 

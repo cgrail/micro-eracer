@@ -28,6 +28,8 @@ struct StartView: View {
                 label("Nickname")
                 TextField("", text: $model.name)
                     .font(.system(size: 18)).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
+                    // Return plays, as Enter submits the browsers' start form
+                    .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
                     .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
                     .padding(12).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
                 label("Body")

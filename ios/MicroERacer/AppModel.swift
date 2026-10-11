@@ -33,6 +33,7 @@ final class AppModel: ObservableObject {
         steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .slider
         muted = d.string(forKey: "muted") == "1"
         sound.setMuted(muted)
+        controls.poll = pollPads
     }
 
     private func save(_ key: String, _ value: String) { UserDefaults.standard.set(value, forKey: key) }

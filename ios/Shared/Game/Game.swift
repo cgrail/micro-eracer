@@ -83,7 +83,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
         draw(dt, time)
         sound.schedule()
         if let state {
-            let hud = feed.update(time, state, me, status, showBack: stuckFor > 0.8)
+            let hud = feed.update(time, state, me, status, showBack: stuckFor > 0.8 && !controls.usesPad)
             if hud != lastHud { lastHud = hud; DispatchQueue.main.async { [publish] in publish(hud) } }
         }
     }
@@ -102,7 +102,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
             inPit = pit
             // the server slows a Leader who is far ahead (`pace`, in percent)
             driveCar(world, own.view.car, input, limpScale(Double(me.energy)) * (pit ? PIT_SPEED : 1) * Double(me.pace == 0 ? 100 : me.pace) / 100, inPuddle(track, t.x, t.y, t.z))
-            // pushing on but hardly moving for a moment means stuck (nose on a wall, after a spin): the Back button shows
+            // pushing on but hardly moving for a moment means stuck (nose on a wall, after a spin): touch gets its Back button
             let v = own.view.car.rb.linvel, yaw = own.view.car.rb.yaw, forward = v.x * sin(yaw) + v.z * cos(yaw)
             stuckFor = !locked && forward < 1 ? stuckFor + DT : 0
             // one press uses the Item; held down, a Zap keeps firing (the server allows three Shots a second)

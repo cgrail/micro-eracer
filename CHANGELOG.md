@@ -24,6 +24,11 @@ happens. Everything before 1.0 is in the git history.
 - The same start screen (Nickname, the Body on its turntable with its stat bars, Steering, Play), HUD, cel-shaded look with
   black outlines, themed scenery, drones, Item Boxes and weapons, synthesised sounds and soundtrack, and the Racers' voices.
   Name, Body, Steering and Sound are remembered under the same names as in the browser.
+- On an iPad with a hardware keyboard, the browsers' desktop keys work: arrows or WASD drive, Space, E or Shift uses the
+  Item, and Space held keeps a Zap firing. A game controller works too: the left stick or the d-pad steers, the right
+  trigger (or A) accelerates, the left trigger (or B) brakes and reverses, and X or the right shoulder uses the Item.
+  Whatever was used last drives: keys and controllers have no auto-throttle (as on a desktop), and touching the pad or
+  the action button brings it back. Return in the Nickname field plays, as Enter does in the browser.
 - Two buttons under the Lap counter: the sound switch, and ✕ to leave the Race and go back to the start screen (in a
   browser, that's the back button).
 - The app icon is the browser tab's lightning bolt, drawn from the same code (`client/share/art.ts`).

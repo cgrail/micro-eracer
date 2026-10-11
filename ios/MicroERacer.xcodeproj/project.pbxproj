@@ -149,9 +149,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				ER00000000000000000000B4 /* MicroERacerWatch */,
 				ER00000000000000000000B2 /* Core */,
 				ER00000000000000000000B3 /* Shared */,
+				ER00000000000000000000B4 /* MicroERacerWatch */,
 			);
 			name = MicroERacerWatch;
 			packageProductDependencies = (
