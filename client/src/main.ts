@@ -23,10 +23,13 @@ const save = (k: string, v: string) => { try { localStorage.setItem(k, v); } cat
 
 let body: BodyKind = BODY_KINDS.find((b) => b === load('body')) ?? 'roadster';
 nameInput.value = load('name') ?? '';
-const bodyButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-body]')];
+const BODY_NAMES: Record<BodyKind, string> = { roadster: 'Roadster', suv: 'SUV', microbus: 'Microbus', pickup: 'Pickup', semi: 'Semi' };
 const garage = createGarage($('turntable'), $('stats'));
-const showBody = () => { bodyButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.body === body))); garage.show(body); };
-bodyButtons.forEach((b) => b.addEventListener('click', () => { body = b.dataset.body as BodyKind; showBody(); }));
+const showBody = () => { $('body-name').textContent = BODY_NAMES[body]; garage.show(body); };
+// ◀ and ▶ step through the Bodies, wrapping round
+const stepBody = (by: number) => { body = BODY_KINDS[(BODY_KINDS.indexOf(body) + by + BODY_KINDS.length) % BODY_KINDS.length]; showBody(); };
+$('prev-body').addEventListener('click', () => stepBody(-1));
+$('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 

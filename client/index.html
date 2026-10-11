@@ -22,11 +22,7 @@
     <fieldset class="pick">
       <legend>Body</legend>
       <div id="garage"><canvas id="turntable" aria-hidden="true"></canvas><dl id="stats"></dl></div>
-      <button type="button" data-body="roadster" aria-pressed="true">Roadster</button>
-      <button type="button" data-body="suv" aria-pressed="false">SUV</button>
-      <button type="button" data-body="microbus" aria-pressed="false">Microbus</button>
-      <button type="button" data-body="pickup" aria-pressed="false">Pickup</button>
-      <button type="button" data-body="semi" aria-pressed="false">Semi</button>
+      <div id="cycle"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><output id="body-name" aria-live="polite"></output><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
     </fieldset>
     <fieldset id="steering" class="pick" hidden>
       <legend>Steering</legend>

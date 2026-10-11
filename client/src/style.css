@@ -48,6 +48,10 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #stats { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 6px; margin: 0; font: 13px/1.2 system-ui, sans-serif; }
 #stats dd { margin: 0; height: 10px; border: 2px solid var(--ink); border-radius: 5px; overflow: hidden; }
 #stats i { display: block; height: 100%; background: var(--accent); transition: width 0.3s; }
+#cycle { flex: 1 1 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+#cycle button { width: 48px; min-height: 44px; padding: 0; font-size: 22px; background: transparent; color: inherit; }
+#cycle button:active { background: var(--accent); color: #fff; }
+#body-name { text-align: center; font: 26px var(--comic); letter-spacing: 1px; }
 .pick button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
 #play { background: var(--yellow); font-size: 30px; box-shadow: 5px 5px 0 var(--ink); }
 #play:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
