@@ -21,7 +21,7 @@ It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus
   - code in `/opt/micro-eracer`, run as user `mer`
   - systemd unit `micro-eracer` on `127.0.0.1:8091`, started with `node --import tsx server/src/index.ts`
   - Caddy site `/etc/caddy/apps/micro-eracer.caddy`
-  - a timer that runs `update.sh` every 5 minutes, so **a push to `main` goes live within 5 minutes**
+  - `update.sh` runs on GitHub's push webhook (`POST /deploy-hook` in `server/src/deployHook.ts` writes `/run/micro-eracer/deploy`, which the path unit `micro-eracer-update.path` watches), and from a timer every 5 minutes as the fallback, so **a push to `main` goes live as soon as it's built**. The webhook's secret is `DEPLOY_HOOK_SECRET` in `/etc/default/micro-eracer`, made by `install.sh`
 
   Both scripts build with `npm ci && npm run build`, so a new dependency needs nothing more there. Check them with `bash -n` (and shellcheck if it's installed).
 
@@ -32,7 +32,7 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 | Folder | Files | Role |
 |---|---|---|
 | `shared/src/` | `track.ts` (`buildTrack`, `TRACKS`, progress), `tracks/*.ts` (one data file per Track), `car.ts` (Rapier world, `createCar`, `driveCar`, Energy constants), `race.ts` (`RaceSim`, `Seat`, `RaceEvent`), `bots.ts` (`botInput`: how a Bot drives), `energy.ts` (Batteries, Recharge length, the Leader's pace), `contact.ts` (Rams, and E-Cars on another's roof), `combat.ts` (`Combat`: Item Boxes and the Items: Zap Shots, Missiles, Mines, Shields; boxes only give from `GOODIES_FROM` = 4th place back), `snapshot.ts` (`seatState`: a Seat as the browsers see it), `race.test.ts` | The game itself: Tracks, physics and the Race simulation. It runs in Node on the server, and the browser reuses the Track and physics code. It has no networking, so the browser's Offline Race runs the same `RaceSim` |
-| `server/src/` | `index.ts` (Colyseus server; in production it also serves `client/dist` with Express, and the hashed files in `assets/` are cached for a year), `RaceRoom.ts` (state schema, messages, `sync()`) | One Colyseus room per Race wraps a `RaceSim` and steps it at 60 Hz. Each tick broadcasts that tick's `events` and copies the sim into the schema state (`sync()`) |
+| `server/src/` | `index.ts` (Colyseus server; in production it also serves `client/dist` with Express, and the hashed files in `assets/` are cached for a year), `RaceRoom.ts` (state schema, messages, `sync()`), `deployHook.ts` (GitHub's push webhook: asks systemd for a deploy) | One Colyseus room per Race wraps a `RaceSim` and steps it at 60 Hz. Each tick broadcasts that tick's `events` and copies the sim into the schema state (`sync()`) |
 | `client/src/` | `main.ts` (start form, mute, joining), `game.ts` (`startGame`: renderer, state sync, own E-Car, events, camera), `motion.ts` (how E-Cars move on screen), `hud.ts` (`createHud`), `state.ts` (the room state as the browser sees it, and `RaceLink`), `offline.ts` (`offlineRace`), `scene.ts` (toon materials, Track scenery per theme, `makeDrone`, `makeBattery`, …), `cars.ts` (`makeCar`: one look per Body), `effects.ts` (`Particles`), `input.ts` (keyboard and touch `Controls`), `audio.ts` (`Sound`: effects, motor, cartoon voices, music player), `songs.ts` (soundtrack data), `index.html`, `style.css`, and `client/vite.config.ts` | The browser app. It drives the Player's own E-Car locally and shows everything else as the server reports it |
 
 ### Core model

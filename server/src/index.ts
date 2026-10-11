@@ -3,6 +3,7 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { initPhysics } from '../../shared/src/car.ts';
+import { deployHook } from './deployHook.ts';
 import { RaceRoom } from './RaceRoom.ts';
 
 await initPhysics();
@@ -14,6 +15,7 @@ const server = defineServer({
   greet: false,
   // in development Vite serves the browser app; in production this one process does both
   express: (app) => {
+    deployHook(app);
     // the build names everything in assets/ after a hash of its content, so browsers keep those files across deploys
     app.use('/assets', express.static(`${dist}/assets`, { immutable: true, maxAge: '1y' }));
     app.use(express.static(dist));

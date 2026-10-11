@@ -57,4 +57,13 @@ git clone https://github.com/cgrail/micro-eracer.git && cd micro-eracer
 sudo DOMAIN=micro.example.com ./install.sh   # later runs: sudo ./install.sh
 ```
 
-It builds the game into `/opt/micro-eracer`, runs the server as the unprivileged user `mer` in a sandboxed systemd unit (`micro-eracer`) on `127.0.0.1:8091`, and adds the Caddy site `/etc/caddy/apps/micro-eracer.caddy`, which serves `https://$DOMAIN` with a Let's Encrypt certificate. Point a plain, un-proxied A/AAAA record for the domain at the box. One Node process serves both the browser app and the Races. A systemd timer runs `update.sh` every 5 minutes and deploys whatever lands on `origin/main`; `sudo ./update.sh --force` rebuilds now. Server settings live in `/etc/default/micro-eracer` (`TRACK=` and `DRAIN_SCALE=` from above work there too).
+It builds the game into `/opt/micro-eracer`, runs the server as the unprivileged user `mer` in a sandboxed systemd unit (`micro-eracer`) on `127.0.0.1:8091`, and adds the Caddy site `/etc/caddy/apps/micro-eracer.caddy`, which serves `https://$DOMAIN` with a Let's Encrypt certificate. Point a plain, un-proxied A/AAAA record for the domain at the box. One Node process serves both the browser app and the Races. Server settings live in `/etc/default/micro-eracer` (`TRACK=` and `DRAIN_SCALE=` from above work there too).
+
+`update.sh` deploys whatever lands on `origin/main`. GitHub's push webhook starts it as soon as something is merged, and a systemd timer runs it every 5 minutes anyway, which catches anything the webhook missed. `sudo ./update.sh --force` rebuilds now. On a box installed before the webhook existed, run `sudo ./install.sh` once more first: it makes the secret and the path unit. To add the webhook, go to the repo's Settings → Webhooks → Add webhook and enter:
+
+- Payload URL: `https://$DOMAIN/deploy-hook`
+- Content type: `application/json`
+- Secret: the `DEPLOY_HOOK_SECRET` that `install.sh` made, from `sudo sed -n 's/^DEPLOY_HOOK_SECRET=//p' /etc/default/micro-eracer`
+- Events: just the push event
+
+GitHub's first delivery is a ping, which should get a green tick. The game server checks the signature and, for a push to `main`, only writes a file. A systemd path unit (`micro-eracer-update.path`) picks that up and runs `update.sh`, which fetches `origin/main` itself, so the webhook can't deploy anything that isn't on `main`. The deploy log is `journalctl -u micro-eracer-update`.

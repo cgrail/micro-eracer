@@ -8,7 +8,10 @@
 # discarded), re-syncs and rebuilds /opt/micro-eracer and restarts
 # the service.
 #
-# install.sh registers this as a systemd timer (every 5 min):
+# install.sh starts it from a systemd path unit as soon as GitHub's
+# push webhook reaches the game server (server/src/deployHook.ts), and
+# from a systemd timer every 5 minutes, which catches anything missed:
+#   systemctl status micro-eracer-update.path
 #   systemctl list-timers micro-eracer-update.timer
 #   journalctl -u micro-eracer-update
 #
