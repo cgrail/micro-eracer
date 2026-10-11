@@ -1,6 +1,7 @@
 import { defineRoom, defineServer } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import express from 'express';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { initPhysics } from '../../shared/src/car.ts';
 import { deployHook } from './deployHook.ts';
@@ -18,6 +19,16 @@ const server = defineServer({
     deployHook(app);
     // the build names everything in assets/ after a hash of its content, so browsers keep those files across deploys
     app.use('/assets', express.static(`${dist}/assets`, { immutable: true, maxAge: '1y' }));
+    // link previews (Slack, Teams, X, WhatsApp) only follow absolute URLs, so the page's preview tags get the origin:
+    // DOMAIN, which install.sh puts in the service's settings, or else the host the browser asked for
+    app.get(['/', '/index.html'], async (req, res, next) => {
+      const host = process.env.DOMAIN || req.get('host') || '';
+      const page = /^[\w.-]+(:\d+)?$/.test(host) && (await readFile(`${dist}/index.html`, 'utf8').catch(() => ''));
+      if (!page) return next();
+      const origin = `${process.env.DOMAIN ? 'https' : req.protocol}://${host}`;
+      res.set('Cache-Control', 'no-cache').type('html')
+        .send(page.replace(/(<meta (?:property|name)="(?:og|twitter):[\w:]+" content=")\//g, (_, tag: string) => `${tag}${origin}/`));
+    });
     app.use(express.static(dist));
   },
 });

@@ -48,6 +48,8 @@ The sounds are synthesised in the browser with WebAudio: the airflow that rises 
 
 The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `OutlineEffect`), a halftone overlay and the Bangers font, bundled locally so no request goes to Google Fonts.
 
+A link to the game shared in Slack, Teams, X or WhatsApp shows a comic card of E-Cars racing up a road, and the browser tab gets a lightning-bolt icon. The build draws both in code (`client/share/`) like everything else. `npm run dev` serves them at `/social.png` and `/icon.png`.
+
 ## Deploy
 
 `install.sh` puts the game on the Ubuntu box that [mech-vs-mech](https://github.com/cgrail/mech-vs-mech)'s `install.sh` already set up in Let's Encrypt mode, next to [Electro Car Racer](https://github.com/cgrail/e-racer) and calvo and the same way they are deployed. Run it on the server:
