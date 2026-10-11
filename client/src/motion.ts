@@ -59,12 +59,16 @@ export function glide(views: CarView[], dt: number) {
 export function place(v: CarView, track: Track, i: number, p: { x: number; y: number; z: number }, yaw: number, dt: number) {
   v.roadY = track.samples[i].y;
   const fx = Math.sin(yaw), fz = Math.cos(yaw), length = BODIES[v.kind].length;
-  const under = [-1, -0.5, 0, 0.5, 1].flatMap((k) => {
-    const a = k * length, road = roadAt(track, i, p.x + fx * a, p.z + fz * a);
+  const roads = (x: number, z: number) => [-1, -0.5, 0, 0.5, 1].flatMap((k) => {
+    const a = k * length, road = roadAt(track, i, x + fx * a, z + fz * a);
     return road ? [{ a, y: road.y }] : [];
   });
+  const under = roads(p.x, p.z), highest = (rs: { y: number }[]) => Math.max(...rs.map((r) => r.y));
   // the body rests on the highest road under it; well above that it is in the air
-  const top = Math.max(...under.map((r) => r.y)), first = under[0], last = under[under.length - 1];
+  const top = highest(under), first = under[0], last = under[under.length - 1];
+  // the others' height eases in late, which would sink them into a ramp while climbing it: while the server has one on
+  // the road, it rides the road here (`p` is its `shown` pose)
+  if (!v.mine && under.length && v.target.y - HALF.y - highest(roads(v.target.x, v.target.z)) < 0.3) p.y = top + HALF.y;
   const slope = under.length > 1 && p.y - HALF.y - top < 0.3 ? (last.y - first.y) / (last.a - first.a) : 0;
   v.tilt += (clamp(slope, -0.4, 0.4) - v.tilt) * (1 - Math.exp(-dt * 12));
   const drop = under.length ? Math.max(...under.map((r) => r.y - v.tilt * r.a)) - top : 0;
