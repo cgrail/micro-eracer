@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { sharePreview } from './share/plugin.ts';
 
 const RAPIER_WASM = join(dirname(createRequire(import.meta.url).resolve('@dimforge/rapier3d-compat')), 'rapier_wasm3d_bg.wasm');
 // "AGFzbQ" is the WASM magic number "\0asm" in base64
@@ -29,7 +30,7 @@ function rapierWasmFile(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [rapierWasmFile()],
+  plugins: [rapierWasmFile(), sharePreview()],
   build: {
     // the libraries (Three.js most of it) change only with a dependency update, so returning players keep them across deploys
     chunkSizeWarningLimit: 1200,

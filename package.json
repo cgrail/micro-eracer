@@ -21,6 +21,7 @@
     "tsx": "^4.23.15"
   },
   "devDependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
     "@types/three": "^0.186.0",
