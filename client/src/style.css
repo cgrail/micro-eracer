@@ -13,8 +13,11 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, sans-serif; }
-/* a game, not a page: on touch nothing pinch- or double-tap-zooms, pans, pulls to refresh or flashes grey (iOS Safari also needs input.ts) */
-html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+/* a game, not a page: on touch nothing pinch- or double-tap-zooms, pans, pulls to refresh or flashes grey (iOS Safari also needs input.ts),
+   and a held thumb selects no text and opens no long-press menu (Safari only knows the prefixed user-select); the name field still takes typing */
+html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input { -webkit-user-select: text; user-select: text; }
 canvas { display: block; touch-action: none; transition: filter 0.25s; }
 [hidden] { display: none !important; }
 
@@ -98,8 +101,6 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
   font-size: 22px; background: var(--paper); box-shadow: 3px 3px 0 #111; }
 
 #touch { position: fixed; inset: auto 0 0 0; height: 40%; z-index: 2; }
-/* a held thumb mustn't select text or open the long-press menu; Safari only knows the prefixed user-select */
-#touch, #hud, #mute { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #steer { position: absolute; left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 45%; height: 70%;
   display: flex; justify-content: center; align-items: center; gap: 0.3em; overflow: hidden;
   border: 3px solid rgb(0 0 0 / 0.5); border-radius: 20px; background: rgb(255 255 255 / 0.18);

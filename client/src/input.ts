@@ -2,8 +2,15 @@ import type { Input } from '../../shared/src/car.ts';
 
 export const isTouch = matchMedia('(pointer: coarse)').matches;
 
-// iOS Safari ignores user-scalable=no, so its pinch is cancelled here too (touch-action in style.css stops the rest)
+// iOS Safari ignores user-scalable=no and doesn't always honour touch-action, so pinches and double taps are cancelled here too.
+// The controls run on pointer events, which this doesn't stop: two thumbs and a hammered action button still work
 for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTap = { at: -1e9, on: null as EventTarget | null };
+document.addEventListener('touchend', (e) => {
+  if (e.target === lastTap.on && e.timeStamp - lastTap.at < 350 && !(e.target instanceof HTMLInputElement)) e.preventDefault();
+  lastTap = { at: e.timeStamp, on: e.target };
+}, { passive: false });
 
 const STEER_DEAD = 6, STEER_FULL = 100;
 /** Drag distance (px) to steering: a small dead zone, then gentle near the middle for small corrections, full lock at STEER_FULL. */
