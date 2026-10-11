@@ -30,7 +30,7 @@ Ram someone from the side and they slide away, swinging round if you catch their
 
 Leading is meant to be hard: the Leader is slowed as soon as they pull away and second and third get a tow, so the front three keep fighting; Batteries are plentiful at the back of the field and scarce at the front, so the Leader runs dry the most, and every Bot behind a Player in first place shoots at them, about once a second between them. A Shield, a dodge and the Charging Station are how you hold on.
 
-Controls: on desktop, arrows or WASD drive, and Space, E or Shift uses your Item (hold it down and a Zap keeps firing). On mobile the E-Car accelerates by itself: drag the left pad to steer (or, if you pick Buttons steering on the start screen, hold its ◀ or ▶ half), and tap the one action button on the right, which shows the Item you hold and uses it. There is no brake on mobile; pushing against a wall while steering turns the E-Car free, and if you're stuck a Back button appears: hold it to reverse.
+Controls: on desktop, arrows or WASD drive, and Space, E or Shift uses your Item (hold it down and a Zap keeps firing). On mobile the E-Car accelerates by itself: drag the left pad to steer (or, if you pick Buttons steering on the start screen, hold its ◀ or ▶ half; the wheel in the middle turns as you steer), and tap the one action button on the right, which shows the Item you hold and uses it. There is no brake on mobile; pushing against a wall while steering turns the E-Car free, and if you're stuck a Back button appears: hold it to reverse.
 
 Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes like the Missile, Mine and Shield, and Item Boxes only give to Racers from fourth place back.
 

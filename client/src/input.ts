@@ -55,6 +55,7 @@ export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back
     touchSteer = steering === 'slider' ? steerCurve(x - steerStart!) : x < padMiddle ? -1 : 1;
     const held = steering === 'slider' ? '' : touchSteer < 0 ? 'left' : 'right';
     if (pad.steer.dataset.held !== held) pad.steer.dataset.held = held;
+    pad.steer.style.setProperty('--turn', `${touchSteer * 90}deg`);
   };
   pad.steer.addEventListener('pointerdown', (e) => {
     const r = pad.steer.getBoundingClientRect();
@@ -64,7 +65,7 @@ export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back
     steerTo(e.clientX);
   });
   pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) steerTo(e.clientX); });
-  for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; pad.steer.dataset.held = ''; });
+  for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; pad.steer.dataset.held = ''; pad.steer.style.setProperty('--turn', '0deg'); });
   pad.action.addEventListener('pointerdown', () => { firing = true; itemPressed = true; });
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) pad.action.addEventListener(type, () => (firing = false));
   pad.back.addEventListener('pointerdown', () => (reversing = true));

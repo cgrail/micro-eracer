@@ -102,13 +102,16 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 
 #touch { position: fixed; inset: auto 0 0 0; height: 40%; z-index: 2; }
 #steer { position: absolute; left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 45%; height: 70%;
-  display: flex; justify-content: center; align-items: center; gap: 0.3em; overflow: hidden;
+  display: flex; justify-content: space-between; align-items: center; padding: 0 12px; overflow: hidden; container-type: size;
   border: 3px solid rgb(0 0 0 / 0.5); border-radius: 20px; background: rgb(255 255 255 / 0.18);
   color: #fffe; font: 34px var(--comic); touch-action: none; }
+/* a steering wheel in the middle of the pad turns as the thumb steers */
+#steer .wheel { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; width: min(80cqh, 56cqw); height: min(80cqh, 56cqw);
+  transform: translate(-50%, -50%) rotate(var(--turn, 0deg)); transition: transform 0.1s; pointer-events: none; }
 /* Buttons steering: the pad is split into a ◀ half and a ▶ half, and the held one lights up */
-#steer.buttons { gap: 0; }
-#steer.buttons span { flex: 1; align-self: stretch; display: grid; place-items: center; }
-#steer.buttons span + span { border-left: 3px solid rgb(0 0 0 / 0.5); }
+#steer.buttons { padding: 0; }
+#steer.buttons span { flex: 1; align-self: stretch; display: grid; place-items: center start; padding: 0 12px; }
+#steer.buttons span + span { justify-items: end; border-left: 3px solid rgb(0 0 0 / 0.5); }
 #steer[data-held="left"] span:first-child, #steer[data-held="right"] span:last-child { background: rgb(255 255 255 / 0.35); }
 #fire { position: absolute; right: 24px; bottom: max(24px, env(safe-area-inset-bottom)); width: 108px; height: 108px; padding: 0; border-radius: 50%;
   background: rgb(255 200 30 / 0.85); color: #111; font-size: 30px; box-shadow: 4px 4px 0 #111; touch-action: none; }
