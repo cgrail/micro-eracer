@@ -2,6 +2,9 @@ import type { Input } from '../../shared/src/car.ts';
 
 export const isTouch = matchMedia('(pointer: coarse)').matches;
 
+// iOS Safari ignores user-scalable=no, so its pinch is cancelled here too (touch-action in style.css stops the rest)
+for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+
 const STEER_DEAD = 6, STEER_FULL = 100;
 /** Drag distance (px) to steering: a small dead zone, then gentle near the middle for small corrections, full lock at STEER_FULL. */
 function steerCurve(dx: number) {

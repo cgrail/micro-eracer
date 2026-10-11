@@ -13,6 +13,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, sans-serif; }
+/* a game, not a page: on touch nothing pinch- or double-tap-zooms, pans, pulls to refresh or flashes grey (iOS Safari also needs input.ts) */
+html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 canvas { display: block; touch-action: none; transition: filter 0.25s; }
 [hidden] { display: none !important; }
 
@@ -26,6 +28,8 @@ canvas { display: block; touch-action: none; transition: filter 0.25s; }
   position: fixed; inset: 0; margin: auto; width: min(380px, calc(100% - 32px)); height: fit-content; z-index: 3;
   display: grid; gap: 12px; padding: 24px; border: 4px solid var(--ink); border-radius: 18px; background: var(--paper);
   box-shadow: 8px 8px 0 var(--ink); transform: rotate(-1deg); max-height: calc(100% - 16px); overflow-y: auto;
+  /* on a short screen it scrolls, but still doesn't zoom */
+  touch-action: pan-y;
 }
 #start h1 { margin: 0 0 4px; font: 52px/1 var(--comic); letter-spacing: 1px; color: var(--yellow); -webkit-text-stroke: 2px var(--ink); text-shadow: 4px 4px 0 var(--ink); }
 #start label, .pick legend { font: 20px var(--comic); letter-spacing: 0.5px; }
@@ -88,19 +92,21 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
   font-size: 22px; background: var(--paper); box-shadow: 3px 3px 0 #111; }
 
 #touch { position: fixed; inset: auto 0 0 0; height: 40%; z-index: 2; }
+/* a held thumb mustn't select text or open the long-press menu; Safari only knows the prefixed user-select */
+#touch, #hud, #mute { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #steer { position: absolute; left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 45%; height: 70%;
   display: flex; justify-content: center; align-items: center; gap: 0.3em; overflow: hidden;
   border: 3px solid rgb(0 0 0 / 0.5); border-radius: 20px; background: rgb(255 255 255 / 0.18);
-  color: #fffe; font: 34px var(--comic); touch-action: none; user-select: none; }
+  color: #fffe; font: 34px var(--comic); touch-action: none; }
 /* Buttons steering: the pad is split into a ◀ half and a ▶ half, and the held one lights up */
 #steer.buttons { gap: 0; }
 #steer.buttons span { flex: 1; align-self: stretch; display: grid; place-items: center; }
 #steer.buttons span + span { border-left: 3px solid rgb(0 0 0 / 0.5); }
 #steer[data-held="left"] span:first-child, #steer[data-held="right"] span:last-child { background: rgb(255 255 255 / 0.35); }
 #fire { position: absolute; right: 24px; bottom: max(24px, env(safe-area-inset-bottom)); width: 108px; height: 108px; padding: 0; border-radius: 50%;
-  background: rgb(255 200 30 / 0.85); color: #111; font-size: 30px; box-shadow: 4px 4px 0 #111; touch-action: none; user-select: none; }
+  background: rgb(255 200 30 / 0.85); color: #111; font-size: 30px; box-shadow: 4px 4px 0 #111; touch-action: none; }
 #back { position: absolute; right: 32px; bottom: max(150px, calc(env(safe-area-inset-bottom) + 134px)); width: 96px; height: 56px; padding: 0;
-  border-radius: 14px; background: rgb(255 77 77 / 0.85); color: #fff; font-size: 20px; box-shadow: 4px 4px 0 #111; touch-action: none; user-select: none; }
+  border-radius: 14px; background: rgb(255 77 77 / 0.85); color: #fff; font-size: 20px; box-shadow: 4px 4px 0 #111; touch-action: none; }
 /* nothing to use: an Item Box will fill it */
 #fire:empty { opacity: 0.45; }
 
