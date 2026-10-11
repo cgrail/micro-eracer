@@ -1,7 +1,5 @@
 # Todo
 
-[x] offer visual car selection. car should rotate and show things like top speed and rugedness
-[x] i was still able to zoom in, even with the latest version on mobile. and select text
-[x] can you make the buttons on mobile a little bit nicer like a steering wheel or something like that, but it should still be left and right buttons
-[x] offer a map for desktop. for human players show position and name, for bot just show position and a bot icon
-[x] sometimes if you drive a ramp up the car disappears in the street. this should not be possible
+[ ] the car selection should be selectable via a next/previous button selection. get rid of the buttons with all the cars
+[ ] goodies should not disappear when for the first three places and appear after the third place has passed. they should disappaar once the last driver has passed them. ideally the first three places should never see goodies
+[ ] cars are still in the road, especially when driving on bridges
