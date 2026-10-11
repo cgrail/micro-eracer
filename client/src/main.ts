@@ -4,7 +4,7 @@ import { Client } from '@colyseus/sdk';
 import { type BodyKind, BODY_KINDS, initPhysics } from '../../shared/src/car.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
-import { createInput, isTouch } from './input.ts';
+import { createInput, isTouch, type Steering, STEERINGS } from './input.ts';
 import { offlineRace } from './offline.ts';
 import type { RaceLink } from './state.ts';
 
@@ -28,6 +28,13 @@ bodyButtons.forEach((b) => b.addEventListener('click', () => { body = b.dataset.
 showBody();
 
 const controls = createInput({ steer: $('steer'), action: $('fire'), back: $('back') });
+// touch only: steer by dragging on the pad, or with its ◀ and ▶ halves as two buttons
+let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'slider';
+const steerButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-steer]')];
+const showSteering = () => { steerButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.steer === steering))); controls.setSteering(steering); };
+steerButtons.forEach((b) => b.addEventListener('click', () => { steering = b.dataset.steer as Steering; showSteering(); }));
+$('steering').hidden = !isTouch;
+showSteering();
 const sound = new Sound();
 const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.setAttribute('aria-pressed', String(sound.muted)); };
 sound.setMuted(load('muted') === '1');
@@ -43,6 +50,7 @@ form.addEventListener('submit', async (e) => {
   const name = nameInput.value.trim();
   save('name', name);
   save('body', body);
+  if (isTouch) save('steer', steering);
   error.textContent = '';
   play.disabled = true;
   sound.unlock();
