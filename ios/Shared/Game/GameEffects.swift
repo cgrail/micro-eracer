@@ -11,6 +11,7 @@ extension Game {
 
     func onEvent(_ e: RaceEvent) {
         let mySeat = own?.seat ?? -1
+        heard?(e, mySeat)
         let vol = { (s: Int) -> Double in let p = self.posOf(s); return s == mySeat ? 1 : self.near(Double(p.x), Double(p.z)) }
         switch e {
         case let .ram(a, b, _, ix, iz, spin):

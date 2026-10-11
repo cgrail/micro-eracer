@@ -9,17 +9,59 @@
 /* Begin PBXBuildFile section */
 		ER00000000000000000000A3 /* voices in Resources */ = {isa = PBXBuildFile; fileRef = ER00000000000000000000A2 /* voices */; };
 		ER00000000000000000000A4 /* Colyseus in Frameworks */ = {isa = PBXBuildFile; productRef = ER00000000000000000000A5 /* Colyseus */; };
+		ER00000000000000000000A8 /* voices in Resources */ = {isa = PBXBuildFile; fileRef = ER00000000000000000000A2 /* voices */; };
+		ER00000000000000000000A9 /* MicroERacerWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = ER00000000000000000000A7 /* MicroERacerWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		ER0000000000000000000152 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ER0000000000000000000121 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ER00000000000000000000E2;
+			remoteInfo = MicroERacerWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		ER0000000000000000000141 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				ER00000000000000000000A9 /* MicroERacerWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		ER00000000000000000000A1 /* MicroERacer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MicroERacer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ER00000000000000000000A2 /* voices */ = {isa = PBXFileReference; lastKnownFileType = folder; name = voices; path = ../client/public/voices; sourceTree = SOURCE_ROOT; };
+		ER00000000000000000000A7 /* MicroERacerWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MicroERacerWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		ER00000000000000000000B1 /* MicroERacer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MicroERacer;
+			sourceTree = "<group>";
+		};
+		ER00000000000000000000B2 /* Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Core;
+			sourceTree = "<group>";
+		};
+		ER00000000000000000000B3 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		ER00000000000000000000B4 /* MicroERacerWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MicroERacerWatch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -33,13 +75,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ER00000000000000000000C2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		ER00000000000000000000D1 = {
 			isa = PBXGroup;
 			children = (
+				ER00000000000000000000B2 /* Core */,
+				ER00000000000000000000B3 /* Shared */,
 				ER00000000000000000000B1 /* MicroERacer */,
+				ER00000000000000000000B4 /* MicroERacerWatch */,
 				ER00000000000000000000A2 /* voices */,
 				ER00000000000000000000D2 /* Products */,
 			);
@@ -49,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				ER00000000000000000000A1 /* MicroERacer.app */,
+				ER00000000000000000000A7 /* MicroERacerWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -63,13 +116,17 @@
 				ER0000000000000000000101 /* Sources */,
 				ER00000000000000000000C1 /* Frameworks */,
 				ER0000000000000000000111 /* Resources */,
+				ER0000000000000000000141 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				ER0000000000000000000151 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				ER00000000000000000000B1 /* MicroERacer */,
+				ER00000000000000000000B2 /* Core */,
+				ER00000000000000000000B3 /* Shared */,
 			);
 			name = MicroERacer;
 			packageProductDependencies = (
@@ -77,6 +134,30 @@
 			);
 			productName = MicroERacer;
 			productReference = ER00000000000000000000A1 /* MicroERacer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		ER00000000000000000000E2 /* MicroERacerWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ER00000000000000000000F4 /* Build configuration list for PBXNativeTarget "MicroERacerWatch" */;
+			buildPhases = (
+				ER0000000000000000000102 /* Sources */,
+				ER00000000000000000000C2 /* Frameworks */,
+				ER0000000000000000000112 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				ER00000000000000000000B4 /* MicroERacerWatch */,
+				ER00000000000000000000B2 /* Core */,
+				ER00000000000000000000B3 /* Shared */,
+			);
+			name = MicroERacerWatch;
+			packageProductDependencies = (
+			);
+			productName = MicroERacerWatch;
+			productReference = ER00000000000000000000A7 /* MicroERacerWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -90,6 +171,9 @@
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					ER00000000000000000000E1 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					ER00000000000000000000E2 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -112,6 +196,7 @@
 			projectRoot = "";
 			targets = (
 				ER00000000000000000000E1 /* MicroERacer */,
+				ER00000000000000000000E2 /* MicroERacerWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -125,6 +210,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ER0000000000000000000112 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ER00000000000000000000A8 /* voices in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -135,7 +228,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ER0000000000000000000102 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		ER0000000000000000000151 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ER00000000000000000000E2 /* MicroERacerWatch */;
+			targetProxy = ER0000000000000000000152 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		ER0000000000000000000131 /* Debug */ = {
@@ -273,6 +381,68 @@
 			};
 			name = Release;
 		};
+		ER0000000000000000000135 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3Z7QAPFM7G;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Micro E-Racer";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = de.grails.microeracer;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.grails.microeracer.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		ER0000000000000000000136 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3Z7QAPFM7G;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Micro E-Racer";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = de.grails.microeracer;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.grails.microeracer.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -290,6 +460,15 @@
 			buildConfigurations = (
 				ER0000000000000000000133 /* Debug */,
 				ER0000000000000000000134 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ER00000000000000000000F4 /* Build configuration list for PBXNativeTarget "MicroERacerWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ER0000000000000000000135 /* Debug */,
+				ER0000000000000000000136 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

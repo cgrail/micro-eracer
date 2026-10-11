@@ -9,3 +9,4 @@ rejects bullets, emoji and typographic dashes or quotes in that field.
 - Race against up to 7 others in the same Races as the browser game, or against the Bots when you are offline.
 - Your E-Car accelerates by itself: steer with the left pad, use your Item with the button on the right.
 - Ram, Zap and Drift round a kitchen, a garden, a desk and a bathtub, and keep an eye on your battery.
+- On Apple Watch: race the Bots, steer with the Digital Crown and tap to use your Item.

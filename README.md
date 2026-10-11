@@ -1,6 +1,6 @@
 # micro-eracer
 
-Micro E-Racer: a multiplayer 3D racing web game in the spirit of Micro Machines, with electric cars on small tracks, for desktop and mobile browsers, and as an app for iPhone and iPad that races in the same Races.
+Micro E-Racer: a multiplayer 3D racing web game in the spirit of Micro Machines, with electric cars on small tracks, for desktop and mobile browsers, and as an app for iPhone and iPad that races in the same Races, with an Apple Watch app that races the Bots.
 
 - Terms: [CONTEXT.md](CONTEXT.md)
 - Decisions: [docs/adr/](docs/adr/)
@@ -41,11 +41,11 @@ Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes l
 - `shared/`: Tracks, car physics (our own, in `physics.ts` and `collide.ts`) and the Race simulation (`RaceSim`). The server runs it, and the browser reuses the Track and physics code. It's kept free of networking, so when Play can't reach the server within 5 seconds the browser runs the same simulation itself: an Offline Race against the Bots.
 - `server/`: a Colyseus room that wraps `RaceSim` and syncs it to the browsers.
 - `client/`: the Vite + Three.js browser app. It drives your own E-Car locally and shows the others as the server reports them.
-- `ios/`: the iPhone and iPad app, a native Swift port (SwiftUI, SceneKit, the Colyseus Swift SDK) that joins the same Races. See [ios/README.md](ios/README.md).
+- `ios/`: the iPhone and iPad app, a native Swift port (SwiftUI, SceneKit, the Colyseus Swift SDK) that joins the same Races, and the Apple Watch app. See [ios/README.md](ios/README.md).
 
-## iPhone and iPad
+## iPhone, iPad and Apple Watch
 
-`open ios/MicroERacer.xcodeproj`, pick your signing team and run it. The app races on the same server as the browsers, so phones and browsers meet in the same Race, and it falls back to an Offline Race against the Bots when the server can't be reached. It plays like a phone's browser: the E-Car accelerates by itself, the left pad steers (Slider or Buttons, picked on the start screen), the action button on the right uses your Item, and a Back button appears while you're stuck. The sound switch and ✕ (leave the Race) sit under the Lap counter. `cd ios && swift test` checks the Swift rules against the TypeScript. What changed, on the web and in the app, is in [CHANGELOG.md](CHANGELOG.md).
+`open ios/MicroERacer.xcodeproj`, pick your signing team and run it. The app races on the same server as the browsers, so phones and browsers meet in the same Race, and it falls back to an Offline Race against the Bots when the server can't be reached. It plays like a phone's browser: the E-Car accelerates by itself, the left pad steers (Slider or Buttons, picked on the start screen), the action button on the right uses your Item, and a Back button appears while you're stuck. The sound switch and ✕ (leave the Race) sit under the Lap counter. On the Apple Watch (the app comes with the iPhone app) you race the Bots offline: turn the Digital Crown to steer, tap the screen to use your Item, and hold it to reverse while you're stuck. `cd ios && swift test` checks the Swift rules against the TypeScript. What changed, on the web and in the app, is in [CHANGELOG.md](CHANGELOG.md).
 
 Tracks are data files in `shared/src/tracks/`: pieces `S` (straight), `L` and `R` (90° turns), `U` and `D` (ramps up and down) and `J` (a jump), where a trailing `*` adds walls. A Track may cross itself where a ramp has lifted one part over the other: that is a bridge. A crossing on one level is refused, because it would be a shortcut. Each file also lists which pieces get a Puddle and which theme (kitchen, garden, desk, bathtub) sets the scenery. The scenery is placed automatically in the tiles the road doesn't use. `npm test` checks that every Track closes and that Bots can finish a Race on it.
 

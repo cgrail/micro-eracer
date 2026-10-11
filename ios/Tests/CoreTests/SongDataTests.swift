@@ -1,14 +1,14 @@
 import Foundation
 import XCTest
 
-/// The soundtrack is copied into MicroERacer/Audio/Songs.swift, which the Core package doesn't build (it is audio, not
+/// The soundtrack is copied into Shared/Audio/Songs.swift, which the Core package doesn't build (it is audio, not
 /// rules); this compares that file's songs with client/src/songs.ts as text, so a song changed on one side fails here.
 final class SongDataTests: XCTestCase {
     static let root = URL(fileURLWithPath: #filePath).appendingPathComponent("../../../..").standardized
 
     func testSongsMatchTheTypeScript() throws {
         let ts = try String(contentsOf: Self.root.appendingPathComponent("client/src/songs.ts"), encoding: .utf8)
-        let swift = try String(contentsOf: Self.root.appendingPathComponent("ios/MicroERacer/Audio/Songs.swift"), encoding: .utf8)
+        let swift = try String(contentsOf: Self.root.appendingPathComponent("ios/Shared/Audio/Songs.swift"), encoding: .utf8)
         // the lead lines of a TypeScript song are split over several strings joined with +
         let joined = ts.replacingOccurrences(of: "' \\+\\s*'", with: "", options: .regularExpression)
         func all(_ pattern: String, _ text: String) -> [String] {

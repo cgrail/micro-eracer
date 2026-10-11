@@ -107,11 +107,18 @@ func setYawPitch(_ node: SCNNode, yaw: Double, pitch: Double, roll: Double = 0) 
     node.simdOrientation = simd_quatf(angle: Float(yaw), axis: [0, 1, 0]) * simd_quatf(angle: Float(pitch), axis: [1, 0, 0]) * simd_quatf(angle: Float(roll), axis: [0, 0, 1])
 }
 
-/// A texture drawn in code (scene.ts `canvasTexture`).
+/// A texture drawn in code (scene.ts `canvasTexture`), into a plain bitmap so it works on the watch too, which has no
+/// UIGraphicsImageRenderer.
 func picture(_ w: Int, _ h: Int, _ draw: (CGContext) -> Void) -> UIImage {
-    let format = UIGraphicsImageRendererFormat()
-    format.scale = 1
-    return UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { draw($0.cgContext) }
+    let g = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    // top-down, as UIKit's text drawing expects
+    g.translateBy(x: 0, y: CGFloat(h))
+    g.scaleBy(x: 1, y: -1)
+    UIGraphicsPushContext(g)
+    draw(g)
+    UIGraphicsPopContext()
+    return UIImage(cgImage: g.makeImage()!)
 }
 
 /// The comic lettering, Bangers, bundled with the app (`Fonts.register`).

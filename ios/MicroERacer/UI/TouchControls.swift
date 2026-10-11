@@ -6,24 +6,6 @@ import SwiftUI
 /// How the left thumb steers: by dragging on the pad, or by holding its ◀ or ▶ half.
 enum Steering: String, CaseIterable { case slider, buttons }
 
-/// What the thumbs are doing, written by SwiftUI on the main thread and read by the game loop on SceneKit's.
-final class Controls: @unchecked Sendable {
-    private let lock = NSLock()
-    private var steer = 0.0, fire = false, pressed = false, reverse = false
-    private func locked<T>(_ f: () -> T) -> T { lock.lock(); defer { lock.unlock() }; return f() }
-
-    /// Auto-throttle: full ahead, unless the Back button is held.
-    func drive() -> Input { locked { Input(throttle: reverse ? -1 : 1, steer: steer) } }
-    /// True while the action button is held, for a Zap's rapid fire.
-    func firing() -> Bool { locked { fire } }
-    /// True once per press of the action button.
-    func takeItemPress() -> Bool { locked { defer { pressed = false }; return pressed } }
-
-    func setSteer(_ v: Double) { locked { steer = v } }
-    func setFiring(_ on: Bool) { locked { if on && !fire { pressed = true }; fire = on } }
-    func setReversing(_ on: Bool) { locked { reverse = on } }
-}
-
 private let STEER_DEAD = 6.0, STEER_FULL = 100.0
 /// Drag distance (points) to steering: a small dead zone, then gentle near the middle for small corrections, full lock at STEER_FULL.
 private func steerCurve(_ dx: Double) -> Double {
@@ -130,11 +112,5 @@ private struct Wheel: View {
             g.stroke(Path(ellipseIn: CGRect(x: -13, y: -13, width: 26, height: 26)), with: .color(Color(hex: 0x111111)), lineWidth: 4)
         }
         .allowsHitTesting(false)
-    }
-}
-
-extension Color {
-    init(hex: Int, opacity: Double = 1) {
-        self.init(red: Double((hex >> 16) & 255) / 255, green: Double((hex >> 8) & 255) / 255, blue: Double(hex & 255) / 255, opacity: opacity)
     }
 }

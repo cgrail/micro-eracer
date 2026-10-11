@@ -17,6 +17,8 @@ final class Game: NSObject, SCNSceneRendererDelegate {
     private let publish: (HudState) -> Void, left: () -> Void
     /// Width over height of the view, set by the view as it lays out.
     var aspect = 1.0
+    /// Told of every event and our own Seat, on the game's thread (the watch taps the wrist with it).
+    var heard: ((RaceEvent, Int) -> Void)?
 
     var track: Track?, world: World?, look: TrackScene?
     var state: RaceState?, me: CarState?, own: Own?

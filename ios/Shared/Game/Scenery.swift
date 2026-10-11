@@ -38,6 +38,9 @@ private func ribbon(_ track: Track, _ from: Double, _ to: (Sample) -> Double, _ 
         let j = Int32((i + 1) % track.n), k = Int32(i)
         index += [2 * k, 2 * k + 1, 2 * j, 2 * k + 1, 2 * j + 1, 2 * j]
     }
+    // a ribbon `keep` drops entirely (the kicker's stripes on a Track without a jump) has no triangles, and Metal
+    // refuses an index buffer of zero length
+    guard !index.isEmpty else { return SCNNode() }
     return mesh(geometry(pos, index), m)
 }
 private func ribbon(_ track: Track, _ from: Double, _ to: Double, _ lift: Double, _ m: SCNMaterial, keep: (Int) -> Bool = { _ in true }) -> SCNNode {

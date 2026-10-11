@@ -21,7 +21,7 @@ Do **not** batch items. For each item, in order:
    - **Simulation:** `shared/src/race.ts`, `combat.ts`, `car.ts`, `track.ts`.
    - **Sync:** the schema and `sync()` in `server/src/RaceRoom.ts`, plus a message handler if the browser sends something new.
    - **Browser:** the state sync and `onEvent` in `client/src/game.ts`, models in `scene.ts`, sound in `audio.ts`, the HUD in `index.html`, `style.css` and `hud.ts`, and controls in `input.ts` (keys, and the touch pad and action button).
-   - **iOS:** the same change in `ios/MicroERacer/` (the Swift port; [ios/README.md](../../../ios/README.md) maps each file to its TypeScript). Web and iOS stay in lockstep (CLAUDE.md), so a change that only reaches one of them is unfinished.
+   - **iOS:** the same change in `ios/` (the Swift port for iPhone, iPad and, through `ios/Core` and `ios/Shared`, the Apple Watch; [ios/README.md](../../../ios/README.md) maps each file to its TypeScript). Web and iOS stay in lockstep (CLAUDE.md), so a change that only reaches one of them is unfinished.
 3. **Implement.** Match the surrounding code's idiom: terse, data-driven, comments only for the why, glossary terms from [CONTEXT.md](../../../CONTEXT.md).
 4. **Check the constraints in CLAUDE.md** that the change touches. The ones that bite most often:
    - **Ownership:** each browser drives only its own E-Car. Anything the server does to a Player's E-Car goes out as a `RaceEvent` (applied by that browser) or a `spawn` bump (a jump), never by moving its body on the server.
