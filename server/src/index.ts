@@ -1,7 +1,9 @@
 import { defineRoom, defineServer } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import express from 'express';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deployHook } from './deployHook.ts';
 import { RaceRoom } from './RaceRoom.ts';
@@ -15,6 +17,16 @@ const server = defineServer({
   // in development Vite serves the browser app; in production this one process does both
   express: (app) => {
     deployHook(app);
+    // the build leaves a Brotli copy next to each script and stylesheet (client/vite.config.ts); Caddy passes it on as it is
+    app.use('/assets', (req, res, next) => {
+      if (!/\.(js|css)$/.test(req.path) || !existsSync(`${dist}/assets${req.path}.br`)) return next();
+      res.vary('Accept-Encoding');
+      if (req.acceptsEncodings('br')) {
+        res.type(extname(req.path)).set('Content-Encoding', 'br');
+        req.url = `${req.path}.br`;
+      }
+      next();
+    });
     // the build names everything in assets/ after a hash of its content, so browsers keep those files across deploys
     app.use('/assets', express.static(`${dist}/assets`, { immutable: true, maxAge: '1y' }));
     // link previews (Slack, Teams, X, WhatsApp) only follow absolute URLs, so the page's preview tags get the origin:
