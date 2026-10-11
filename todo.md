@@ -1,5 +1,4 @@
 # Todo
 
-[x] the car selection should be selectable via a next/previous button selection. get rid of the buttons with all the cars
-[x] goodies should not disappear when for the first three places and appear after the third place has passed. they should disappaar once the last driver has passed them. ideally the first three places should never see goodies
-[x] cars are still in the road, especially when driving on bridges
+[ ] create an ios port in native swift. keep the best practices like writing a change log and keeping the web and ios version in sync like in https://github.com/cgrail/mech-vs-mech. update teh claude.md. target should be iphone and ipad. it should also auto accelerate. 
+[ ] create an ios watch version. steering should be done via the crown. actions and reverse if neccessary via a press on the button.
