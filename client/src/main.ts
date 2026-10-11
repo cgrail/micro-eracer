@@ -14,7 +14,7 @@ const form = $<HTMLFormElement>('start'), nameInput = $<HTMLInputElement>('name'
 const error = $('error'), hudEl = $('hud'), touch = $('touch'), mute = $<HTMLButtonElement>('mute'), offline = $('offline');
 const hud = {
   pos: $('pos'), lap: $('lap'), msg: $('msg'), results: $<HTMLOListElement>('results'),
-  energy: $('energy'), energyFill: $('energy-fill'), popups: $('popups'), item: $('item'), danger: $('danger'), action: $('fire'), news: $('news'),
+  energy: $('energy'), energyFill: $('energy-fill'), popups: $('popups'), item: $('item'), danger: $('danger'), action: $('fire'), news: $('news'), map: $<HTMLCanvasElement>('map'),
 };
 
 // remembered per browser so the next visit is one tap; storage can be unavailable (private mode)

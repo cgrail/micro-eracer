@@ -75,6 +75,11 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
   background: var(--paper); color: var(--ink); border: 2px solid #111; border-radius: 10px; font: 16px var(--comic); white-space: nowrap; }
 @media (pointer: coarse) { #offline { bottom: auto; top: max(150px, calc(env(safe-area-inset-top) + 140px)); } }
 
+/* desktop only: the Track from above with every E-Car on it */
+#map { position: absolute; left: 16px; bottom: 16px; width: 200px; height: 200px; background: rgb(0 0 0 / 0.3);
+  border: 3px solid #111; border-radius: 14px; box-shadow: 4px 4px 0 #111; }
+@media (pointer: coarse) { #map { display: none; } }
+
 #energy { position: absolute; top: max(78px, calc(env(safe-area-inset-top) + 68px)); left: 16px; display: flex; align-items: center; gap: 6px; font-size: 28px; }
 #energy span { color: var(--yellow); -webkit-text-stroke: 1.5px #111; }
 #energy .bar { position: relative; width: min(200px, 40vw); height: 20px; border: 3px solid #111; border-radius: 10px; background: #fff; overflow: hidden; box-shadow: 3px 3px 0 #111; }

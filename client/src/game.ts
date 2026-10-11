@@ -396,7 +396,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       }
     }
     effect.render(scene, camera);
-    ui.update(now, state, me, status);
+    ui.update(now, state, me, status, track);
     raf = requestAnimationFrame(frame);
   }
   raf = requestAnimationFrame(frame);

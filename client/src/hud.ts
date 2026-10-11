@@ -1,6 +1,8 @@
 import { LAPS, type Phase, SEATS } from '../../shared/src/race.ts';
 import { MAX_ENERGY } from '../../shared/src/car.ts';
+import type { Track } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
+import { createMap } from './minimap.ts';
 import { RECHARGE, type CarState, type RaceState, STRANDED } from './state.ts';
 
 export interface Hud {
@@ -10,6 +12,7 @@ export interface Hud {
   action: HTMLElement;
   /** A line for news such as who just joined. */
   news: HTMLElement;
+  map: HTMLCanvasElement;
 }
 
 export const ITEM_ICONS: Record<string, string> = { zap: '⚡', missile: '🚀', mine: '💣', shield: '🛡️', '': '' };
@@ -17,16 +20,18 @@ export const ITEM_ICONS: Record<string, string> = { zap: '⚡', missile: '🚀',
 export const itemLabel = (c: CarState) => `${ITEM_ICONS[c.item] ?? ''}${c.item === 'zap' ? c.ammo : ''}`;
 
 /**
- * The HUD over the game: Position, Lap, Energy, messages and results. It touches the DOM only when something changed.
+ * The HUD over the game: Position, Lap, Energy, messages, results and (on desktop) the map. It touches the DOM only when something changed.
  * Running dry turns the game view (`view`) black and white, and the colour comes back as the drone Recharges the battery.
  */
 export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
   let lastMsg = '', lastResults = '', goUntil = 0, lastPhase: Phase | undefined, lastCount = -1, lastFilter = '';
   let newsTimer: ReturnType<typeof setTimeout> | undefined;
+  const drawMap = createMap(hud.map);
   return {
     /** `me` is our own E-Car; `status` a connection message that wins over everything else. */
-    update(now: number, state: RaceState | undefined, me: CarState | undefined, status: string) {
+    update(now: number, state: RaceState | undefined, me: CarState | undefined, status: string, track: Track | undefined) {
       if (!state) return;
+      drawMap(track, state, me);
       if (lastPhase === 'grid' && state.phase === 'racing') { goUntil = now + 1000; sound.countdown(true); }
       lastPhase = state.phase;
       const left = Math.ceil(state.timer);
