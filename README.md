@@ -18,7 +18,7 @@ npm run typecheck
 
 To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same network.
 
-Bodies: five generic electric look-alikes that drive differently, from quick to heavy. The Roadster is fast and drifts easily, the SUV is the all-rounder, the Microbus grips well and has a big battery, the Pickup is heavy but pulls away hard, and the Semi (a truck with its trailer) is the slowest, heaviest and has the biggest battery. Heavier Bodies win Rams and get thrown around less by Hits, and a bigger battery means running dry less often, so each of them can win.
+Bodies: five generic electric look-alikes that drive differently, from quick to heavy. The Roadster is fast and drifts easily, the SUV is the all-rounder, the Microbus grips well and has a big battery, the Pickup is heavy but pulls away hard, and the Semi (a truck with its trailer) is the slowest, heaviest and has the biggest battery. Heavier Bodies win Rams and get thrown around less by Hits, and a bigger battery means running dry less often, so each of them can win. The start form turns the picked Body on a turntable, with bars for its top speed, acceleration, grip, ruggedness (weight) and battery.
 
 Run dry and you're Stranded: the world turns black and white until a drone arrives and Recharges you where you stand, and the colour comes back as the battery fills.
 

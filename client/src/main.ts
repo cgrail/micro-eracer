@@ -4,6 +4,7 @@ import { Client } from '@colyseus/sdk';
 import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
+import { createGarage } from './garage.ts';
 import { createInput, isTouch, type Steering, STEERINGS } from './input.ts';
 import { offlineRace } from './offline.ts';
 import type { RaceLink } from './state.ts';
@@ -23,9 +24,11 @@ const save = (k: string, v: string) => { try { localStorage.setItem(k, v); } cat
 let body: BodyKind = BODY_KINDS.find((b) => b === load('body')) ?? 'roadster';
 nameInput.value = load('name') ?? '';
 const bodyButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-body]')];
-const showBody = () => bodyButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.body === body)));
+const garage = createGarage($('turntable'), $('stats'));
+const showBody = () => { bodyButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.body === body))); garage.show(body); };
 bodyButtons.forEach((b) => b.addEventListener('click', () => { body = b.dataset.body as BodyKind; showBody(); }));
 showBody();
+garage.run(true);
 
 const controls = createInput({ steer: $('steer'), action: $('fire'), back: $('back') });
 // touch only: steer by dragging on the pad, or with its ◀ and ▶ halves as two buttons
@@ -67,6 +70,7 @@ form.addEventListener('submit', async (e) => {
       offline.hidden = false;
     }
     form.hidden = true;
+    garage.run(false);
     hudEl.hidden = mute.hidden = false;
     touch.hidden = !isTouch;
     // so Space uses the Item instead of pressing the (now hidden) Play button again
@@ -75,6 +79,7 @@ form.addEventListener('submit', async (e) => {
     room.onLeave(() => {
       stop();
       form.hidden = false;
+      garage.run(true);
       hudEl.hidden = touch.hidden = mute.hidden = true;
       error.textContent = 'Connection lost.';
     });

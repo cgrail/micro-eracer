@@ -21,11 +21,12 @@
     <input id="name" maxlength="16" autocomplete="nickname" required>
     <fieldset class="pick">
       <legend>Body</legend>
-      <button type="button" data-body="roadster" aria-pressed="true">Roadster<small>fast, drifty</small></button>
-      <button type="button" data-body="suv" aria-pressed="false">SUV<small>all-rounder</small></button>
-      <button type="button" data-body="microbus" aria-pressed="false">Microbus<small>grippy, big battery</small></button>
-      <button type="button" data-body="pickup" aria-pressed="false">Pickup<small>heavy, pulls hard</small></button>
-      <button type="button" data-body="semi" aria-pressed="false">Semi<small>huge, huge battery</small></button>
+      <div id="garage"><canvas id="turntable" aria-hidden="true"></canvas><dl id="stats"></dl></div>
+      <button type="button" data-body="roadster" aria-pressed="true">Roadster</button>
+      <button type="button" data-body="suv" aria-pressed="false">SUV</button>
+      <button type="button" data-body="microbus" aria-pressed="false">Microbus</button>
+      <button type="button" data-body="pickup" aria-pressed="false">Pickup</button>
+      <button type="button" data-body="semi" aria-pressed="false">Semi</button>
     </fieldset>
     <fieldset id="steering" class="pick" hidden>
       <legend>Steering</legend>
