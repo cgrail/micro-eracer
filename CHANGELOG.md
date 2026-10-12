@@ -18,17 +18,17 @@ happens. Everything before 1.0 is in the git history.
 - It drives exactly like the browsers: `shared/src` is ported file by file to `ios/Core`, and `swift test`
   replays the physics fixture, compares the Track data and the soundtrack with the TypeScript, and runs a headless Race in
   which 8 Bots finish on every Track.
-- The E-Car accelerates by itself. The left thumb steers on the pad (Slider: drag; Buttons: hold its left or right half,
-  picked on the start screen), the right thumb has the one action button that uses the Item (held, a Zap keeps firing),
-  and a Back button for reversing shows only while the E-Car is stuck: the same controls as a phone's browser.
-- The same start screen (Nickname, the Body on its turntable with its stat bars, Steering, Play), HUD, cel-shaded look with
-  black outlines, themed scenery, drones, Item Boxes and weapons, synthesised sounds and soundtrack, and the Racers' voices.
-  Name, Body, Steering and Sound are remembered under the same names as in the browser.
+- The E-Car accelerates by itself. A thumb steers anywhere on the screen (Buttons: left or right of the steering pad's
+  middle; Slider: drag), the one action button right above the pad uses the Item (held, a Zap keeps firing), and a Back
+  button for reversing shows only while the E-Car is stuck: the same controls as a phone's browser.
+- The same start screen (Nickname, the Body on its turntable with its stat bars, Steering, Pad, Play), HUD, cel-shaded look
+  with black outlines, themed scenery, drones, Item Boxes and weapons, synthesised sounds and soundtrack, and the Racers'
+  voices. Name, Body, Steering, Pad and Sound are remembered under the same names as in the browser.
 - On an iPad with a hardware keyboard, the browsers' desktop keys work: arrows or WASD drive, Space, E or Shift uses the
   Item, and Space held keeps a Zap firing. A game controller works too: the left stick or the d-pad steers, the right
   trigger (or A) accelerates, the left trigger (or B) brakes and reverses, and X or the right shoulder uses the Item.
-  Whatever was used last drives: keys and controllers have no auto-throttle (as on a desktop), and touching the pad or
-  the action button brings it back. Return in the Nickname field plays, as Enter does in the browser.
+  Whatever was used last drives: keys and controllers have no auto-throttle (as on a desktop), and touching the screen
+  brings it back. Return in the Nickname field plays, as Enter does in the browser.
 - Two buttons under the Lap counter: the sound switch, and ✕ to leave the Race and go back to the start screen (in a
   browser, that's the back button).
 - The app icon is the browser tab's lightning bolt, drawn from the same code (`client/share/art.ts`).
@@ -40,6 +40,13 @@ happens. Everything before 1.0 is in the git history.
 - The steering pad shows only its steering wheel, which turns as the thumb steers, with Slider and with Buttons steering
   alike, in the browser and in the app. With Buttons, a line splits the pad into its left and right halves, and the held
   one lights up.
+- The whole screen steers but for its buttons, not only the pad: with Buttons, a thumb anywhere left of the pad's middle
+  steers left and anywhere right of it steers right; with Slider, a drag steers from wherever it starts. The first finger
+  down steers until it lifts.
+- Buttons is the steering a new Player starts with (a Steering picked before stays picked).
+- The action button sits right above the steering pad, and Back, while the E-Car is stuck, in the other bottom corner.
+  Pad on the start screen puts the steering pad, with the action button, in the bottom-left or the bottom-right corner,
+  and is remembered like the rest.
 
 ### Phones and tablets in the browser
 

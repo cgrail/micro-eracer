@@ -109,8 +109,11 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #mute { position: fixed; z-index: 3; top: max(64px, calc(env(safe-area-inset-top) + 56px)); right: 16px; width: 48px; height: 48px; padding: 0;
   font-size: 22px; background: var(--paper); box-shadow: 3px 3px 0 #111; }
 
-#touch { position: fixed; inset: auto 0 0 0; height: 40%; z-index: 2; }
-#steer { position: absolute; left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 45%; height: 70%;
+/* the whole screen steers but for the buttons on it; the pad sits in a bottom corner (.right: the right one), the action button
+   right above it, and Back in the other corner */
+#touch { position: fixed; inset: 0; z-index: 2; --pad: 45%; --pad-height: 28%; --left: max(16px, env(safe-area-inset-left));
+  --right: max(16px, env(safe-area-inset-right)); --bottom: max(16px, env(safe-area-inset-bottom)); }
+#steer { position: absolute; left: var(--left); bottom: var(--bottom); width: var(--pad); height: var(--pad-height);
   display: flex; overflow: hidden; container-type: size;
   border: 3px solid rgb(0 0 0 / 0.5); border-radius: 20px; background: rgb(255 255 255 / 0.18); }
 /* a steering wheel in the middle of the pad turns as the thumb steers */
@@ -120,10 +123,13 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #steer.buttons span { flex: 1; }
 #steer.buttons span + span { border-left: 3px solid rgb(0 0 0 / 0.5); }
 #steer[data-held="left"] span:first-child, #steer[data-held="right"] span:last-child { background: rgb(255 255 255 / 0.35); }
-#fire { position: absolute; right: 24px; bottom: max(24px, env(safe-area-inset-bottom)); width: 108px; height: 108px; padding: 0; border-radius: 50%;
-  background: rgb(255 200 30 / 0.85); color: #111; font-size: 30px; box-shadow: 4px 4px 0 #111; }
-#back { position: absolute; right: 32px; bottom: max(150px, calc(env(safe-area-inset-bottom) + 134px)); width: 96px; height: 56px; padding: 0;
+#fire { position: absolute; left: calc(var(--left) + var(--pad) / 2 - 54px); bottom: calc(var(--bottom) + var(--pad-height) + 16px);
+  width: 108px; height: 108px; padding: 0; border-radius: 50%; background: rgb(255 200 30 / 0.85); color: #111; font-size: 30px; box-shadow: 4px 4px 0 #111; }
+#back { position: absolute; right: calc(var(--right) + 8px); bottom: calc(var(--bottom) + 8px); width: 96px; height: 56px; padding: 0;
   border-radius: 14px; background: rgb(255 77 77 / 0.85); color: #fff; font-size: 20px; box-shadow: 4px 4px 0 #111; }
+#touch.right #steer { left: auto; right: var(--right); }
+#touch.right #fire { left: auto; right: calc(var(--right) + var(--pad) / 2 - 54px); }
+#touch.right #back { right: auto; left: calc(var(--left) + 8px); }
 /* nothing to use: an Item Box will fill it */
 #fire:empty { opacity: 0.45; }
 

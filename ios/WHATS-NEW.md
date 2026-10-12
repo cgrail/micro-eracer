@@ -7,6 +7,6 @@ rejects bullets, emoji and typographic dashes or quotes in that field.
 
 - Micro E-Racer on iPhone and iPad: tiny electric cars, big chaos, now as an app.
 - Race against up to 7 others in the same Races as the browser game, or against the Bots when you are offline.
-- Your E-Car accelerates by itself: steer with the left pad, use your Item with the button on the right.
+- Your E-Car accelerates by itself: hold left or right anywhere on the screen to steer, and tap the button above the steering pad to use your Item.
 - Ram, Zap and Drift round a kitchen, a garden, a desk and a bathtub, and keep an eye on your battery.
 - On Apple Watch: race the Bots, steer with the Digital Crown and tap to use your Item.

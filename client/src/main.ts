@@ -5,7 +5,7 @@ import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createGarage } from './garage.ts';
-import { createInput, isTouch, type Steering, STEERINGS } from './input.ts';
+import { createInput, isTouch, PAD_SIDES, type PadSide, type Steering, STEERINGS } from './input.ts';
 import { offlineRace } from './offline.ts';
 import type { RaceLink } from './state.ts';
 
@@ -33,14 +33,21 @@ $('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 
-const controls = createInput({ steer: $('steer'), action: $('fire'), back: $('back') });
-// touch only: steer by dragging on the pad, or with its left and right halves as two buttons
-let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'slider';
+const controls = createInput({ touch, steer: $('steer'), action: $('fire'), back: $('back') });
+// touch only: steer by dragging, or by holding left or right of the pad's middle
+let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'buttons';
 const steerButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-steer]')];
 const showSteering = () => { steerButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.steer === steering))); controls.setSteering(steering); };
 steerButtons.forEach((b) => b.addEventListener('click', () => { steering = b.dataset.steer as Steering; showSteering(); }));
 $('steering').hidden = !isTouch;
 showSteering();
+// touch only: the pad, with the action button above it, in the bottom-left or the bottom-right corner
+let side: PadSide = PAD_SIDES.find((s) => s === load('side')) ?? 'left';
+const sideButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-side]')];
+const showSide = () => { sideButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === side))); touch.classList.toggle('right', side === 'right'); };
+sideButtons.forEach((b) => b.addEventListener('click', () => { side = b.dataset.side as PadSide; showSide(); }));
+$('side').hidden = !isTouch;
+showSide();
 const sound = new Sound();
 const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.setAttribute('aria-pressed', String(sound.muted)); };
 sound.setMuted(load('muted') === '1');
@@ -55,7 +62,7 @@ form.addEventListener('submit', async (e) => {
   const name = nameInput.value.trim();
   save('name', name);
   save('body', body);
-  if (isTouch) save('steer', steering);
+  if (isTouch) { save('steer', steering); save('side', side); }
   error.textContent = '';
   play.disabled = true;
   sound.unlock();

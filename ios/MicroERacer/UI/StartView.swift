@@ -51,10 +51,18 @@ struct StartView: View {
                     Text(BODY_NAMES[model.body]!).font(.custom("Bangers-Regular", size: 26)).frame(maxWidth: .infinity)
                     stepper("▶\u{FE0E}", label: "Next Body") { step(1) }
                 }
-                label("Steering")
-                HStack(spacing: 8) {
-                    pick(.slider, "Slider", "drag left or right")
-                    pick(.buttons, "Buttons", "hold left or right")
+                // a Group, as a view builder takes at most ten views
+                Group {
+                    label("Steering")
+                    HStack(spacing: 8) {
+                        pick(model.steering == .slider, "Slider", "drag left or right") { model.steering = .slider }
+                        pick(model.steering == .buttons, "Buttons", "hold left or right") { model.steering = .buttons }
+                    }
+                    label("Pad")
+                    HStack(spacing: 8) {
+                        pick(model.side == .left, "Left", "for the left thumb") { model.side = .left }
+                        pick(model.side == .right, "Right", "for the right thumb") { model.side = .right }
+                    }
                 }
                 Button { Task { await model.play() } } label: {
                     Text("Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 10)
@@ -97,9 +105,8 @@ struct StartView: View {
             .accessibilityLabel(label)
     }
 
-    private func pick(_ s: Steering, _ title: String, _ hint: String) -> some View {
-        let on = model.steering == s
-        return Button { model.steering = s } label: {
+    private func pick(_ on: Bool, _ title: String, _ hint: String, _ choose: @escaping () -> Void) -> some View {
+        Button(action: choose) {
             VStack(spacing: 0) {
                 Text(title).font(.custom("Bangers-Regular", size: 19))
                 Text(hint).font(.system(size: 12))

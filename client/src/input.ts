@@ -37,9 +37,12 @@ function steerCurve(dx: number) {
   return Math.sign(dx) * k ** 1.4;
 }
 
-/** How the left thumb steers on touch: by dragging on the pad, or by holding its left or right half. */
+/** How the thumb steers on touch: by dragging, or by holding left or right of the pad's middle. */
 export type Steering = 'slider' | 'buttons';
 export const STEERINGS: readonly Steering[] = ['slider', 'buttons'];
+/** Which bottom corner the steering pad, with the action button above it, sits in on touch. */
+export type PadSide = 'left' | 'right';
+export const PAD_SIDES: readonly PadSide[] = ['left', 'right'];
 
 export interface Controls {
   drive(): Input;
@@ -54,9 +57,9 @@ export interface Controls {
 
 /**
  * Desktop: arrows/WASD drive, Space, E or Shift uses the Item (held, a Zap keeps firing). Mobile: the E-Car accelerates by
- * itself, the left thumb steers (`Steering`), and the right thumb has one action button that uses the Item.
+ * itself, a thumb anywhere on the screen steers (`Steering`), and one action button above the pad uses the Item.
  */
-export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back: HTMLElement }): Controls {
+export function createInput(pad: { touch: HTMLElement; steer: HTMLElement; action: HTMLElement; back: HTMLElement }): Controls {
   const keys = new Set<string>();
   let itemPressed = false;
   addEventListener('keydown', (e) => {
@@ -67,23 +70,36 @@ export function createInput(pad: { steer: HTMLElement; action: HTMLElement; back
   addEventListener('keyup', (e) => keys.delete(e.code));
   addEventListener('blur', () => keys.clear());
 
-  let steering: Steering = 'slider', steerStart: number | null = null, padMiddle = 0, touchSteer = 0, firing = false, reversing = false;
-  // Buttons: the thumb can rock from one half to the other without lifting; the held half lights up
+  let steering: Steering = 'buttons', steerer: number | null = null, steerStart = 0, padMiddle = 0, touchSteer = 0, firing = false, reversing = false;
+  // Buttons: the thumb can rock from one side to the other without lifting; the held half of the pad lights up
   const steerTo = (x: number) => {
-    touchSteer = steering === 'slider' ? steerCurve(x - steerStart!) : x < padMiddle ? -1 : 1;
+    touchSteer = steering === 'slider' ? steerCurve(x - steerStart) : x < padMiddle ? -1 : 1;
     const held = steering === 'slider' ? '' : touchSteer < 0 ? 'left' : 'right';
     if (pad.steer.dataset.held !== held) pad.steer.dataset.held = held;
     pad.steer.style.setProperty('--turn', `${touchSteer * 90}deg`);
   };
-  pad.steer.addEventListener('pointerdown', (e) => {
+  // the whole screen steers but for the buttons on it, one finger at a time; the pad's middle splits left from right
+  pad.touch.addEventListener('pointerdown', (e) => {
+    if (steerer !== null || (e.target as Element).closest('button')) return;
     const r = pad.steer.getBoundingClientRect();
+    steerer = e.pointerId;
     steerStart = e.clientX;
     padMiddle = r.left + r.width / 2;
-    pad.steer.setPointerCapture(e.pointerId);
+    pad.touch.setPointerCapture(e.pointerId);
     steerTo(e.clientX);
   });
-  pad.steer.addEventListener('pointermove', (e) => { if (steerStart !== null) steerTo(e.clientX); });
-  for (const type of ['pointerup', 'pointercancel']) pad.steer.addEventListener(type, () => { steerStart = null; touchSteer = 0; pad.steer.dataset.held = ''; pad.steer.style.setProperty('--turn', '0deg'); });
+  pad.touch.addEventListener('pointermove', (e) => { if (e.pointerId === steerer) steerTo(e.clientX); });
+  const release = (e: PointerEvent) => {
+    if (e.pointerId !== steerer) return;
+    steerer = null;
+    touchSteer = 0;
+    pad.steer.dataset.held = '';
+    pad.steer.style.setProperty('--turn', '0deg');
+  };
+  for (const type of ['pointerup', 'pointercancel'] as const) pad.touch.addEventListener(type, release);
+  // the capture keeps the finger's events coming here, and if it is lost all the same (the Race ended under it), so is the
+  // finger; not when the element it landed on loses its own capture to this one, which bubbles up here too
+  pad.touch.addEventListener('lostpointercapture', (e) => { if (e.target === pad.touch) release(e); });
   pad.action.addEventListener('pointerdown', () => { firing = true; itemPressed = true; });
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) pad.action.addEventListener(type, () => (firing = false));
   pad.back.addEventListener('pointerdown', () => (reversing = true));

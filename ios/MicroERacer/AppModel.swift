@@ -9,6 +9,7 @@ final class AppModel: ObservableObject {
     @Published var name: String
     @Published var body: BodyKind
     @Published var steering: Steering
+    @Published var side: PadSide
     @Published var muted: Bool { didSet { sound.setMuted(muted); save("muted", muted ? "1" : "0") } }
     @Published private(set) var game: Game?
     @Published private(set) var hud = HudState()
@@ -30,7 +31,8 @@ final class AppModel: ObservableObject {
         let d = UserDefaults.standard
         name = d.string(forKey: "name") ?? ""
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
-        steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .slider
+        steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .buttons
+        side = PadSide(rawValue: d.string(forKey: "side") ?? "") ?? .left
         muted = d.string(forKey: "muted") == "1"
         sound.setMuted(muted)
         controls.poll = pollPads
@@ -40,7 +42,7 @@ final class AppModel: ObservableObject {
 
     func play() async {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
-        save("name", name); save("body", body.rawValue); save("steer", steering.rawValue)
+        save("name", name); save("body", body.rawValue); save("steer", steering.rawValue); save("side", side.rawValue)
         error = ""
         joining = true
         defer { joining = false }
@@ -109,7 +111,7 @@ struct RaceView: View {
             GameView(game: game).ignoresSafeArea()
             Halftone()
             HUDView(hud: model.hud)
-            TouchControls(controls: model.controls, steering: model.steering, action: model.hud.action, showBack: model.hud.showBack)
+            TouchControls(controls: model.controls, steering: model.steering, side: model.side, action: model.hud.action, showBack: model.hud.showBack)
             VStack(spacing: 10) {
                 round(model.muted ? "🔇" : "🔊", label: "Sound") { model.muted.toggle() }
                 round("✕", label: "Leave the Race") { model.leave() }
