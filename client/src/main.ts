@@ -34,7 +34,7 @@ showBody();
 garage.run(true);
 
 const controls = createInput({ steer: $('steer'), action: $('fire'), back: $('back') });
-// touch only: steer by dragging on the pad, or with its ◀ and ▶ halves as two buttons
+// touch only: steer by dragging on the pad, or with its left and right halves as two buttons
 let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'slider';
 const steerButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-steer]')];
 const showSteering = () => { steerButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.steer === steering))); controls.setSteering(steering); };

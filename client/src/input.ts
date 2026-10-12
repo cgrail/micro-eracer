@@ -7,7 +7,7 @@ export const isTouch = matchMedia('(pointer: coarse)').matches;
 const inField = (e: Event) => e.target instanceof HTMLInputElement;
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-// a quick second tap zooms wherever it lands, not only on the element of the first (the pad's ◀ then its wheel, a button's label
+// a quick second tap zooms wherever it lands, not only on the element of the first (the pad then its wheel, a button's label
 // then its edge), so any is cancelled; a button tapped (not swiped over) still gets its click, so ▶ can be hammered through the Bodies
 const touchFrom = new Map<number, { x: number; y: number }>();
 let lastTouchEnd = -1e9;
@@ -37,7 +37,7 @@ function steerCurve(dx: number) {
   return Math.sign(dx) * k ** 1.4;
 }
 
-/** How the left thumb steers on touch: by dragging on the pad, or by holding its ◀ or ▶ half. */
+/** How the left thumb steers on touch: by dragging on the pad, or by holding its left or right half. */
 export type Steering = 'slider' | 'buttons';
 export const STEERINGS: readonly Steering[] = ['slider', 'buttons'];
 

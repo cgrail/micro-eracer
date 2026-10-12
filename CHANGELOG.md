@@ -18,9 +18,9 @@ happens. Everything before 1.0 is in the git history.
 - It drives exactly like the browsers: `shared/src` is ported file by file to `ios/Core`, and `swift test`
   replays the physics fixture, compares the Track data and the soundtrack with the TypeScript, and runs a headless Race in
   which 8 Bots finish on every Track.
-- The E-Car accelerates by itself. The left thumb steers on the pad (Slider: drag; Buttons: hold its ◀ or ▶ half, picked
-  on the start screen), the right thumb has the one action button that uses the Item (held, a Zap keeps firing), and a
-  Back button for reversing shows only while the E-Car is stuck: the same controls as a phone's browser.
+- The E-Car accelerates by itself. The left thumb steers on the pad (Slider: drag; Buttons: hold its left or right half,
+  picked on the start screen), the right thumb has the one action button that uses the Item (held, a Zap keeps firing),
+  and a Back button for reversing shows only while the E-Car is stuck: the same controls as a phone's browser.
 - The same start screen (Nickname, the Body on its turntable with its stat bars, Steering, Play), HUD, cel-shaded look with
   black outlines, themed scenery, drones, Item Boxes and weapons, synthesised sounds and soundtrack, and the Racers' voices.
   Name, Body, Steering and Sound are remembered under the same names as in the browser.
@@ -35,10 +35,16 @@ happens. Everything before 1.0 is in the git history.
 - The browsers' faint halftone dot screen lies over the game, under the HUD, on iPhone, iPad and the watch.
 - Not on iOS: the desktop map (a phone's browser doesn't show it either).
 
+### Touch controls
+
+- The steering pad shows only its steering wheel, which turns as the thumb steers, with Slider and with Buttons steering
+  alike, in the browser and in the app. With Buttons, a line splits the pad into its left and right halves, and the held
+  one lights up.
+
 ### Phones and tablets in the browser
 
-- The page never zooms, neither by pinching nor by a quick second tap anywhere (the steering pad's ◀ or ▶, its wheel, a
-  button's label). Text can't be selected anywhere but the Nickname field, and a long press opens no menu. Tapping ◀ or ▶
+- The page never zooms, neither by pinching nor by a quick second tap anywhere (the steering pad, its wheel, a button's
+  label). Text can't be selected anywhere but the Nickname field, and a long press opens no menu. Tapping ◀ or ▶
   quickly on the start screen steps through every Body instead of skipping every other tap. On a desktop, a trackpad pinch,
   Ctrl + wheel and Ctrl or Cmd with + or − don't zoom the game either.
 

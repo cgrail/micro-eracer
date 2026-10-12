@@ -54,7 +54,7 @@ struct StartView: View {
                 label("Steering")
                 HStack(spacing: 8) {
                     pick(.slider, "Slider", "drag left or right")
-                    pick(.buttons, "Buttons", "hold ◀\u{FE0E} or ▶\u{FE0E}")
+                    pick(.buttons, "Buttons", "hold left or right")
                 }
                 Button { Task { await model.play() } } label: {
                     Text("Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 10)

@@ -3,7 +3,7 @@ import SwiftUI
 // client/src/input.ts for touch: the E-Car accelerates by itself, the left thumb steers, the right thumb has one action
 // button that uses the Item, and a Back button (reverse) shows only while the E-Car is stuck.
 
-/// How the left thumb steers: by dragging on the pad, or by holding its ◀ or ▶ half.
+/// How the left thumb steers: by dragging on the pad, or by holding its left or right half.
 enum Steering: String, CaseIterable { case slider, buttons }
 
 private let STEER_DEAD = 6.0, STEER_FULL = 100.0
@@ -48,11 +48,11 @@ struct TouchControls: View {
             RoundedRectangle(cornerRadius: 20).fill(Color.white.opacity(0.18))
             RoundedRectangle(cornerRadius: 20).strokeBorder(Color.black.opacity(0.5), lineWidth: 3)
             HStack(spacing: 0) {
-                half("◀\u{FE0E}", lit: held == "left")
+                half(lit: held == "left")
                 if steering == .buttons { Rectangle().fill(Color.black.opacity(0.5)).frame(width: 3) }
-                half("▶\u{FE0E}", lit: held == "right")
+                half(lit: held == "right")
             }
-            if steering == .slider { Wheel().frame(width: min(height * 0.8, width * 0.56), height: min(height * 0.8, width * 0.56)).rotationEffect(.degrees(turn * 90)) }
+            Wheel().frame(width: min(height * 0.8, width * 0.56), height: min(height * 0.8, width * 0.56)).rotationEffect(.degrees(turn * 90))
         }
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .frame(width: width, height: height)
@@ -68,11 +68,8 @@ struct TouchControls: View {
         .accessibilityLabel(steering == .buttons ? "Steer: hold left or right" : "Steer: drag left or right")
     }
 
-    private func half(_ arrow: String, lit: Bool) -> some View {
-        Text(arrow).font(.custom("Bangers-Regular", size: 34)).foregroundColor(.white.opacity(0.93))
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: arrow.hasPrefix("◀") ? .leading : .trailing)
-            .background(lit ? Color.white.opacity(0.35) : .clear)
+    private func half(lit: Bool) -> some View {
+        Rectangle().fill(lit ? Color.white.opacity(0.35) : .clear)
     }
 }
 
