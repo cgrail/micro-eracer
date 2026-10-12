@@ -4,13 +4,31 @@ export const isTouch = matchMedia('(pointer: coarse)').matches;
 
 // iOS Safari ignores user-scalable=no and doesn't always honour touch-action, so pinches and double taps are cancelled here too.
 // The controls run on pointer events, which this doesn't stop: two thumbs and a hammered action button still work
-for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+const inField = (e: Event) => e.target instanceof HTMLInputElement;
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-let lastTap = { at: -1e9, on: null as EventTarget | null };
+// a quick second tap zooms wherever it lands, not only on the element of the first (the pad's ◀ then its wheel, a button's label
+// then its edge), so any is cancelled; a button tapped (not swiped over) still gets its click, so ▶ can be hammered through the Bodies
+const touchFrom = new Map<number, { x: number; y: number }>();
+let lastTouchEnd = -1e9;
+document.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) touchFrom.set(t.identifier, { x: t.clientX, y: t.clientY }); }, { passive: true });
 document.addEventListener('touchend', (e) => {
-  if (e.target === lastTap.on && e.timeStamp - lastTap.at < 350 && !(e.target instanceof HTMLInputElement)) e.preventDefault();
-  lastTap = { at: e.timeStamp, on: e.target };
+  const quick = e.timeStamp - lastTouchEnd < 400;
+  lastTouchEnd = e.timeStamp;
+  const t = e.changedTouches[0], from = t && touchFrom.get(t.identifier);
+  for (const c of e.changedTouches) touchFrom.delete(c.identifier);
+  if (!quick || inField(e)) return;
+  e.preventDefault();
+  if (from && Math.hypot(t.clientX - from.x, t.clientY - from.y) < 10) (e.target as Element).closest('button')?.click();
 }, { passive: false });
+document.addEventListener('touchcancel', (e) => { for (const t of e.changedTouches) touchFrom.delete(t.identifier); });
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+// no text selection and no long-press menu outside the name field, even where a browser lets user-select: none slip
+for (const type of ['selectstart', 'contextmenu']) document.addEventListener(type, (e) => { if (!inField(e)) e.preventDefault(); });
+// on a desktop, a trackpad pinch or Ctrl + wheel arrives as a wheel event with ctrlKey (Safari's pinch is the gesture above),
+// and Ctrl or Cmd with + or − zooms from the keyboard (by key, not code: they sit elsewhere on a German keyboard); 0 still resets
+addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '_'].includes(e.key)) e.preventDefault(); });
 
 const STEER_DEAD = 6, STEER_FULL = 100;
 /** Drag distance (px) to steering: a small dead zone, then gentle near the middle for small corrections, full lock at STEER_FULL. */

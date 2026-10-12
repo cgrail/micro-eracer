@@ -35,6 +35,13 @@ happens. Everything before 1.0 is in the git history.
 - The browsers' faint halftone dot screen lies over the game, under the HUD, on iPhone, iPad and the watch.
 - Not on iOS: the desktop map (a phone's browser doesn't show it either).
 
+### Phones and tablets in the browser
+
+- The page never zooms, neither by pinching nor by a quick second tap anywhere (the steering pad's ◀ or ▶, its wheel, a
+  button's label). Text can't be selected anywhere but the Nickname field, and a long press opens no menu. Tapping ◀ or ▶
+  quickly on the start screen steps through every Body instead of skipping every other tap. On a desktop, a trackpad pinch,
+  Ctrl + wheel and Ctrl or Cmd with + or − don't zoom the game either.
+
 ### Apple Watch
 
 - **An Apple Watch app**, inside the iPhone app and also on its own: the same game in an Offline Race against 7 Bots.
