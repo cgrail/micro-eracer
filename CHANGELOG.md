@@ -43,6 +43,9 @@ happens. Everything before 1.0 is in the git history.
 - The whole screen steers but for its buttons, not only the pad: with Buttons, a thumb anywhere left of the pad's middle
   steers left and anywhere right of it steers right; with Slider, a drag steers from wherever it starts. The first finger
   down steers until it lifts.
+- In the app, a thumb that just touches the steering pad or a button near the screen's edge acts at once, as in the
+  browser, instead of only once it slides. During a Race, the swipes from the screen's edges (home, Control Center) take
+  two swipes.
 - Buttons is the steering a new Player starts with (a Steering picked before stays picked).
 - The action button sits right above the steering pad, and Back, while the E-Car is stuck, in the other bottom corner.
   Pad on the start screen puts the steering pad, with the action button, in the bottom-left or the bottom-right corner,

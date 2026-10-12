@@ -119,6 +119,8 @@ struct RaceView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             .padding(.trailing, 16).padding(.top, 60)
         }
+        // otherwise iOS holds back a touch near the screen's edges until it moves, so a still thumb on the pad did nothing
+        .defersSystemGestures(on: .all)
     }
 
     private func round(_ text: String, label: String, _ action: @escaping () -> Void) -> some View {
