@@ -62,7 +62,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Shared/Game/Game.swift`, `GameSync.swift`, `GameEffects.swift` | `client/src/game.ts` |
 | `Shared/Game/Motion.swift` | `client/src/motion.ts` |
 | `Shared/Game/Toon.swift`, `Scenery.swift`, `Props.swift`, `Models.swift` | `client/src/toon.ts`, `scene.ts`, `props.ts`, `cars.ts` |
-| `Shared/Game/ThemeData.swift` | `buildProp` and `paint` in `client/src/props.ts`, for the themes in `client/src/themes/` (read from `Shared/Resources/Themes.json`) |
+| `Shared/Game/ThemeData.swift` | `buildProp` and `paint` in `client/src/props.ts`, for the themes in `client/src/themes/`, and `stagingOf` from `client/src/themes/index.ts` (each Track's river, bridge and landmarks, worked out by `staging.ts`); all read from `Shared/Resources/Themes.json` |
 | `Shared/Game/Particles.swift` | `client/src/effects.ts` |
 | `Shared/Audio/Synth.swift`, `Sound.swift`, `Songs.swift` | `client/src/audio.ts`, `songs.ts` |
 | `Shared/HudFeed.swift`, `MicroERacer/UI/HUD.swift`, the watch's `WatchHUD` | `client/src/hud.ts` |
@@ -100,6 +100,7 @@ a Hit, a Battery, an Item from a box, a Shield blocking, running dry and the fin
 - The app icons are drawn by `client/share/art.ts`, like the browsers' icon: `npx tsx ios/icon.ts` renders them into both
   asset catalogs. Run it again after changing the art.
 - `Shared/Resources/Themes.json` is the scenery of every theme beyond the first four (their props, landmarks, ground and
-  sky), written by `npx tsx ios/themes.ts` from the web's own data in `client/src/themes/`. `ThemeData.swift` builds the
-  same parts from it as `client/src/props.ts` does in the browsers. `npm test` fails until it is written again after a
+  sky), and for each of their Tracks where `client/src/themes/staging.ts` put its river, bridge and landmarks, written by
+  `npx tsx ios/themes.ts` from the web's own data in `client/src/themes/`. `ThemeData.swift` builds the same parts from it
+  as `client/src/props.ts` does in the browsers, and `stagingOf` hands each Track's staging to the scene as it is. `npm test` fails until it is written again after a
   theme changes.

@@ -4,11 +4,11 @@ import UIKit
 // The themes the web writes as data (client/src/themes/: every theme but the first four), read from Themes.json, which
 // `npx tsx ios/themes.ts` writes from them. props.ts builds the same parts in the browsers.
 
-/// Themes.json, parsed once: `themes` by id and `props` by name.
-private let DATA: (themes: [String: [String: Any]], props: [String: [String: Any]]) = {
+/// Themes.json, parsed once: `themes` by id, `props` by name and each Track's staging by its id.
+private let DATA: (themes: [String: [String: Any]], props: [String: [String: Any]], tracks: [String: [String: Any]]) = {
     guard let url = Bundle.main.url(forResource: "Themes", withExtension: "json"), let data = try? Data(contentsOf: url),
-          let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return ([:], [:]) }
-    return (json["themes"] as? [String: [String: Any]] ?? [:], json["props"] as? [String: [String: Any]] ?? [:])
+          let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return ([:], [:], [:]) }
+    return (json["themes"] as? [String: [String: Any]] ?? [:], json["props"] as? [String: [String: Any]] ?? [:], json["tracks"] as? [String: [String: Any]] ?? [:])
 }()
 
 private func num(_ v: Any?) -> Double { (v as? NSNumber)?.doubleValue ?? 0 }
@@ -166,3 +166,35 @@ func makeProp(_ kind: String, _ m: @escaping Mats, _ glows: @escaping Glows, _ r
 
 /// How far a data prop reaches from its middle, any way it's turned (the same number the browsers use).
 func reachOf(_ kind: String) -> Double? { DATA.props[kind].map { num($0["reach"]) } }
+
+/// Where client/src/themes/staging.ts put a Track's river, bridge and landmarks; worked out there, only read here.
+struct Staging {
+    /// The middles of the tiles small props leave alone.
+    let blocked: [(x: Double, z: Double)]
+    let landmarks: [(kind: String, x: Double, z: Double, yaw: Double, scale: Double)]
+    /// The river, its bridge, piers and hills, as parts in the Track's own coordinates.
+    let parts: [[String: Any]]
+    /// The bridge's samples, whose walls are its railings in `rail` and which stand on its own piers instead of pillars.
+    let bridge: (from: Int, to: Int, rail: Int)?
+    /// For the Track's picture: a point on the water's middle line, the line's direction, its width and colour.
+    let river: (x: Double, z: Double, dx: Double, dz: Double, width: Double, color: Int)?
+}
+
+private var stagings: [String: Staging] = [:]
+/// A Track's staging, if its theme is data (none for the first four themes).
+func stagingOf(_ id: String) -> Staging? {
+    if let s = stagings[id] { return s }
+    guard let t = DATA.tracks[id] else { return nil }
+    let landmarks = (t["landmarks"] as? [[String: Any]] ?? []).map { l in
+        (kind: l["kind"] as? String ?? "", x: num(l["x"]), z: num(l["z"]), yaw: num(l["yaw"]), scale: l["scale"] != nil ? num(l["scale"]) : 1)
+    }
+    let bridge = (t["bridge"] as? [String: Any]).map { b in (from: Int(num(b["from"])), to: Int(num(b["to"])), rail: Int(num(b["rail"]))) }
+    let river = (t["river"] as? [String: Any]).map { r in (x: num(r["x"]), z: num(r["z"]), dx: num(r["dx"]), dz: num(r["dz"]), width: num(r["width"]), color: Int(num(r["color"]))) }
+    let staging = Staging(blocked: (t["blocked"] as? [Any] ?? []).compactMap { nums($0) }.filter { $0.count == 2 }.map { (x: $0[0], z: $0[1]) },
+                          landmarks: landmarks, parts: t["parts"] as? [[String: Any]] ?? [], bridge: bridge, river: river)
+    stagings[id] = staging
+    return staging
+}
+
+/// One part of a Track's staging, built (it picks no colours, so it needs no random numbers).
+func stagingPart(_ part: [String: Any], _ m: @escaping Mats, _ glows: @escaping Glows) -> SCNNode { buildProp(["parts": [part]], m, glows, { 0 }) }

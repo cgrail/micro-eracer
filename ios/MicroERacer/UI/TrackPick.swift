@@ -62,6 +62,13 @@ struct TrackMap: View {
             }
             // the ground tile is 17 m across, as in the game
             g.fill(Path(CGRect(origin: .zero, size: size)), with: .tiledImage(Image(uiImage: groundOf(def.theme)), scale: 17 * scale / 256))
+            // a theme's river, right across the picture, under its bridge
+            if let river = stagingOf(def.id)?.river {
+                var band = Path()
+                band.move(to: at(river.x - river.dx * 2000, river.z - river.dz * 2000))
+                band.addLine(to: at(river.x + river.dx * 2000, river.z + river.dz * 2000))
+                g.stroke(band, with: .color(Color(hex: river.color)), style: StrokeStyle(lineWidth: river.width * scale, lineCap: .butt))
+            }
             // the whole road, then the raised stretches again on top, so a bridge lies over the road it crosses
             var paths = [road(0, track.n)], start = -1
             for i in 0...track.n {

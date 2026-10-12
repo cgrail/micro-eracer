@@ -23,6 +23,17 @@ happens. Everything before 1.0 is in the git history.
   curry Puddles), Hollywood (the sign on its hill, searchlights, the Walk of Fame), San Francisco (the Golden Gate, cable
   cars, Painted Ladies), Zuzenhausen (the training ground, tractors, hay) and Sinsheim (the Concorde on its pylon, the
   stadium, the museum). They have bridges, climbs and jumps, and every Body can drive each one flat out.
+- Five places are staged round their sights. A river runs under the best straight of each of their Tracks, and the road
+  crosses it on that place's own bridge, walled with its railings. In San Francisco it is the bay under the Golden Gate
+  (orange towers, cables and hangers), with the piers along the shore (their sheds numbered, sea lions on the boards) and
+  the green Marin Headlands on the far side; Lombard Street and Nob Hill are now Pier 39 and Marin Headlands. In
+  Heidelberg it is the Neckar under the Alte Brücke (red sandstone arches, and its gate with the two white towers right
+  over the road), with the castle a ruin on its hill, the blown-up powder tower beside it; Old Bridge is now Alte Brücke.
+  In Zuzenhausen the road crosses the Elsenz on a small bridge, by two soccer pitches with TSG players on them. In
+  Sinsheim the TSG Hoffenheim stadium, floodlights on, fills a whole block beside the road. SAP is the Walldorf campus
+  now, not offices: the SAP logo, the marble ball, WDF01 and the star buildings among lawns, trees and bikes; Coffee
+  Corridor is now Campus Loop. The big sights take a block of tiles of their own, and the Track's picture on the start
+  screen shows the river.
 - Every Race's Track, and its place, is named on screen for a few seconds as the grid counts down.
 - The four songs take turns across the Tracks.
 - Every Track is lighter to draw, which phones and the watch feel most: the walls' edges are rounded in one step instead

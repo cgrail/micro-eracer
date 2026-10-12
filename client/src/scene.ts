@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { type Track, BAY_WIDTH, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
-import { type Mats, makeProp, reachOf, themeOf } from './props.ts';
+import { type Mats, buildProp, makeProp, reachOf, themeOf } from './props.ts';
+import { stagingOf } from './themes/index.ts';
 import { GRADIENT, canvasTexture, cyl, group, mesh, rbox, rng, sph, toon } from './toon.ts';
 
 
@@ -77,8 +78,10 @@ function ripple(x: number, y: number, z: number, r: number, phase: number, anima
 export interface TrackScene { group: THREE.Group; update: (t: number) => void; water: boolean; groundY: number; background: THREE.Texture }
 
 export function buildTrackScene(track: Track): TrackScene {
-  const look = themeOf(track.def.theme);
+  const look = themeOf(track.def.theme), stage = stagingOf(track);
   const random = rng(track.def.id);
+  // the bridge over a theme's river: its walls are its railings, and it stands on its own piers instead of pillars
+  const bridge = (i: number) => !!stage?.bridge && i >= stage.bridge.from && i <= stage.bridge.to;
   const cache = new Map<string, THREE.MeshToonMaterial>();
   const m: Mats = (color, outline = true) => {
     const key = `${color}-${outline}`;
@@ -158,7 +161,8 @@ export function buildTrackScene(track: Track): TrackScene {
 
   // a wall piece every metre, its edges rounded in one step: a Track walled all round stays light for phones
   track.walls.forEach((w, i) => {
-    const wall = mesh(new RoundedBoxGeometry(0.5, 1, w.length + 0.06, 1, 0.12), Math.floor(i / 4) % 2 ? m(0xffffff) : m(0xff3b3b), w.x, w.y + 0.5, w.z);
+    const color = bridge(w.idx) ? stage!.bridge!.rail : Math.floor(i / 4) % 2 ? 0xffffff : 0xff3b3b;
+    const wall = mesh(new RoundedBoxGeometry(0.5, 1, w.length + 0.06, 1, 0.12), m(color), w.x, w.y + 0.5, w.z);
     wall.rotation.set(w.pitch, w.yaw, 0, 'YXZ');
     statics.add(wall);
   });
@@ -166,7 +170,7 @@ export function buildTrackScene(track: Track): TrackScene {
   const overRoad = (p: Sample) => track.samples.some((o) => o.y < p.y - 1 && (o.x - p.x) ** 2 + (o.z - p.z) ** 2 < (HALF_WIDTH + 1) ** 2);
   for (let i = 0; i < track.n; i += 12) {
     const s = track.samples[i];
-    if (!overRoad(s)) statics.add(cyl(0.35, 0.5, s.y - look.groundY, m(0xb8c0cc), s.x, (s.y + look.groundY) / 2 - 0.3, s.z, 8));
+    if (!overRoad(s) && !bridge(i)) statics.add(cyl(0.35, 0.5, s.y - look.groundY, m(0xb8c0cc), s.x, (s.y + look.groundY) / 2 - 0.3, s.z, 8));
   }
 
   // start/finish: checkered line and a banner gantry
@@ -217,23 +221,17 @@ export function buildTrackScene(track: Track): TrackScene {
     }
     return footprints.get(kind)!;
   };
-  // landmarks first: each in a free tile of its own beside the road, turned to face it
-  const road = new Set(used);
-  const facing = (x: number, z: number) => [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE]].find(([dx, dz]) => road.has(key(x + dx, z + dz)));
-  const spots: { x: number; z: number }[] = [];
-  if (look.landmarks.length) {
-    for (let x = Math.min(...tx) - 2 * TILE; x <= Math.max(...tx) + 2 * TILE; x += TILE) {
-      for (let z = Math.min(...tz) - 2 * TILE; z <= Math.max(...tz) + 2 * TILE; z += TILE) if (!road.has(key(x, z)) && facing(x, z)) spots.push({ x, z });
+  // a data theme's river, bridge and the rest, and its landmarks where staging.ts put them, which small props leave alone
+  if (stage) {
+    if (stage.parts.length) statics.add(buildProp({ parts: stage.parts }, m, glow, () => 0, signs));
+    for (const l of stage.landmarks) {
+      const prop = makeProp(l.kind, m, glow, rng(l.kind), signs);
+      prop.position.set(l.x, look.groundY, l.z);
+      prop.rotation.y = l.yaw;
+      if (l.scale) prop.scale.setScalar(l.scale);
+      statics.add(prop);
     }
-  }
-  for (const kind of look.landmarks) {
-    if (!spots.length) break;
-    const { x, z } = spots.splice(Math.floor(random() * spots.length), 1)[0], [dx, dz] = facing(x, z)!;
-    const prop = makeProp(kind, m, glow, random, signs);
-    prop.position.set(x, look.groundY, z);
-    prop.rotation.y = Math.atan2(dx, dz);
-    statics.add(prop);
-    used.add(key(x, z));
+    for (const [x, z] of stage.blocked) used.add(key(x, z));
   }
   let ponds = 0;
   for (let x = Math.min(...tx) - 2 * TILE; x <= Math.max(...tx) + 2 * TILE; x += TILE) {

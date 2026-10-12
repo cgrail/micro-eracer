@@ -2,7 +2,7 @@ import SceneKit
 import UIKit
 
 // The first four themes and their props, from client/src/props.ts (the rest are data: ThemeData.swift), and how scene.ts
-// places the props and landmarks of any theme round a Track (`placeProps`).
+// places the props round a Track and a data theme's landmarks where staging put them (`placeProps`).
 
 /// Small deterministic random (scene.ts `rng`), so every device decorates a Track the same way.
 func rng(_ seed: String) -> () -> Double {
@@ -161,23 +161,16 @@ func placeProps(_ track: Track, _ look: ThemeLook, _ m: @escaping Mats, _ glows:
         footprints[kind] = f
         return f
     }
-    // landmarks first: each in a free tile of its own beside the road, turned to face it (scene.ts does the same)
-    let road = used
-    let facing = { (x: Double, z: Double) in [(TILE, 0.0), (-TILE, 0), (0, TILE), (0, -TILE)].first { road.contains(key(x + $0.0, z + $0.1)) } }
-    var spots: [(x: Double, z: Double)] = []
-    if !look.landmarks.isEmpty {
-        for x in stride(from: tx.min()! - 2 * TILE, through: tx.max()! + 2 * TILE, by: TILE) {
-            for z in stride(from: tz.min()! - 2 * TILE, through: tz.max()! + 2 * TILE, by: TILE) where !road.contains(key(x, z)) && facing(x, z) != nil { spots.append((x, z)) }
+    // a data theme's landmarks where client/src/themes/staging.ts put them, which small props leave alone (scene.ts does the same)
+    if let stage = stagingOf(track.def.id) {
+        for l in stage.landmarks {
+            let prop = group(makeProp(l.kind, m, glows, rng(l.kind)))
+            prop.position = SCNVector3(l.x, look.groundY, l.z)
+            prop.eulerAngles.y = Float(l.yaw)
+            if l.scale != 1 { prop.scale = SCNVector3(l.scale, l.scale, l.scale) }
+            statics.addChildNode(prop)
         }
-    }
-    for kind in look.landmarks {
-        if spots.isEmpty { break }
-        let spot = spots.remove(at: Int(random() * Double(spots.count))), toward = facing(spot.x, spot.z)!
-        let prop = group(makeProp(kind, m, glows, random))
-        prop.position = SCNVector3(spot.x, look.groundY, spot.z)
-        prop.eulerAngles.y = Float(atan2(toward.0, toward.1))
-        statics.addChildNode(prop)
-        used.insert(key(spot.x, spot.z))
+        for b in stage.blocked { used.insert(key(b.x, b.z)) }
     }
     var ponds = 0
     for x in stride(from: tx.min()! - 2 * TILE, through: tx.max()! + 2 * TILE, by: TILE) {

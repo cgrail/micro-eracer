@@ -1,5 +1,6 @@
 import { HALF_WIDTH, RISE, type Track, type TrackDef, buildTrack } from '../../shared/src/track.ts';
 import { themeOf } from './props.ts';
+import { stagingOf } from './themes/index.ts';
 
 // The start form's Track picker: the Track from above on its theme's ground, and what it has in store.
 
@@ -57,6 +58,17 @@ export function drawTrackMap(canvas: HTMLCanvasElement, def: TrackDef | undefine
     pattern.setTransform(new DOMMatrix().scale((17 * scale) / 256));
     g.fillStyle = pattern;
     g.fillRect(0, 0, w, h);
+  }
+  // a theme's river, right across the picture, under its bridge
+  const river = stagingOf(track)?.river;
+  if (river) {
+    g.strokeStyle = `#${river.color.toString(16).padStart(6, '0')}`;
+    g.lineWidth = river.width * scale;
+    g.lineCap = 'butt';
+    g.beginPath();
+    g.moveTo(...at(river.x - river.dx * 2000, river.z - river.dz * 2000));
+    g.lineTo(...at(river.x + river.dx * 2000, river.z + river.dz * 2000));
+    g.stroke();
   }
   g.lineJoin = g.lineCap = 'round';
   const road = Math.max(4, 2 * HALF_WIDTH * scale);

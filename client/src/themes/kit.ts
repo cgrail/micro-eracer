@@ -60,8 +60,30 @@ export interface ThemeData {
   props: string[];
   /** Big props, each once, in a free tile of its own beside the road, facing it. */
   landmarks: string[];
+  /** Bigger still: each over a block of n × n tiles beside the road, placed first (a smaller block, scaled down, if none). */
+  big?: [string, number][];
   /** Comic clouds far away, as over the garden. */
   clouds?: true;
+  /** A river under the Track's best straight, which crosses it on a bridge of its own (staging.ts). */
+  water?: Water;
+}
+
+export interface Water {
+  color: number;
+  /** The strips along both banks. */
+  bank: number;
+  /** How wide the water is, at least and at most. */
+  width: [number, number];
+  /** Stone arches, a suspension bridge with towers and cables, or a plain deck on columns. */
+  bridge: 'arches' | 'suspension' | 'beam';
+  /** The bridge's railings: the walls along it. */
+  rail: number;
+  /** A gate with two towers over the road where the bridge starts. */
+  gate?: true;
+  /** Wooden piers along the near bank. */
+  piers?: true;
+  /** Hills on the far bank, in this colour. */
+  hills?: number;
 }
 
 const round = (v: number) => Math.round(v * 1000) / 1000;

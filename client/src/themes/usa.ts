@@ -118,14 +118,6 @@ export const props: Record<string, PropData> = {
   'sf-hydrant': { parts: [cyl(0.5, 0.55, 0.3, 0xf2f2f2, 0, 0.15, 0, 10), cyl(0.4, 0.42, 1.3, 0xf2f2f2, 0, 0.95, 0, 10), dome(0.42, GOLD, 0, 1.6, 0), ...[-1, 1].map((s) => turn(cyl(0.16, 0.16, 0.4, GOLD, s * 0.5, 1.1, 0, 8), 0, 0, Math.PI / 2))] },
   'sf-sealion': { parts: [sized(ball(2.4, 0x7d7f82, 0, 0.6, 0), 1.2, 0.5, 1), sized(ball(0.9, 0x6b4a2b, -0.6, 1.8, 0), 1.9, 0.6, 0.8), ball(0.5, 0x6b4a2b, 1.2, 2.2, 0), sized(ball(0.35, 0x6b4a2b, -2.3, 1.6, 0.3), 1.4, 0.4, 1), ball(0.08, 0x111111, 1.55, 2.35, 0.25)] },
   'sf-sourdough': { parts: [flat(cyl(1.6, 1.6, 0.06, 0xffffff, 0, 0.03, 0, 16)), sized(ball(1.3, 0xc8913f, 0, 1.0, 0), 1, 0.75, 1), flat(cyl(0.95, 0.95, 0.1, 0xf6efe0, 0, 1.75, 0, 14)), ball(0.12, 0xe0b46a, 0.3, 1.82, 0.2), ball(0.12, 0x5aa64a, -0.3, 1.82, -0.1)] },
-  'sf-gate': {
-    parts: [box(13, 0.6, 2.6, ORANGE, 0, 3, 0), ...[-1, 1].map((s) => box(13, 0.3, 0.2, ORANGE, 0, 3.6, s * 1.25)),
-      ...[-0.9, 0.9].flatMap((z) => [box(1.0, 15, 1.0, ORANGE, -1.6, 7.5, z), box(1.0, 15, 1.0, ORANGE, 1.6, 7.5, z)]), ...[6, 10, 13.5].map((y) => box(4.2, 0.8, 2.8, ORANGE, 0, y, 0)),
-      // the main cables from the tower tops down to the deck's ends, and the hangers under them
-      ...[-1, 1].flatMap((s) => [-1.25, 1.25].map((z) => turn(cyl(0.08, 0.08, 12.4, ORANGE, s * 4.05, 9.3, z, 6), 0, 0, s * 0.406))),
-      ...[-1, 1].flatMap((s) => [-1.25, 1.25].flatMap((z) => [2.6, 3.6, 4.6, 5.6].map((x) => { const top = 15 - 2.33 * (x - 1.6); return cyl(0.03, 0.03, top - 3.6, ORANGE, s * x, (top + 3.6) / 2, z, 4); }))),
-    ],
-  },
   'sf-pyramid': { parts: [box(6, 1.2, 6, 0xd8dde4, 0, 0.6, 0), pyramid(5.2, 24, 5.2, 0xf4f4f0, 0, 13.2, 0), ...[-1, 1].map((s) => box(0.8, 5, 2.2, 0xf4f4f0, s * 1.4, 17, 0)), cone(0.2, 3, 0xd8dde4, 0, 26.6, 0, 6)] },
   'sf-coit': { parts: [sized(dome(6, 0x5aa64a, 0, 0, 0), 1, 0.35, 1), cyl(1.6, 1.8, 1.6, 0xe8e4da, 0, 2.6, 0), cyl(1.15, 1.25, 11, 0xf2efe6, 0, 8.8, 0, 16), ...many(8, (i) => box(0.3, 1.2, 0.1, 0x2a2a2a, Math.cos(i * 0.785) * 1.2, 13.0, Math.sin(i * 0.785) * 1.2)), cyl(1.3, 1.2, 0.6, 0xe8e4da, 0, 14.5, 0), ...tree(4.5, 0x3d8b3d).map((p) => grp([p], 3.6, 1.2, 1.2))] },
 };
@@ -151,6 +143,8 @@ export const themes: Record<'newyork' | 'vegas' | 'hollywood' | 'sanfrancisco', 
   sanfrancisco: {
     title: 'San Francisco', sky: [0xbcd7e8, 0xf1f4f6], puddle: 0x7fb2cf, clouds: true,
     ground: [{ fill: 0xb3b7bd }, { rect: [0, 0, 256, 3], c: 0x989ca2 }, { rect: [0, 128, 256, 3], c: 0x989ca2 }, ...[40, 88, 168, 216].map((x) => ({ rect: [x, 0, 5, 256] as R, c: 0x6d7178 })), { rect: [126, 0, 4, 256], c: 0x55585e }],
-    props: ['sf-cablecar', 'sf-lady', 'sf-lady', 'sf-hydrant', 'sf-sealion', 'sf-sourdough'], landmarks: ['sf-gate', 'sf-pyramid', 'sf-coit'],
+    props: ['sf-cablecar', 'sf-lady', 'sf-lady', 'sf-hydrant', 'sf-sealion', 'sf-sourdough'], landmarks: ['sf-pyramid', 'sf-coit'],
+    // the Golden Gate over the bay, the piers along the city's shore, the Marin Headlands rising on the far one
+    water: { color: 0x3f7fae, bank: 0xd8c8a0, width: [24, 44], bridge: 'suspension', rail: ORANGE, piers: true, hills: 0x8aa35a },
   },
 };

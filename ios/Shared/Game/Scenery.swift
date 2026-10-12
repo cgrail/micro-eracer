@@ -90,7 +90,9 @@ private func sign(_ text: String, _ w: Int, _ h: Int, _ size: CGFloat, _ fill: I
 }
 
 func buildTrackScene(_ track: Track) -> TrackScene {
-    let look = themeLook(track.def.theme), random = rng(track.def.id)
+    let look = themeLook(track.def.theme), random = rng(track.def.id), stage = stagingOf(track.def.id)
+    // the bridge over a theme's river: its walls are its railings, and it stands on its own piers instead of pillars
+    let onBridge = { (i: Int) -> Bool in stage?.bridge.map { i >= $0.from && i <= $0.to } ?? false }
     var cache: [String: SCNMaterial] = [:]
     let m: Mats = { hex, outlined in
         let key = "\(hex)-\(outlined)"
@@ -168,14 +170,15 @@ func buildTrackScene(_ track: Track) -> TrackScene {
 
     // a wall piece every metre, its edges rounded in one step: a Track walled all round stays light for phones
     for (i, wall) in track.walls.enumerated() {
-        let node = rbox(0.5, 1, wall.length + 0.06, 0.12, (i / 4) % 2 == 1 ? m(0xffffff, true) : m(0xff3b3b, true), wall.x, wall.y + 0.5, wall.z)
+        let rail = onBridge(wall.idx) ? stage?.bridge?.rail : nil
+        let node = rbox(0.5, 1, wall.length + 0.06, 0.12, m(rail ?? ((i / 4) % 2 == 1 ? 0xffffff : 0xff3b3b), true), wall.x, wall.y + 0.5, wall.z)
         (node.geometry as? SCNBox)?.chamferSegmentCount = 1
         setYawPitch(node, yaw: wall.yaw, pitch: wall.pitch)
         statics.addChildNode(node)
     }
     // pillars hold the road up, except where they would stand on the road under a bridge
     let overRoad = { (p: Sample) in track.samples.contains { $0.y < p.y - 1 && sq($0.x - p.x) + sq($0.z - p.z) < sq(HALF_WIDTH + 1) } }
-    for i in stride(from: 0, to: track.n, by: 12) where !overRoad(track.samples[i]) {
+    for i in stride(from: 0, to: track.n, by: 12) where !overRoad(track.samples[i]) && !onBridge(i) {
         let s = track.samples[i]
         statics.addChildNode(cyl(0.35, 0.5, s.y - look.groundY, m(0xb8c0cc, true), s.x, (s.y + look.groundY) / 2 - 0.3, s.z, 8))
     }
@@ -206,6 +209,8 @@ func buildTrackScene(_ track: Track) -> TrackScene {
         live.addChildNode(ripple(p.x, p.y + 0.05, p.z, p.r * 0.9, random(), &animated))
     }
 
+    // a data theme's river, its bridge and the rest, part by part, so the flat water is merged without outlines
+    for part in stage?.parts ?? [] { statics.addChildNode(stagingPart(part, m, glows)) }
     placeProps(track, look, m, glows, random, statics, live, &animated)
 
     // merged per material: far fewer draw calls (and outline passes) on phones
