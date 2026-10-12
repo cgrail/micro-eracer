@@ -1,7 +1,8 @@
 import SceneKit
 import SwiftUI
 
-// The start form of client/index.html and client/src/main.ts, with the garage's turntable (client/src/garage.ts).
+// The start form of client/index.html and client/src/main.ts, with the garage's turntable (client/src/garage.ts) and the
+// Track picker (TrackPick.swift).
 
 private let BODY_NAMES: [BodyKind: String] = [.roadster: "Roadster", .suv: "SUV", .microbus: "Microbus", .pickup: "Pickup", .semi: "Semi"]
 /// The stats the start form shows per Body. Ruggedness is the weight: it wins Rams and softens Hits.
@@ -20,70 +21,24 @@ struct StartView: View {
     private var bg: Color { scheme == .dark ? Color(hex: 0x2a2118) : Color(hex: 0xffe9c9) }
     private var paper: Color { scheme == .dark ? Color(hex: 0x2f2620) : Color(hex: 0xfffdf6) }
     private var ink: Color { scheme == .dark ? Color(hex: 0xfff6e6) : Color(hex: 0x1b1410) }
+    /// Any Track first, then every Track: what ◀ and ▶ step through.
+    private let trackIds = [""] + TRACKS.map(\.id)
+    /// The places, in the order their Tracks come, for the list of every Track.
+    private let places = TRACKS.map(\.theme).reduce(into: [Theme]()) { if !$0.contains($1) { $0.append($1) } }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Comic(text: "Micro E-Racer", size: 52, fill: Color(hex: 0xffd60a))
-                label("Nickname")
-                TextField("", text: $model.name)
-                    .font(.system(size: 18)).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
-                    // Return plays, as Enter submits the browsers' start form
-                    .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
-                    .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
-                    .padding(12).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
-                label("Body")
-                HStack(alignment: .center, spacing: 10) {
-                    TurntableView(garage: garage).frame(height: 130).frame(maxWidth: .infinity)
-                    VStack(alignment: .leading, spacing: 3) {
-                        ForEach(STATS, id: \.0) { stat in
-                            Text(stat.0).font(.system(size: 12, weight: .semibold))
-                            GeometryReader { g in
-                                Capsule().fill(Color(hex: 0x2f9bff)).frame(width: g.size.width * bar(stat.1, model.body)).animation(.easeOut(duration: 0.3), value: model.body)
-                            }
-                            .frame(height: 10).overlay(Capsule().strokeBorder(ink, lineWidth: 2)).clipShape(Capsule())
-                        }
-                    }
-                    .frame(width: 130)
-                }
-                HStack {
-                    stepper("◀\u{FE0E}", label: "Previous Body") { step(-1) }
-                    Text(BODY_NAMES[model.body]!).font(.custom("Bangers-Regular", size: 26)).frame(maxWidth: .infinity)
-                    stepper("▶\u{FE0E}", label: "Next Body") { step(1) }
-                }
-                // a Group, as a view builder takes at most ten views
-                Group {
-                    label("Steering")
-                    HStack(spacing: 8) {
-                        pick(model.steering == .slider, "Slider", "drag left or right") { model.steering = .slider }
-                        pick(model.steering == .buttons, "Buttons", "hold left or right") { model.steering = .buttons }
-                    }
-                    label("Pad")
-                    HStack(spacing: 8) {
-                        pick(model.side == .left, "Left", "for the left thumb") { model.side = .left }
-                        pick(model.side == .right, "Right", "for the right thumb") { model.side = .right }
-                    }
-                }
-                Button { Task { await model.play() } } label: {
-                    Text("Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 10)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
-                        .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))
-                }
-                .disabled(model.joining || model.name.trimmingCharacters(in: .whitespaces).isEmpty)
-                .opacity(model.joining ? 0.6 : 1)
-                Text(model.error).foregroundColor(Color(hex: 0xe5383b)).font(.system(size: 16, weight: .semibold)).frame(minHeight: 22)
-            }
-            .foregroundColor(ink)
-            .padding(24)
-            .background(RoundedRectangle(cornerRadius: 18).fill(paper))
-            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(ink, lineWidth: 4))
-            .background(RoundedRectangle(cornerRadius: 18).fill(ink).offset(x: 8, y: 8))
-            .rotationEffect(.degrees(-1))
-            .frame(maxWidth: 420)
-            .padding(.horizontal, 16).padding(.vertical, 24)
-            .frame(maxWidth: .infinity)
+        // the whole form on one screen, never scrolled (as in the browser): two columns side by side lying down, one standing
+        // up, and the pictures take the height that is left
+        GeometryReader { geo in
+            let wide = geo.size.width > geo.size.height && geo.size.width >= 600
+            let pic = CGFloat(clamp(Double(wide ? geo.size.height - 290 : (geo.size.height - 460) / 2), 64, 130))
+            card(wide: wide, pic: pic)
+                .frame(maxWidth: wide ? 800 : 420)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // the keyboard covers the bottom while the name is typed, rather than squashing the form
+        .ignoresSafeArea(.keyboard)
         .background(bg.ignoresSafeArea())
         .onAppear { garage.show(model.body, whirl: false) }
         #if DEBUG
@@ -93,28 +48,161 @@ struct StartView: View {
         .onChange(of: model.body) { garage.show($0, whirl: true) }
     }
 
+    private func card(wide: Bool, pic: CGFloat) -> some View {
+        Group {
+            if wide {
+                HStack(alignment: .top, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic) }
+                    VStack(alignment: .leading, spacing: 8) { trackPick(pic); options; playButton }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic); trackPick(pic); options; playButton }
+            }
+        }
+        .foregroundColor(ink)
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 18).fill(paper))
+        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(ink, lineWidth: 4))
+        .background(RoundedRectangle(cornerRadius: 18).fill(ink).offset(x: 8, y: 8))
+        .rotationEffect(.degrees(-1))
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Comic(text: "Micro E-Racer", size: 40, fill: Color(hex: 0xffd60a))
+            HStack(spacing: 10) {
+                label("Nickname")
+                TextField("", text: $model.name)
+                    .font(.system(size: 18)).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
+                    // Return plays, as Enter submits the browsers' start form
+                    .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
+                    .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
+                    .padding(.horizontal, 12).padding(.vertical, 8).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
+            }
+        }
+    }
+
+    private func bodyPick(_ pic: CGFloat) -> some View {
+        VStack(spacing: 6) {
+            HStack(alignment: .center, spacing: 10) {
+                TurntableView(garage: garage).frame(height: pic).frame(maxWidth: .infinity)
+                    .overlay(alignment: .topLeading) { label("Body") }
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(STATS, id: \.0) { stat in
+                        HStack(spacing: 6) {
+                            Text(stat.0).font(.system(size: 11, weight: .semibold)).lineLimit(1).frame(width: 74, alignment: .leading)
+                            GeometryReader { g in
+                                Capsule().fill(Color(hex: 0x2f9bff)).frame(width: g.size.width * bar(stat.1, model.body)).animation(.easeOut(duration: 0.3), value: model.body)
+                            }
+                            .frame(height: 9).overlay(Capsule().strokeBorder(ink, lineWidth: 2)).clipShape(Capsule())
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            HStack {
+                stepper("◀\u{FE0E}", label: "Previous Body") { step(-1) }
+                Text(BODY_NAMES[model.body]!).font(.custom("Bangers-Regular", size: 24)).frame(maxWidth: .infinity)
+                stepper("▶\u{FE0E}", label: "Next Body") { step(1) }
+            }
+        }
+    }
+
+    private func trackPick(_ pic: CGFloat) -> some View {
+        let def = TRACKS.first { $0.id == model.track }
+        return VStack(spacing: 6) {
+            HStack(alignment: .center, spacing: 10) {
+                TrackMap(def: def).frame(height: pic).frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
+                    .overlay(alignment: .topLeading) { Comic(text: "Track", size: 17).padding(.leading, 8).padding(.top, 4) }
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(def.map { themeLook($0.theme).title } ?? "Any Track").font(.custom("Bangers-Regular", size: 21))
+                    ForEach(trackFacts(def), id: \.self) { Text($0).font(.system(size: 12)) }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack {
+                RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink) { stepTrack(-1) }
+                // the name lists every Track, by place
+                Menu {
+                    Button("Any Track") { model.track = "" }
+                    ForEach(places, id: \.self) { place in
+                        Section(header: Text(themeLook(place).title)) {
+                            ForEach(TRACKS.filter { $0.theme == place }, id: \.id) { t in Button(t.name) { model.track = t.id } }
+                        }
+                    }
+                } label: {
+                    Text(def?.name ?? "Any Track").font(.custom("Bangers-Regular", size: 24)).lineLimit(1).minimumScaleFactor(0.6)
+                        .foregroundColor(ink).frame(maxWidth: .infinity).padding(.vertical, 4)
+                        .overlay(alignment: .bottom) { Rectangle().fill(ink.opacity(0.5)).frame(height: 2) }
+                }
+                .accessibilityLabel("Track")
+                .accessibilityValue(def?.name ?? "Any Track")
+                RepeatStepper(arrow: "▶\u{FE0E}", label: "Next Track", ink: ink) { stepTrack(1) }
+            }
+        }
+    }
+
+    private var options: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                label("Steering")
+                HStack(spacing: 6) {
+                    pick(model.steering == .slider, "Slider", "drag left or right") { model.steering = .slider }
+                    pick(model.steering == .buttons, "Buttons", "hold left or right") { model.steering = .buttons }
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                label("Pad")
+                HStack(spacing: 6) {
+                    pick(model.side == .left, "Left", "for the left thumb") { model.side = .left }
+                    pick(model.side == .right, "Right", "for the right thumb") { model.side = .right }
+                }
+            }
+        }
+    }
+
+    private var playButton: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button { Task { await model.play() } } label: {
+                Text("Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))
+            }
+            .disabled(model.joining || model.name.trimmingCharacters(in: .whitespaces).isEmpty)
+            .opacity(model.joining ? 0.6 : 1)
+            if !model.error.isEmpty { Text(model.error).foregroundColor(Color(hex: 0xe5383b)).font(.system(size: 16, weight: .semibold)) }
+        }
+    }
+
     private func step(_ by: Int) {
         let all = BODY_KINDS, i = all.firstIndex(of: model.body)!
         model.body = all[(i + by + all.count) % all.count]
     }
 
-    private func label(_ text: String) -> some View { Text(text).font(.custom("Bangers-Regular", size: 20)).kerning(0.5) }
+    private func stepTrack(_ by: Int) {
+        let i = trackIds.firstIndex(of: model.track) ?? 0
+        model.track = trackIds[(i + by + trackIds.count) % trackIds.count]
+    }
+
+    private func label(_ text: String) -> some View { Text(text).font(.custom("Bangers-Regular", size: 18)).kerning(0.5) }
 
     private func stepper(_ arrow: String, label: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) { Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44).overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3)) }
             .accessibilityLabel(label)
     }
 
+    /// One of two choices; the hint is for VoiceOver, as the browsers keep it in a tooltip.
     private func pick(_ on: Bool, _ title: String, _ hint: String, _ choose: @escaping () -> Void) -> some View {
         Button(action: choose) {
-            VStack(spacing: 0) {
-                Text(title).font(.custom("Bangers-Regular", size: 19))
-                Text(hint).font(.system(size: 12))
-            }
-            .foregroundColor(on ? .white : ink).frame(maxWidth: .infinity).padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 12).fill(on ? Color(hex: 0x2f9bff) : .clear))
-            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
+            Text(title).font(.custom("Bangers-Regular", size: 18))
+                .foregroundColor(on ? .white : ink).frame(maxWidth: .infinity, minHeight: 44)
+                .background(RoundedRectangle(cornerRadius: 12).fill(on ? Color(hex: 0x2f9bff) : .clear))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
         }
+        .accessibilityHint(hint)
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 }

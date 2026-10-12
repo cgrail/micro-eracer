@@ -4,10 +4,12 @@ import Foundation
 /// (client/src/offline.ts).
 final class OfflineRace: RaceLink {
     let sessionId = "offline"
-    private let sim = RaceSim()
+    private let sim: RaceSim
     private var acc = 0.0
 
-    init(name: String, body: BodyKind) {
+    /// `track`: one Track again and again, or nil for a different one each Race.
+    init(name: String, body: BodyKind, track: String? = nil) {
+        sim = track.map { RaceSim(trackId: $0, pool: [$0]) } ?? RaceSim()
         sim.join(sessionId, String(name.prefix(16)).isEmpty ? "Player" : String(name.prefix(16)), body)
     }
 

@@ -2,8 +2,58 @@ import { bathtub } from './tracks/bathtub.ts';
 import { desk } from './tracks/desk.ts';
 import { garden } from './tracks/garden.ts';
 import { kitchen } from './tracks/kitchen.ts';
+import { googleBallpit } from './tracks/google-ballpit.ts';
+import { googleSlide } from './tracks/google-slide.ts';
+import { googleJump } from './tracks/google-jump.ts';
+import { sapRing } from './tracks/sap-ring.ts';
+import { sapCorridor } from './tracks/sap-corridor.ts';
+import { facebookLane } from './tracks/facebook-lane.ts';
+import { facebookHacker } from './tracks/facebook-hacker.ts';
+import { anthropicBridge } from './tracks/anthropic-bridge.ts';
+import { anthropicReading } from './tracks/anthropic-reading.ts';
+import { lanCables } from './tracks/lan-cables.ts';
+import { lanRespawn } from './tracks/lan-respawn.ts';
+import { golfFairway } from './tracks/golf-fairway.ts';
+import { golfBunker } from './tracks/golf-bunker.ts';
+import { soccerTouchline } from './tracks/soccer-touchline.ts';
+import { soccerLongball } from './tracks/soccer-longball.ts';
+import { londonPiccadilly } from './tracks/london-piccadilly.ts';
+import { londonTowerbridge } from './tracks/london-towerbridge.ts';
+import { londonBigben } from './tracks/london-bigben.ts';
+import { newyorkBroadway } from './tracks/newyork-broadway.ts';
+import { newyorkBrooklyn } from './tracks/newyork-brooklyn.ts';
+import { newyorkTimessquare } from './tracks/newyork-timessquare.ts';
+import { parisChamps } from './tracks/paris-champs.ts';
+import { parisSeine } from './tracks/paris-seine.ts';
+import { parisEiffel } from './tracks/paris-eiffel.ts';
+import { vegasStrip } from './tracks/vegas-strip.ts';
+import { vegasJackpot } from './tracks/vegas-jackpot.ts';
+import { vegasHighroller } from './tracks/vegas-highroller.ts';
+import { berlinDoner } from './tracks/berlin-doner.ts';
+import { berlinKreuzberg } from './tracks/berlin-kreuzberg.ts';
+import { berlinSpaeti } from './tracks/berlin-spaeti.ts';
+import { heidelbergOldbridge } from './tracks/heidelberg-oldbridge.ts';
+import { heidelbergCastle } from './tracks/heidelberg-castle.ts';
+import { heidelbergHauptstrasse } from './tracks/heidelberg-hauptstrasse.ts';
+import { heidelbergPhilosophers } from './tracks/heidelberg-philosophers.ts';
+import { indiaCurry } from './tracks/india-curry.ts';
+import { indiaThali } from './tracks/india-thali.ts';
+import { indiaChai } from './tracks/india-chai.ts';
+import { hollywoodMulholland } from './tracks/hollywood-mulholland.ts';
+import { hollywoodStunt } from './tracks/hollywood-stunt.ts';
+import { sanfranciscoLombard } from './tracks/sanfrancisco-lombard.ts';
+import { sanfranciscoNobhill } from './tracks/sanfrancisco-nobhill.ts';
+import { sanfranciscoGoldengate } from './tracks/sanfrancisco-goldengate.ts';
+import { zuzenhausenTraining } from './tracks/zuzenhausen-training.ts';
+import { zuzenhausenElsenz } from './tracks/zuzenhausen-elsenz.ts';
+import { sinsheimMuseum } from './tracks/sinsheim-museum.ts';
+import { sinsheimConcorde } from './tracks/sinsheim-concorde.ts';
 
-export type Theme = 'kitchen' | 'garden' | 'desk' | 'bathtub';
+/** Sets the scenery around a Track: the first four are at home, the rest around the world. */
+export type Theme =
+  | 'kitchen' | 'garden' | 'desk' | 'bathtub'
+  | 'google' | 'sap' | 'facebook' | 'anthropic' | 'lan' | 'golf' | 'soccer' | 'london' | 'newyork' | 'paris' | 'vegas' | 'berlin'
+  | 'heidelberg' | 'india' | 'hollywood' | 'sanfrancisco' | 'zuzenhausen' | 'sinsheim';
 
 /** A Track as authored: pieces laid like a turtle walk on a grid of TILE-sized tiles. */
 export interface TrackDef {
@@ -46,7 +96,19 @@ export interface Track {
   itemBoxes: (Pose & { idx: number })[];
 }
 
-export const TRACKS: TrackDef[] = [kitchen, garden, desk, bathtub];
+/** Every Track, in the order the start screen offers them: the first four at home, then the world. */
+export const TRACKS: TrackDef[] = [
+  kitchen, garden, desk, bathtub,
+  googleBallpit, googleSlide, googleJump, sapRing, sapCorridor, facebookLane, facebookHacker, anthropicBridge, anthropicReading,
+  lanCables, lanRespawn, golfFairway, golfBunker, soccerTouchline, soccerLongball, londonPiccadilly, londonTowerbridge,
+  londonBigben, newyorkBroadway, newyorkBrooklyn, newyorkTimessquare, parisChamps, parisSeine, parisEiffel, vegasStrip,
+  vegasJackpot, vegasHighroller, berlinDoner, berlinKreuzberg, berlinSpaeti, heidelbergOldbridge, heidelbergCastle,
+  heidelbergHauptstrasse, heidelbergPhilosophers, indiaCurry, indiaThali, indiaChai, hollywoodMulholland, hollywoodStunt,
+  sanfranciscoLombard, sanfranciscoNobhill, sanfranciscoGoldengate, zuzenhausenTraining, zuzenhausenElsenz, sinsheimMuseum,
+  sinsheimConcorde,
+];
+/** The Tracks apps from before the Track picker know: their `race` room only ever races these. */
+export const CLASSIC_TRACKS = ['kitchen', 'garden', 'desk', 'bathtub'];
 export const TILE = 16;
 export const HALF_WIDTH = 4.5;
 /** Below the road under it by this much, an E-Car has fallen off (also off a bridge onto the road below). */

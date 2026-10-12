@@ -8,6 +8,8 @@ import SwiftUI
 final class AppModel: ObservableObject {
     @Published var name: String
     @Published var body: BodyKind
+    /// The picked Track's id, or "" for any Track.
+    @Published var track: String
     @Published var steering: Steering
     @Published var side: PadSide
     @Published var muted: Bool { didSet { sound.setMuted(muted); save("muted", muted ? "1" : "0") } }
@@ -31,6 +33,8 @@ final class AppModel: ObservableObject {
         let d = UserDefaults.standard
         name = d.string(forKey: "name") ?? ""
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
+        let picked = d.string(forKey: "track") ?? ""
+        track = TRACKS.contains { $0.id == picked } ? picked : ""
         steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .buttons
         side = PadSide(rawValue: d.string(forKey: "side") ?? "") ?? .left
         muted = d.string(forKey: "muted") == "1"
@@ -42,14 +46,14 @@ final class AppModel: ObservableObject {
 
     func play() async {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
-        save("name", name); save("body", body.rawValue); save("steer", steering.rawValue); save("side", side.rawValue)
+        save("name", name); save("body", body.rawValue); save("track", track); save("steer", steering.rawValue); save("side", side.rawValue)
         error = ""
         joining = true
         defer { joining = false }
         var link: RaceLink? = await join(name)
         let offline = link == nil
         // no server to be reached: race the Bots right here
-        if link == nil { link = OfflineRace(name: name, body: body) }
+        if link == nil { link = OfflineRace(name: name, body: body, track: track.isEmpty ? nil : track) }
         game = Game(link: link!, controls: controls, sound: sound, offline: offline, publish: { [weak self] in self?.hud = $0 }, left: { [weak self] in
             self?.game = nil
             self?.error = "Connection lost."
@@ -59,11 +63,11 @@ final class AppModel: ObservableObject {
 
     /// The online Race, or nil once `joinTimeout` has passed without one (a late one is left again).
     private func join(_ name: String) async -> OnlineRace? {
-        let endpoint = self.endpoint, body = self.body, timeout = joinTimeout
+        let endpoint = self.endpoint, body = self.body, track = self.track, timeout = joinTimeout
         var settled = false
         return await withCheckedContinuation { (done: CheckedContinuation<OnlineRace?, Never>) in
             Task { @MainActor in
-                let race = try? await OnlineRace.join(endpoint: endpoint, name: name, body: body)
+                let race = try? await OnlineRace.join(endpoint: endpoint, name: name, body: body, track: track)
                 if settled { race?.leave(); return }
                 settled = true
                 done.resume(returning: race)

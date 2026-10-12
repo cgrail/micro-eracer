@@ -1,7 +1,8 @@
 import SceneKit
 import UIKit
 
-// The themes and their props, from client/src/scene.ts.
+// The first four themes and their props, from client/src/props.ts (the rest are data: ThemeData.swift), and how scene.ts
+// places the props and landmarks of any theme round a Track (`placeProps`).
 
 /// Small deterministic random (scene.ts `rng`), so every device decorates a Track the same way.
 func rng(_ seed: String) -> () -> Double {
@@ -99,6 +100,12 @@ struct ThemeLook {
     let puddle: Int
     let props: [String]
     var water = false
+    /// The place, as the start screen names it.
+    var title = ""
+    /// Big props, each once, in a free tile of its own beside the road (ThemeData.swift).
+    var landmarks: [String] = []
+    /// Comic clouds far away.
+    var clouds = false
 }
 
 private func rect(_ g: CGContext, _ hex: Int, _ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) { g.setFillColor(color(hex).cgColor); g.fill(CGRect(x: x, y: y, width: w, height: h)) }
@@ -117,17 +124,17 @@ let THEMES: [Theme: ThemeLook] = [
                 g.strokePath()
             }
         }
-    } }, puddle: 0x9fdcff, props: ["plate", "mug", "toaster", "apple", "cheese"]),
+    } }, puddle: 0x9fdcff, props: ["plate", "mug", "toaster", "apple", "cheese"], title: "Kitchen"),
     .garden: ThemeLook(sky: (0x4fb3ff, 0xc9ecff), groundY: -3, ground: { picture(256, 256) { g in
         rect(g, 0x6cc04a, 0, 0, 256, 256)
         rect(g, 0x7cd058, 0, 0, 128, 256)
         for i in 0..<90 { let x = CGFloat((i * 97) % 256), y = CGFloat((i * 57) % 256); rect(g, 0x4f9e35, x, y, 3, 8); rect(g, 0x4f9e35, x + 4, y + 2, 3, 6) }
-    } }, puddle: 0x5fb0de, props: ["flower", "flower", "bush", "stone", "mushroom", "gnome", "pond"]),
+    } }, puddle: 0x5fb0de, props: ["flower", "flower", "bush", "stone", "mushroom", "gnome", "pond"], title: "Garden", clouds: true),
     .desk: ThemeLook(sky: (0xe8eef5, 0xc3cfdc), groundY: -3, ground: { picture(256, 256) { g in
         rect(g, 0xeee6d8, 0, 0, 256, 256)
         g.setStrokeColor(color(0xddd2c0).cgColor); g.setLineWidth(2)
         for y in stride(from: 8, to: 256, by: 22) { g.move(to: CGPoint(x: 0, y: y)); g.addLine(to: CGPoint(x: 256, y: y + 6)); g.strokePath() }
-    } }, puddle: 0x6b3e26, props: ["pencil", "books", "cup", "note", "note", "eraser"]),
+    } }, puddle: 0x6b3e26, props: ["pencil", "books", "cup", "note", "note", "eraser"], title: "Office Desk"),
     .bathtub: ThemeLook(sky: (0xd9f3fb, 0xa9dcec), groundY: -2.3, ground: { picture(256, 256) { g in
         rect(g, 0x5cc6ef, 0, 0, 256, 256)
         g.setStrokeColor(color(0xa8e6ff).cgColor); g.setLineWidth(5); g.setLineCap(.round)
@@ -135,5 +142,97 @@ let THEMES: [Theme: ThemeLook] = [
             let x = CGFloat((i * 71) % 256), y = CGFloat((i * 113) % 256)
             g.move(to: CGPoint(x: x, y: y)); g.addQuadCurve(to: CGPoint(x: x + 28, y: y), control: CGPoint(x: x + 14, y: y - 8)); g.strokePath()
         }
-    } }, puddle: 0xd8f4ff, props: ["duck", "foam", "foam", "soap"], water: true),
+    } }, puddle: 0xd8f4ff, props: ["duck", "foam", "foam", "soap"], water: true, title: "Bathtub"),
 ]
+
+/// Scenery in the tiles the road does not use: every prop stays inside its tile, clear of the road, the next tile's props
+/// and the other prop in its tile.
+func placeProps(_ track: Track, _ look: ThemeLook, _ m: @escaping Mats, _ glows: @escaping Glows, _ random: @escaping () -> Double, _ statics: SCNNode, _ live: SCNNode, _ animated: inout [(Double) -> Void]) {
+    let key = { (x: Double, z: Double) in "\(Int(x.rounded())),\(Int(z.rounded()))" }
+    var used = Set(track.tiles.map { key($0.x, $0.z) })
+    let tx = track.tiles.map(\.x), tz = track.tiles.map(\.z)
+    var footprints: [String: Double] = [:]
+    let footprint = { (kind: String) -> Double in
+        if let f = footprints[kind] { return f }
+        // any way it's turned, the prop fits in this circle (a data prop knows it)
+        if let f = reachOf(kind) { footprints[kind] = f; return f }
+        let (lo, hi) = makeProp(kind, m, glows, rng(kind)).boundingBox
+        let f = [lo.x, hi.x].flatMap { bx in [lo.z, hi.z].map { bz in Double(hypot(bx, bz)) } }.max()!
+        footprints[kind] = f
+        return f
+    }
+    // landmarks first: each in a free tile of its own beside the road, turned to face it (scene.ts does the same)
+    let road = used
+    let facing = { (x: Double, z: Double) in [(TILE, 0.0), (-TILE, 0), (0, TILE), (0, -TILE)].first { road.contains(key(x + $0.0, z + $0.1)) } }
+    var spots: [(x: Double, z: Double)] = []
+    if !look.landmarks.isEmpty {
+        for x in stride(from: tx.min()! - 2 * TILE, through: tx.max()! + 2 * TILE, by: TILE) {
+            for z in stride(from: tz.min()! - 2 * TILE, through: tz.max()! + 2 * TILE, by: TILE) where !road.contains(key(x, z)) && facing(x, z) != nil { spots.append((x, z)) }
+        }
+    }
+    for kind in look.landmarks {
+        if spots.isEmpty { break }
+        let spot = spots.remove(at: Int(random() * Double(spots.count))), toward = facing(spot.x, spot.z)!
+        let prop = group(makeProp(kind, m, glows, random))
+        prop.position = SCNVector3(spot.x, look.groundY, spot.z)
+        prop.eulerAngles.y = Float(atan2(toward.0, toward.1))
+        statics.addChildNode(prop)
+        used.insert(key(spot.x, spot.z))
+    }
+    var ponds = 0
+    for x in stride(from: tx.min()! - 2 * TILE, through: tx.max()! + 2 * TILE, by: TILE) {
+        for z in stride(from: tz.min()! - 2 * TILE, through: tz.max()! + 2 * TILE, by: TILE) {
+            if used.contains(key(x, z)) { continue }
+            let count = random() < 0.8 ? 1 + Int(random() * 2) : 0
+            var placed: [(x: Double, z: Double, r: Double)] = []
+            for _ in 0..<count {
+                var kind = look.props[Int(random() * Double(look.props.count))]
+                // a pond takes a whole tile to itself
+                if kind == "pond" && (ponds >= 2 || !placed.isEmpty) { kind = "flower" }
+                if kind == "pond" { ponds += 1 }
+                let r = kind == "pond" ? 0 : footprint(kind), room = max(0, TILE / 2 - 0.5 - r)
+                var px = x, pz = z, fits = false, tries = 0
+                while tries < 6 && !fits {
+                    px = x + (random() * 2 - 1) * room
+                    pz = z + (random() * 2 - 1) * room
+                    fits = placed.allSatisfy { hypot($0.x - px, $0.z - pz) > $0.r + r + 0.5 }
+                    tries += 1
+                }
+                if !fits { continue }
+                placed.append((px, pz, r))
+                if kind == "pond" {
+                    live.addChildNode(disc(5.5, toon(0x4fb3e8, outline: false), x, look.groundY + 0.05, z))
+                    live.addChildNode(ripple(x, look.groundY + 0.08, z, 5, random(), &animated))
+                    for a in 0..<12 {
+                        let stone = PROPS["stone"]!(m, random)
+                        stone.position = SCNVector3(x + cos(Double(a) / 1.9) * 5.6, look.groundY, z + sin(Double(a) / 1.9) * 5.6)
+                        statics.addChildNode(stone)
+                    }
+                    break
+                }
+                let prop = group(makeProp(kind, m, glows, random))
+                prop.position = SCNVector3(px, look.groundY, pz)
+                prop.eulerAngles.y = Float(random() * .pi * 2)
+                if kind == "duck" {
+                    // ducks float, so they stay out of the merge to bob on the bath water
+                    let phase = random() * 6
+                    animated.append { t in prop.position.y = Float(look.groundY + sin(t * 2 + phase) * 0.25); prop.eulerAngles.z = Float(sin(t * 1.6 + phase) * 0.08) }
+                    outline(prop, thick: true)
+                    live.addChildNode(prop)
+                } else { statics.addChildNode(prop) }
+            }
+            if look.water && random() < 0.3 { live.addChildNode(ripple(x, look.groundY + 0.05, z, 4, random(), &animated)) }
+        }
+    }
+    if look.clouds {
+        // a few comic clouds far away
+        let xs = track.samples.map(\.x), zs = track.samples.map(\.z), cx = (xs.min()! + xs.max()!) / 2, cz = (zs.min()! + zs.max()!) / 2
+        for i in 0..<8 {
+            let a = Double(i) / 8 * .pi * 2, d = 170 + random() * 40
+            let cloud = group(sph(8, m(0xffffff, true)), sph(6, m(0xffffff, true), 8, -1, 0), sph(6, m(0xffffff, true), -8, -1.5, 0), sph(5, m(0xffffff, true), 3, 4, 0))
+            cloud.position = SCNVector3(cx + cos(a) * d, 45 + random() * 20, cz + sin(a) * d)
+            cloud.look(at: SCNVector3(cx, Double(cloud.position.y), cz), up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
+            statics.addChildNode(cloud)
+        }
+    }
+}

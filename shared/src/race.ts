@@ -108,13 +108,17 @@ export class RaceSim {
   /** Per pair of Seats, when they can next Ram each other (`contact.ts`). */
   ramCooldown = new Map<number, number>();
 
-  constructor(trackId?: string) {
+  /** The Tracks the next Races are picked from, a different one each time while there is more than one. */
+  pool: string[];
+
+  constructor(trackId?: string, pool = TRACKS.map((t) => t.id)) {
+    this.pool = pool;
     this.newRace(FIRST_GRID_TIME, trackId);
   }
 
   newRace(gridTime: number, trackId?: string) {
-    const others = TRACKS.filter((t) => t.id !== this.track?.def.id);
-    const def = TRACKS.find((t) => t.id === trackId) ?? (others.length ? others[Math.floor(Math.random() * others.length)] : TRACKS[0]);
+    const pool = TRACKS.filter((t) => this.pool.includes(t.id)), others = pool.filter((t) => t.id !== this.track?.def.id);
+    const def = TRACKS.find((t) => t.id === trackId) ?? (others.length ? others[Math.floor(Math.random() * others.length)] : pool[0] ?? TRACKS[0]);
     this.track = buildTrack(def);
     this.world = createTrackWorld(this.track);
     this.combat = new Combat(this);

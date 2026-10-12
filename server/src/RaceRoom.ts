@@ -3,6 +3,7 @@ import { schema, t, type SchemaType } from '@colyseus/schema';
 import { BODY_KINDS, DT, type BodyKind } from '../../shared/src/car.ts';
 import { type PoseReport, RaceSim, SEATS } from '../../shared/src/race.ts';
 import { seatState } from '../../shared/src/snapshot.ts';
+import { CLASSIC_TRACKS, TRACKS } from '../../shared/src/track.ts';
 
 const CarState = schema({
   name: t.string(), body: t.string(), owner: t.string(),
@@ -32,10 +33,14 @@ const isPose = (m: any): m is PoseReport =>
 export class RaceRoom extends Room<{ state: RaceState }> {
   maxClients = SEATS;
   maxMessagesPerSecond = 80;
-  // TRACK=garden picks the first Race's Track, handy while working on one
-  private sim = new RaceSim(process.env.TRACK);
+  private sim!: RaceSim;
 
-  onCreate() {
+  /** `track`: the one Track a Player picked, raced again and again; `classic`: only the Tracks apps from before the picker know. */
+  onCreate(options: { track?: unknown; classic?: boolean }) {
+    const picked = TRACKS.find((t) => t.id === options?.track)?.id;
+    const pool = picked ? [picked] : options?.classic ? CLASSIC_TRACKS : TRACKS.map((t) => t.id);
+    // TRACK=garden picks the first Race's Track, handy while working on one
+    this.sim = new RaceSim(picked ?? (pool.includes(process.env.TRACK ?? '') ? process.env.TRACK : undefined), pool);
     // DRAIN_SCALE=10 makes batteries run dry fast, for trying out Stranded and the Recharge
     this.sim.drainScale = Number(process.env.DRAIN_SCALE) || 1;
     // 30 updates a second (the default is 20), so the other E-Cars need less guessing between them

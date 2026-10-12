@@ -18,6 +18,7 @@ import { shove } from '../../shared/src/contact.ts';
 import { Particles } from './effects.ts';
 import { type Hud, ITEM_ICONS, createHud, itemLabel } from './hud.ts';
 import type { Controls } from './input.ts';
+import { themeOf } from './props.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
@@ -78,8 +79,9 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     own = undefined;
     if (look) { scene.remove(look.group); dispose(look.group); look.background.dispose(); }
     track = buildTrack(TRACKS.find((t) => t.id === id) ?? TRACKS[0]);
-    // every Track has its own song
+    // every Track has its own song, and its name goes up while the grid counts down
     sound.music(TRACKS.indexOf(track.def));
+    ui.announce(`${track.def.name}, ${themeOf(track.def.theme).title}`);
     world = createTrackWorld(track);
     look = buildTrackScene(track);
     scene.add(look.group);

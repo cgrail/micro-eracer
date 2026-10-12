@@ -11,7 +11,12 @@ import { RaceRoom } from './RaceRoom.ts';
 const dist = fileURLToPath(new URL('../../client/dist', import.meta.url));
 
 const server = defineServer({
-  rooms: { race: defineRoom(RaceRoom) },
+  rooms: {
+    // apps from before the Track picker join `race`, so it keeps to the Tracks they know
+    race: defineRoom(RaceRoom, { classic: true }),
+    // a picked Track (`track`) joins a Race on that Track; any Track joins the fullest Race there is, whatever it races
+    race2: defineRoom(RaceRoom).filterBy(['track']).sortBy({ clients: -1 }),
+  },
   transport: new WebSocketTransport(),
   greet: false,
   // in development Vite serves the browser app; in production this one process does both

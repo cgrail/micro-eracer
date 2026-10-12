@@ -1,142 +1,12 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { type Theme, type Track, BAY_WIDTH, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
+import { type Track, BAY_WIDTH, HALF_WIDTH, TILE, right } from '../../shared/src/track.ts';
+import { type Mats, makeProp, reachOf, themeOf } from './props.ts';
+import { GRADIENT, canvasTexture, cyl, group, mesh, rbox, rng, sph, toon } from './toon.ts';
+
 
 export const SEAT_COLORS = [0xff4d4d, 0x2f9bff, 0xffa62b, 0x1fd1b2, 0xa66cff, 0xffd60a, 0x5ad45a, 0xff6fb5];
-
-// three flat tones: the cel-shaded comic look
-const GRADIENT = new THREE.DataTexture(new Uint8Array([120, 195, 255]), 3, 1, THREE.RedFormat);
-GRADIENT.minFilter = GRADIENT.magFilter = THREE.NearestFilter;
-GRADIENT.needsUpdate = true;
-
-export function toon(color: number, { outline = true, map, opacity }: { outline?: boolean; map?: THREE.Texture; opacity?: number } = {}) {
-  const m = new THREE.MeshToonMaterial({ color, gradientMap: GRADIENT, map: map ?? null, transparent: opacity !== undefined, opacity: opacity ?? 1 });
-  if (!outline) m.userData.outlineParameters = { visible: false };
-  if (opacity !== undefined) m.depthWrite = false;
-  return m;
-}
-
-export const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => {
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  return m;
-};
-export const rbox = (w: number, h: number, d: number, r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new RoundedBoxGeometry(w, h, d, 2, r), mat, x, y, z);
-export const cyl = (rt: number, rb: number, h: number, mat: THREE.Material, x = 0, y = 0, z = 0, seg = 16) => mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat, x, y, z);
-export const sph = (r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new THREE.SphereGeometry(r, 16, 12), mat, x, y, z);
-export const group = (...children: THREE.Object3D[]) => new THREE.Group().add(...children);
-
-function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, repeat = 1) {
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  draw(c.getContext('2d')!);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(repeat, repeat);
-  return tex;
-}
-
-/** Small deterministic random, so every browser decorates a Track the same way. */
-function rng(seed: string) {
-  let h = 2166136261;
-  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909);
-    return ((h ^= h >>> 16) >>> 0) / 4294967296;
-  };
-}
-
-type Mats = (color: number, outline?: boolean) => THREE.MeshToonMaterial;
-type PropMaker = (m: Mats, r: () => number) => THREE.Object3D;
-
-const PROPS: Record<string, PropMaker> = {
-  plate: (m, r) => group(cyl(6, 5, 0.5, m(0xffffff)), sph(1.6, m([0xff5a3c, 0x7ac943, 0xffc93c][Math.floor(r() * 3)]), 1.5, 0.6, -1)),
-  mug: (m) => { const handle = mesh(new THREE.TorusGeometry(1.3, 0.35, 8, 16), m(0x3a86ff), 3.1, 1.6, 0); return group(cyl(3, 3, 3.6, m(0x3a86ff), 0, 1.8), cyl(2.7, 2.7, 0.1, m(0x6b3e26, false), 0, 3.5), handle); },
-  toaster: (m) => group(rbox(9, 5, 5, 1, m(0xd9dde3), 0, 2.5), rbox(6, 0.3, 1, 0.1, m(0x333333), 0, 5, -1), rbox(6, 0.3, 1, 0.1, m(0x333333), 0, 5, 1), rbox(0.5, 1.5, 0.8, 0.2, m(0x222222), 4.6, 3, 0)),
-  apple: (m) => group(sph(2.4, m(0xe63946), 0, 2.2), cyl(0.15, 0.15, 1, m(0x6b3e26), 0, 4.8), sph(0.6, m(0x5ad45a), 0.6, 4.7)),
-  cheese: (m) => { const w = cyl(4, 4, 2.5, m(0xffd166), 0, 1.25, 0, 3); w.rotation.y = 0.4; return w; },
-  flower: (m, r) => {
-    const petal = m([0xff6fb5, 0xffd60a, 0xa66cff, 0xff4d4d][Math.floor(r() * 4)]);
-    const h = 3 + r() * 3;
-    const petals = [0, 1, 2, 3, 4].map((i) => sph(0.9, petal, Math.cos((i * 2 * Math.PI) / 5) * 1.1, h, Math.sin((i * 2 * Math.PI) / 5) * 1.1));
-    return group(cyl(0.2, 0.2, h, m(0x3d9a3d), 0, h / 2), sph(0.7, m(0xffe066), 0, h + 0.2), ...petals);
-  },
-  bush: (m) => group(sph(3, m(0x4caf50), 0, 2), sph(2.4, m(0x5cc05c), 2.4, 1.6, 1), sph(2.2, m(0x43a047), -2.2, 1.5, -0.6)),
-  stone: (m, r) => { const s = mesh(new THREE.DodecahedronGeometry(1.5 + r() * 1.5), m(0xa0a4ab)); s.scale.y = 0.6; s.position.y = 0.6; return s; },
-  mushroom: (m) => group(cyl(0.7, 0.9, 2.2, m(0xfff3e0), 0, 1.1), mesh(new THREE.SphereGeometry(2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), m(0xe63946), 0, 2), sph(0.35, m(0xffffff), 0.9, 3.3, 0.6), sph(0.3, m(0xffffff), -0.8, 3.4, -0.4)),
-  gnome: (m) => group(cyl(1.4, 1.8, 3.4, m(0x2f6fdb), 0, 1.7), sph(1.1, m(0xffd2b0), 0, 4), mesh(new THREE.ConeGeometry(1, 2.2, 12), m(0xffffff), 0, 3.4, 0.7), mesh(new THREE.ConeGeometry(1.2, 3, 12), m(0xe63946), 0, 5.8)),
-  pencil: (m, r) => {
-    const p = group(cyl(0.6, 0.6, 12, m([0xffd60a, 0x2f9bff, 0xff4d4d][Math.floor(r() * 3)]), 0, 0, 0, 6), mesh(new THREE.ConeGeometry(0.6, 2, 6), m(0xf4d6a0), 0, 7, 0), cyl(0.62, 0.62, 1.2, m(0xff9fb5), 0, -6.6, 0, 6));
-    p.rotation.z = Math.PI / 2;
-    p.position.y = 0.6;
-    return p;
-  },
-  books: (m, r) => group(...[0, 1, 2].slice(0, 1 + Math.floor(r() * 3)).map((i) => {
-    const b = group(rbox(9, 1.8, 6.5, 0.2, m([0xe63946, 0x2f9bff, 0x1fd1b2, 0xffa62b][(i + Math.floor(r() * 4)) % 4])), rbox(8.6, 1.5, 6.3, 0.1, m(0xfffaf0), 0.3, 0, 0));
-    b.position.y = 0.9 + i * 1.8;
-    b.rotation.y = r() * 0.6 - 0.3;
-    return b;
-  })),
-  cup: (m) => group(cyl(2.4, 2, 4, m(0xffffff), 0, 2), cyl(2.2, 2.2, 0.1, m(0x6b3e26, false), 0, 3.8)),
-  note: (m, r) => { const n = rbox(5, 0.2, 5, 0.05, m([0xffe066, 0xff9fb5, 0x9be7ff][Math.floor(r() * 3)]), 0, 0.1); n.rotation.y = r(); return n; },
-  eraser: (m) => rbox(4, 1.4, 2.2, 0.4, m(0xff9fb5), 0, 0.7),
-  duck: (m) => group(sph(2.4, m(0xffd60a), 0, 1), sph(1.5, m(0xffd60a), 1.6, 3, 0), mesh(new THREE.ConeGeometry(0.6, 1.4, 8), m(0xff8c1a), 3.4, 2.8, 0).rotateZ(-Math.PI / 2), sph(0.25, m(0x111111), 2.4, 3.5, 0.7), sph(0.25, m(0x111111), 2.4, 3.5, -0.7)),
-  foam: (m, r) => group(...[0, 1, 2, 3, 4].map(() => sph(0.8 + r() * 1.2, m(0xffffff), r() * 4 - 2, 0.3, r() * 4 - 2))),
-  soap: (m) => rbox(4.5, 1.4, 2.8, 0.6, m(0xff9fb5), 0, 0.6),
-};
-
-interface ThemeLook {
-  sky: [string, string];
-  groundY: number;
-  ground: () => THREE.Texture;
-  puddle: number;
-  props: string[];
-  water?: boolean;
-}
-
-const THEMES: Record<Theme, ThemeLook> = {
-  kitchen: {
-    sky: ['#ffe9c9', '#f6cfa0'], groundY: -3, puddle: 0x9fdcff, props: ['plate', 'mug', 'toaster', 'apple', 'cheese'],
-    ground: () => canvasTexture(256, 256, (g) => {
-      g.fillStyle = '#d4955a'; g.fillRect(0, 0, 256, 256);
-      for (let y = 0; y < 256; y += 64) {
-        g.fillStyle = y % 128 ? '#cb8b50' : '#d99e64'; g.fillRect(0, y, 256, 64);
-        g.fillStyle = '#9c5f30'; g.fillRect(0, y, 256, 3);
-        g.strokeStyle = '#b97a44'; g.lineWidth = 2;
-        for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(0, y + 14 + i * 12); g.bezierCurveTo(80, y + 8 + i * 12, 170, y + 22 + i * 12, 256, y + 14 + i * 12); g.stroke(); }
-      }
-    }),
-  },
-  garden: {
-    sky: ['#4fb3ff', '#c9ecff'], groundY: -3, puddle: 0x5fb0de, props: ['flower', 'flower', 'bush', 'stone', 'mushroom', 'gnome', 'pond'],
-    ground: () => canvasTexture(256, 256, (g) => {
-      g.fillStyle = '#6cc04a'; g.fillRect(0, 0, 256, 256);
-      g.fillStyle = '#7cd058'; g.fillRect(0, 0, 128, 256);
-      g.fillStyle = '#4f9e35';
-      for (let i = 0; i < 90; i++) { const x = (i * 97) % 256, y = (i * 57) % 256; g.fillRect(x, y, 3, 8); g.fillRect(x + 4, y + 2, 3, 6); }
-    }),
-  },
-  desk: {
-    sky: ['#e8eef5', '#c3cfdc'], groundY: -3, puddle: 0x6b3e26, props: ['pencil', 'books', 'cup', 'note', 'note', 'eraser'],
-    ground: () => canvasTexture(256, 256, (g) => {
-      g.fillStyle = '#eee6d8'; g.fillRect(0, 0, 256, 256);
-      g.strokeStyle = '#ddd2c0'; g.lineWidth = 2;
-      for (let y = 8; y < 256; y += 22) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y + 6); g.stroke(); }
-    }),
-  },
-  bathtub: {
-    sky: ['#d9f3fb', '#a9dcec'], groundY: -2.3, puddle: 0xd8f4ff, props: ['duck', 'foam', 'foam', 'soap'], water: true,
-    ground: () => canvasTexture(256, 256, (g) => {
-      g.fillStyle = '#5cc6ef'; g.fillRect(0, 0, 256, 256);
-      g.strokeStyle = '#a8e6ff'; g.lineWidth = 5; g.lineCap = 'round';
-      for (let i = 0; i < 14; i++) { const x = (i * 71) % 256, y = (i * 113) % 256; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 14, y - 8, x + 28, y); g.stroke(); }
-    }),
-  },
-};
-
-export const themeOf = (theme: Theme) => THEMES[theme];
 
 type Sample = Track['samples'][number];
 /**
@@ -207,7 +77,7 @@ function ripple(x: number, y: number, z: number, r: number, phase: number, anima
 export interface TrackScene { group: THREE.Group; update: (t: number) => void; water: boolean; groundY: number; background: THREE.Texture }
 
 export function buildTrackScene(track: Track): TrackScene {
-  const look = THEMES[track.def.theme];
+  const look = themeOf(track.def.theme);
   const random = rng(track.def.id);
   const cache = new Map<string, THREE.MeshToonMaterial>();
   const m: Mats = (color, outline = true) => {
@@ -215,6 +85,16 @@ export function buildTrackScene(track: Track): TrackScene {
     if (!cache.has(key)) cache.set(key, toon(color, { outline }));
     return cache.get(key)!;
   };
+  const glows = new Map<number, THREE.MeshBasicMaterial>();
+  const glow = (color: number) => {
+    if (!glows.has(color)) {
+      const g = new THREE.MeshBasicMaterial({ color });
+      g.userData.outlineParameters = { visible: false };
+      glows.set(color, g);
+    }
+    return glows.get(color)!;
+  };
+  const signs = new Map<string, THREE.Material>();
   const statics = new THREE.Group(), live = new THREE.Group(), animated: ((t: number) => void)[] = [];
 
   // ground
@@ -276,8 +156,9 @@ export function buildTrackScene(track: Track): TrackScene {
   canopy.rotation.y = Math.atan2(mid.dx, mid.dz);
   live.add(canopy);
 
+  // a wall piece every metre, its edges rounded in one step: a Track walled all round stays light for phones
   track.walls.forEach((w, i) => {
-    const wall = rbox(0.5, 1, w.length + 0.06, 0.12, Math.floor(i / 4) % 2 ? m(0xffffff) : m(0xff3b3b), w.x, w.y + 0.5, w.z);
+    const wall = mesh(new RoundedBoxGeometry(0.5, 1, w.length + 0.06, 1, 0.12), Math.floor(i / 4) % 2 ? m(0xffffff) : m(0xff3b3b), w.x, w.y + 0.5, w.z);
     wall.rotation.set(w.pitch, w.yaw, 0, 'YXZ');
     statics.add(wall);
   });
@@ -326,12 +207,34 @@ export function buildTrackScene(track: Track): TrackScene {
   const footprints = new Map<string, number>();
   const footprint = (kind: string) => {
     if (!footprints.has(kind)) {
-      const box = new THREE.Box3().setFromObject(PROPS[kind](m, rng(kind)));
-      // any way it's turned, the prop fits in this circle
-      footprints.set(kind, Math.max(...[box.min.x, box.max.x].flatMap((bx) => [box.min.z, box.max.z].map((bz) => Math.hypot(bx, bz)))));
+      // any way it's turned, the prop fits in this circle (a data prop knows it)
+      let reach = reachOf(kind);
+      if (reach === undefined) {
+        const box = new THREE.Box3().setFromObject(makeProp(kind, m, glow, rng(kind)));
+        reach = Math.max(...[box.min.x, box.max.x].flatMap((bx) => [box.min.z, box.max.z].map((bz) => Math.hypot(bx, bz))));
+      }
+      footprints.set(kind, reach);
     }
     return footprints.get(kind)!;
   };
+  // landmarks first: each in a free tile of its own beside the road, turned to face it
+  const road = new Set(used);
+  const facing = (x: number, z: number) => [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE]].find(([dx, dz]) => road.has(key(x + dx, z + dz)));
+  const spots: { x: number; z: number }[] = [];
+  if (look.landmarks.length) {
+    for (let x = Math.min(...tx) - 2 * TILE; x <= Math.max(...tx) + 2 * TILE; x += TILE) {
+      for (let z = Math.min(...tz) - 2 * TILE; z <= Math.max(...tz) + 2 * TILE; z += TILE) if (!road.has(key(x, z)) && facing(x, z)) spots.push({ x, z });
+    }
+  }
+  for (const kind of look.landmarks) {
+    if (!spots.length) break;
+    const { x, z } = spots.splice(Math.floor(random() * spots.length), 1)[0], [dx, dz] = facing(x, z)!;
+    const prop = makeProp(kind, m, glow, random, signs);
+    prop.position.set(x, look.groundY, z);
+    prop.rotation.y = Math.atan2(dx, dz);
+    statics.add(prop);
+    used.add(key(x, z));
+  }
   let ponds = 0;
   for (let x = Math.min(...tx) - 2 * TILE; x <= Math.max(...tx) + 2 * TILE; x += TILE) {
     for (let z = Math.min(...tz) - 2 * TILE; z <= Math.max(...tz) + 2 * TILE; z += TILE) {
@@ -356,10 +259,10 @@ export function buildTrackScene(track: Track): TrackScene {
           const water = mesh(new THREE.CircleGeometry(5.5, 32), toon(0x4fb3e8, { outline: false }), x, look.groundY + 0.05, z);
           water.rotation.x = -Math.PI / 2;
           live.add(water, ripple(x, look.groundY + 0.08, z, 5, random(), animated));
-          for (let a = 0; a < 12; a++) statics.add(PROPS.stone(m, random).translateX(x + Math.cos(a / 1.9) * 5.6).translateZ(z + Math.sin(a / 1.9) * 5.6).translateY(look.groundY));
+          for (let a = 0; a < 12; a++) statics.add(makeProp('stone', m, glow, random).translateX(x + Math.cos(a / 1.9) * 5.6).translateZ(z + Math.sin(a / 1.9) * 5.6).translateY(look.groundY));
           break;
         }
-        const prop = PROPS[kind](m, random);
+        const prop = makeProp(kind, m, glow, random, signs);
         prop.position.add(new THREE.Vector3(px, look.groundY, pz));
         prop.rotation.y += random() * Math.PI * 2;
         if (kind === 'duck') {
@@ -372,7 +275,7 @@ export function buildTrackScene(track: Track): TrackScene {
       if (look.water && random() < 0.3) live.add(ripple(x, look.groundY + 0.05, z, 4, random(), animated));
     }
   }
-  if (track.def.theme === 'garden') {
+  if (look.clouds) {
     // a few comic clouds far away
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2, d = 170 + random() * 40;

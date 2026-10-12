@@ -12,6 +12,8 @@ import WatchKit
 final class WatchModel: ObservableObject {
     @Published var name: String
     @Published var body: BodyKind
+    /// The picked Track's id, or "" for a different one each Race.
+    @Published var track: String
     @Published var muted: Bool { didSet { sound.setMuted(muted); UserDefaults.standard.set(muted ? "1" : "0", forKey: "muted") } }
     @Published private(set) var game: Game?
     @Published private(set) var hud = HudState()
@@ -23,6 +25,8 @@ final class WatchModel: ObservableObject {
         let d = UserDefaults.standard
         name = d.string(forKey: "name") ?? "Player"
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
+        let picked = d.string(forKey: "track") ?? ""
+        track = TRACKS.contains { $0.id == picked } ? picked : ""
         muted = d.string(forKey: "muted") == "1"
         sound.setMuted(muted)
     }
@@ -31,7 +35,8 @@ final class WatchModel: ObservableObject {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
         UserDefaults.standard.set(name, forKey: "name")
         UserDefaults.standard.set(body.rawValue, forKey: "body")
-        let game = Game(link: OfflineRace(name: name, body: body), controls: controls, sound: sound, offline: false, publish: { [weak self] hud in
+        UserDefaults.standard.set(track, forKey: "track")
+        let game = Game(link: OfflineRace(name: name, body: body, track: track.isEmpty ? nil : track), controls: controls, sound: sound, offline: false, publish: { [weak self] hud in
             guard let self else { return }
             // the countdown and the finish are felt as well as seen
             if hud.msg != self.hud.msg { Self.tap(["3": .click, "2": .click, "1": .click, "GO!": .start][hud.msg] ?? (hud.msg.hasPrefix("Finished") ? .success : nil)) }
@@ -82,6 +87,10 @@ struct WatchStartView: View {
                     TextField("Nickname", text: $model.name)
                     Picker("Body", selection: $model.body) {
                         ForEach(BODY_KINDS, id: \.self) { Text(BODY_NAMES[$0]!).tag($0) }
+                    }
+                    Picker("Track", selection: $model.track) {
+                        Text("Any Track").tag("")
+                        ForEach(TRACKS, id: \.id) { Text($0.name).tag($0.id) }
                     }
                     Toggle("Sound", isOn: Binding(get: { !model.muted }, set: { model.muted = !$0 }))
                     Button { model.play(); racing = true } label: {

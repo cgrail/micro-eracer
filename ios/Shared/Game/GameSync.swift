@@ -11,8 +11,9 @@ extension Game {
         look?.node.removeFromParentNode()
         let def = TRACKS.first { $0.id == id } ?? TRACKS[0], track = buildTrack(def)
         self.track = track
-        // every Track has its own song
+        // every Track has its own song, and its name goes up while the grid counts down
         sound.music(TRACKS.firstIndex { $0.id == def.id } ?? 0)
+        feed.announce("\(def.name), \(themeLook(def.theme).title)", now)
         world = createTrackWorld(track)
         let look = buildTrackScene(track)
         self.look = look

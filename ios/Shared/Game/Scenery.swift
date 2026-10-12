@@ -71,7 +71,7 @@ func ring(_ inner: Double, _ outer: Double, _ m: SCNMaterial, from: Double = 0, 
 }
 
 /// A ring growing out from the middle of a Puddle or pond and fading as it goes.
-private func ripple(_ x: Double, _ y: Double, _ z: Double, _ r: Double, _ phase: Double, _ animated: inout [(Double) -> Void]) -> SCNNode {
+func ripple(_ x: Double, _ y: Double, _ z: Double, _ r: Double, _ phase: Double, _ animated: inout [(Double) -> Void]) -> SCNNode {
     let m = toon(0xffffff, outline: false, opacity: 0.7), node = ring(0.85, 1, m)
     node.position = SCNVector3(x, y, z)
     animated.append { t in
@@ -90,13 +90,20 @@ private func sign(_ text: String, _ w: Int, _ h: Int, _ size: CGFloat, _ fill: I
 }
 
 func buildTrackScene(_ track: Track) -> TrackScene {
-    let look = THEMES[track.def.theme]!, random = rng(track.def.id)
+    let look = themeLook(track.def.theme), random = rng(track.def.id)
     var cache: [String: SCNMaterial] = [:]
     let m: Mats = { hex, outlined in
         let key = "\(hex)-\(outlined)"
         if let c = cache[key] { return c }
         let made = toon(hex, outline: outlined)
         cache[key] = made
+        return made
+    }
+    var glowCache: [Int: SCNMaterial] = [:]
+    let glows: Glows = { hex in
+        if let g = glowCache[hex] { return g }
+        let made = glow(hex)
+        glowCache[hex] = made
         return made
     }
     let statics = SCNNode(), live = SCNNode()
@@ -159,8 +166,10 @@ func buildTrackScene(_ track: Track) -> TrackScene {
     outline(canopy)
     live.addChildNode(canopy)
 
+    // a wall piece every metre, its edges rounded in one step: a Track walled all round stays light for phones
     for (i, wall) in track.walls.enumerated() {
         let node = rbox(0.5, 1, wall.length + 0.06, 0.12, (i / 4) % 2 == 1 ? m(0xffffff, true) : m(0xff3b3b, true), wall.x, wall.y + 0.5, wall.z)
+        (node.geometry as? SCNBox)?.chamferSegmentCount = 1
         setYawPitch(node, yaw: wall.yaw, pitch: wall.pitch)
         statics.addChildNode(node)
     }
@@ -197,7 +206,7 @@ func buildTrackScene(_ track: Track) -> TrackScene {
         live.addChildNode(ripple(p.x, p.y + 0.05, p.z, p.r * 0.9, random(), &animated))
     }
 
-    placeProps(track, look, m, random, statics, live, &animated)
+    placeProps(track, look, m, glows, random, statics, live, &animated)
 
     // merged per material: far fewer draw calls (and outline passes) on phones
     let outlined = SCNNode(), flat = SCNNode()
@@ -226,77 +235,4 @@ func buildTrackScene(_ track: Track) -> TrackScene {
         g.drawLinearGradient(grad, start: .zero, end: CGPoint(x: 0, y: 256), options: [])
     }
     return TrackScene(node: root, update: { t in animated.forEach { $0(t) } }, water: look.water, groundY: look.groundY, sky: sky, horizon: color(look.sky.1))
-}
-
-/// Scenery in the tiles the road does not use: every prop stays inside its tile, clear of the road, the next tile's props
-/// and the other prop in its tile.
-private func placeProps(_ track: Track, _ look: ThemeLook, _ m: @escaping Mats, _ random: @escaping () -> Double, _ statics: SCNNode, _ live: SCNNode, _ animated: inout [(Double) -> Void]) {
-    let key = { (x: Double, z: Double) in "\(Int(x.rounded())),\(Int(z.rounded()))" }
-    let used = Set(track.tiles.map { key($0.x, $0.z) })
-    let tx = track.tiles.map(\.x), tz = track.tiles.map(\.z)
-    var footprints: [String: Double] = [:]
-    let footprint = { (kind: String) -> Double in
-        if let f = footprints[kind] { return f }
-        let (lo, hi) = PROPS[kind]!(m, rng(kind)).boundingBox
-        // any way it's turned, the prop fits in this circle
-        let f = [lo.x, hi.x].flatMap { bx in [lo.z, hi.z].map { bz in Double(hypot(bx, bz)) } }.max()!
-        footprints[kind] = f
-        return f
-    }
-    var ponds = 0
-    for x in stride(from: tx.min()! - 2 * TILE, through: tx.max()! + 2 * TILE, by: TILE) {
-        for z in stride(from: tz.min()! - 2 * TILE, through: tz.max()! + 2 * TILE, by: TILE) {
-            if used.contains(key(x, z)) { continue }
-            let count = random() < 0.8 ? 1 + Int(random() * 2) : 0
-            var placed: [(x: Double, z: Double, r: Double)] = []
-            for _ in 0..<count {
-                var kind = look.props[Int(random() * Double(look.props.count))]
-                // a pond takes a whole tile to itself
-                if kind == "pond" && (ponds >= 2 || !placed.isEmpty) { kind = "flower" }
-                if kind == "pond" { ponds += 1 }
-                let r = kind == "pond" ? 0 : footprint(kind), room = max(0, TILE / 2 - 0.5 - r)
-                var px = x, pz = z, fits = false, tries = 0
-                while tries < 6 && !fits {
-                    px = x + (random() * 2 - 1) * room
-                    pz = z + (random() * 2 - 1) * room
-                    fits = placed.allSatisfy { hypot($0.x - px, $0.z - pz) > $0.r + r + 0.5 }
-                    tries += 1
-                }
-                if !fits { continue }
-                placed.append((px, pz, r))
-                if kind == "pond" {
-                    live.addChildNode(disc(5.5, toon(0x4fb3e8, outline: false), x, look.groundY + 0.05, z))
-                    live.addChildNode(ripple(x, look.groundY + 0.08, z, 5, random(), &animated))
-                    for a in 0..<12 {
-                        let stone = PROPS["stone"]!(m, random)
-                        stone.position = SCNVector3(x + cos(Double(a) / 1.9) * 5.6, look.groundY, z + sin(Double(a) / 1.9) * 5.6)
-                        statics.addChildNode(stone)
-                    }
-                    break
-                }
-                let prop = group(PROPS[kind]!(m, random))
-                prop.position = SCNVector3(px, look.groundY, pz)
-                prop.eulerAngles.y = Float(random() * .pi * 2)
-                if kind == "duck" {
-                    // ducks float, so they stay out of the merge to bob on the bath water
-                    let phase = random() * 6
-                    animated.append { t in prop.position.y = Float(look.groundY + sin(t * 2 + phase) * 0.25); prop.eulerAngles.z = Float(sin(t * 1.6 + phase) * 0.08) }
-                    outline(prop, thick: true)
-                    live.addChildNode(prop)
-                } else { statics.addChildNode(prop) }
-            }
-            if look.water && random() < 0.3 { live.addChildNode(ripple(x, look.groundY + 0.05, z, 4, random(), &animated)) }
-        }
-    }
-    if track.def.theme == .garden {
-        // a few comic clouds far away
-        let xs = track.samples.map(\.x), zs = track.samples.map(\.z), cx = (xs.min()! + xs.max()!) / 2, cz = (zs.min()! + zs.max()!) / 2
-        for i in 0..<8 {
-            let a = Double(i) / 8 * .pi * 2, d = 170 + random() * 40
-            let cloud = group(sph(8, m(0xffffff, true)), sph(6, m(0xffffff, true), 8, -1, 0), sph(6, m(0xffffff, true), -8, -1.5, 0), sph(5, m(0xffffff, true), 3, 4, 0))
-            cloud.position = SCNVector3(cx + cos(a) * d, 45 + random() * 20, cz + sin(a) * d)
-            cloud.look(at: SCNVector3(cx, Double(cloud.position.y), cz), up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
-            statics.addChildNode(cloud)
-        }
-    }
 }

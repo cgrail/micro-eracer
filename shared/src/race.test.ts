@@ -86,9 +86,12 @@ test('Laps count only when driven in order', () => {
   assert.equal(p.u, before);
 });
 
+/** Batteries picked up by Position, over the Races below on every Track. */
+const byPosition = Array(8).fill(0);
 for (const def of TRACKS) {
   test(`Bots finish a Race on their own: ${def.name}`, () => {
-    const sim = new RaceSim(def.id);
+    const sim = new RaceSim(def.id), emit = sim.emit;
+    sim.emit = (e) => { if (e.t === 'battery') byPosition[sim.seats[e.s].position - 1]++; emit(e); };
     let fallOffs = 0;
     for (let t = 0; t < 240 && sim.results.length === 0; t += DT) {
       const before = sim.seats.map((s) => s.progress.u);
@@ -101,6 +104,25 @@ for (const def of TRACKS) {
     console.log(`${def.id}: ${sim.time.toFixed(1)}s, ${fallOffs} Fall-offs, ${st.pickups} Batteries, ${st.recharges} Recharges (${st.leaderRecharges} of the Leader), ${st.rams} Rams, ${st.hits} Hits`);
   });
 }
+
+test('Batteries are plentiful at the back and scarce at the front', () => {
+  // counted in the Races on every Track above
+  const front = byPosition[0] + byPosition[1], back = byPosition.slice(4).reduce((a, b) => a + b);
+  assert.ok(back > 2 * front, `Batteries by Position: ${byPosition}`);
+});
+
+test('a Race goes on to another Track from its pool, or to its one Track again', () => {
+  const sim = new RaceSim(undefined, ['kitchen', 'garden']);
+  assert.ok(['kitchen', 'garden'].includes(sim.track.def.id));
+  for (let i = 0; i < 4; i++) {
+    const was = sim.track.def.id;
+    sim.newRace(FIRST_GRID_TIME);
+    assert.ok(['kitchen', 'garden'].includes(sim.track.def.id) && sim.track.def.id !== was, `${was} then ${sim.track.def.id}`);
+  }
+  const one = new RaceSim('paris-eiffel', ['paris-eiffel']);
+  one.newRace(FIRST_GRID_TIME);
+  assert.equal(one.track.def.id, 'paris-eiffel');
+});
 
 // the slowest Body against the quickest: if the Semi can beat Roadsters, the Bodies in between can too
 test('every Body can win: half the field in Semis, half in Roadsters', () => {
@@ -116,17 +138,6 @@ test('every Body can win: half the field in Semis, half in Roadsters', () => {
   }
   console.log('wins by Body:', wins);
   assert.ok(wins.semi > 0 && wins.roadster > 0);
-});
-
-test('Batteries are plentiful at the back and scarce at the front', () => {
-  const byPosition = Array(8).fill(0);
-  for (const def of TRACKS) {
-    const sim = new RaceSim(def.id), emit = sim.emit;
-    sim.emit = (e) => { if (e.t === 'battery') byPosition[sim.seats[e.s].position - 1]++; emit(e); };
-    for (let t = 0; t < 240 && sim.results.length === 0; t += DT) sim.step(DT);
-  }
-  const front = byPosition[0] + byPosition[1], back = byPosition.slice(4).reduce((a, b) => a + b);
-  assert.ok(back > 2 * front, `Batteries by Position: ${byPosition}`);
 });
 
 test('an empty E-Car is Stranded, then Recharged where it stands to full Energy', () => {

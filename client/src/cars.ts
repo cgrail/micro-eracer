@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BODIES, type BodyKind } from '../../shared/src/car.ts';
-import { cyl, group, mesh, rbox, sph, toon } from './scene.ts';
+import { cyl, group, mesh, rbox, sph, toon } from './toon.ts';
 
 type Mat = THREE.Material;
 /** Each Body's look: the bodywork, where its axles sit and how high its roof is (for the warning light). */

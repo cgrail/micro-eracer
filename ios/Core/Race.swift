@@ -90,11 +90,17 @@ final class RaceSim {
     /// Per pair of Seats, when they can next Ram each other (Contact.swift).
     var ramCooldown: [Int: Double] = [:]
 
-    init(trackId: String? = nil) { newRace(FIRST_GRID_TIME, trackId) }
+    /// The Tracks the next Races are picked from, a different one each time while there is more than one.
+    let pool: [String]
+
+    init(trackId: String? = nil, pool: [String] = TRACKS.map(\.id)) {
+        self.pool = pool
+        newRace(FIRST_GRID_TIME, trackId)
+    }
 
     func newRace(_ gridTime: Double, _ trackId: String? = nil) {
-        let others = TRACKS.filter { $0.id != track?.def.id }
-        let def = TRACKS.first { $0.id == trackId } ?? others.randomElement() ?? TRACKS[0]
+        let pool = TRACKS.filter { self.pool.contains($0.id) }, others = pool.filter { $0.id != track?.def.id }
+        let def = TRACKS.first { $0.id == trackId } ?? others.randomElement() ?? pool.first ?? TRACKS[0]
         track = buildTrack(def)
         world = createTrackWorld(track)
         combat = Combat(self)

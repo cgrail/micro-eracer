@@ -2,12 +2,15 @@
 import '@fontsource/bangers';
 import { Client } from '@colyseus/sdk';
 import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
+import { TRACKS } from '../../shared/src/track.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createGarage } from './garage.ts';
 import { createInput, isTouch, PAD_SIDES, type PadSide, type Steering, STEERINGS } from './input.ts';
 import { offlineRace } from './offline.ts';
+import { themeOf } from './props.ts';
 import type { RaceLink } from './state.ts';
+import { drawTrackMap, trackFacts } from './trackmap.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const form = $<HTMLFormElement>('start'), nameInput = $<HTMLInputElement>('name'), play = $<HTMLButtonElement>('play');
@@ -33,6 +36,47 @@ $('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 
+// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again
+const trackSelect = $<HTMLSelectElement>('track'), trackMap = $<HTMLCanvasElement>('track-map'), facts = $('facts');
+const TRACK_IDS = ['', ...TRACKS.map((t) => t.id)];
+let track = TRACK_IDS.find((t) => t && t === load('track')) ?? '';
+trackSelect.append(new Option('Any Track', ''));
+for (const theme of new Set(TRACKS.map((t) => t.theme))) {
+  const places = document.createElement('optgroup');
+  places.label = themeOf(theme).title;
+  places.append(...TRACKS.filter((t) => t.theme === theme).map((t) => new Option(t.name, t.id)));
+  trackSelect.append(places);
+}
+const line = (text: string, className = '') => Object.assign(document.createElement('p'), { textContent: text, className });
+const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
+const showTrack = () => {
+  trackSelect.value = track;
+  const def = TRACKS.find((t) => t.id === track);
+  drawTrackMap(trackMap, def);
+  if (!def) { facts.replaceChildren(line('Any Track', 'place'), line('A new Track every Race'), line(`${TRACKS.length} to race on`)); return; }
+  const f = trackFacts(def), extras = [f.bridges && 'a bridge', f.climbs && count(f.climbs, 'a climb', 'climbs'), f.jumps && count(f.jumps, 'a jump', 'jumps')].filter(Boolean);
+  facts.replaceChildren(line(themeOf(def.theme).title, 'place'), line(`${f.length} m, ${f.turns} turns`), line(extras.join(', ') || 'all on one level'));
+};
+const stepTrack = (by: number) => { track = TRACK_IDS[(TRACK_IDS.indexOf(track) + by + TRACK_IDS.length) % TRACK_IDS.length]; showTrack(); };
+// held, ◀ and ▶ keep stepping, faster and faster, through all the Tracks; a tap on the name lists them all
+for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
+  const button = $(id);
+  let timer = 0;
+  button.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    stepTrack(by);
+    let delay = 450;
+    const again = () => { stepTrack(by); delay = Math.max(60, delay * 0.8); timer = window.setTimeout(again, delay); };
+    timer = window.setTimeout(again, delay);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) button.addEventListener(type, () => clearTimeout(timer));
+  // Enter or Space on the focused button clicks without a pointer
+  button.addEventListener('click', (e) => { if (e.detail === 0) stepTrack(by); });
+}
+trackSelect.addEventListener('change', () => { track = trackSelect.value; showTrack(); trackSelect.blur(); });
+// the map fills its box, which changes size with the window
+new ResizeObserver(showTrack).observe(trackMap);
+
 const controls = createInput({ touch, steer: $('steer'), action: $('fire'), back: $('back') });
 // touch only: steer by dragging, or by holding left or right of the pad's middle
 let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'buttons';
@@ -47,7 +91,25 @@ const sideButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-side]')]
 const showSide = () => { sideButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === side))); touch.classList.toggle('right', side === 'right'); };
 sideButtons.forEach((b) => b.addEventListener('click', () => { side = b.dataset.side as PadSide; showSide(); }));
 $('side').hidden = !isTouch;
+$('options').hidden = !isTouch;
 showSide();
+
+// the whole form on one screen, never scrolled: scaled down where even its compact layout is too big for the window, and
+// clear of the notch and the home bar
+const safeArea = document.body.appendChild(document.createElement('div'));
+safeArea.style.cssText = 'position: fixed; visibility: hidden; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom)';
+const fit = () => {
+  // not while typing: a phone's keyboard shrinks the window
+  if (form.hidden || document.activeElement === nameInput) return;
+  const insets = getComputedStyle(safeArea), safe = parseFloat(insets.paddingTop) + parseFloat(insets.paddingBottom) || 0;
+  form.style.setProperty('--fit', '1');
+  const scale = Math.min(1, (innerHeight - safe - 20) / form.offsetHeight, (innerWidth - 20) / form.offsetWidth);
+  form.style.setProperty('--fit', String(Math.floor(scale * 1000) / 1000));
+};
+addEventListener('resize', fit);
+nameInput.addEventListener('blur', fit);
+fit();
+document.fonts.ready.then(fit);
 const sound = new Sound();
 const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.setAttribute('aria-pressed', String(sound.muted)); };
 sound.setMuted(load('muted') === '1');
@@ -62,6 +124,7 @@ form.addEventListener('submit', async (e) => {
   const name = nameInput.value.trim();
   save('name', name);
   save('body', body);
+  save('track', track);
   if (isTouch) { save('steer', steering); save('side', side); }
   error.textContent = '';
   play.disabled = true;
@@ -69,14 +132,15 @@ form.addEventListener('submit', async (e) => {
   try {
     // name tags and the banner are drawn on canvases, which need the comic font loaded first
     await document.fonts.load('40px Bangers').catch(() => undefined);
-    const join = new Client(serverUrl).joinOrCreate('race', { name, body });
+    // `race2`: a picked Track joins a Race on it, any Track the fullest Race (`race` is left to apps from before the picker)
+    const join = new Client(serverUrl).joinOrCreate('race2', track ? { name, body, track } : { name, body });
     let room: RaceLink;
     try {
       room = await Promise.race([join, new Promise<never>((_, fail) => setTimeout(() => fail(new Error('timeout')), JOIN_TIMEOUT))]);
     } catch {
       // no server to be reached: race the Bots right here
       join.then((late) => late.leave(), () => {});
-      room = offlineRace(name, body);
+      room = offlineRace(name, body, track || undefined);
       offline.hidden = false;
     }
     form.hidden = true;
@@ -89,6 +153,8 @@ form.addEventListener('submit', async (e) => {
     room.onLeave(() => {
       stop();
       form.hidden = false;
+      fit();
+      showTrack();
       garage.run(true);
       hudEl.hidden = touch.hidden = mute.hidden = true;
       error.textContent = 'Connection lost.';

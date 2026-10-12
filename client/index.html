@@ -4,38 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Micro E-Racer</title>
-  <meta name="description" content="Tiny electric cars, big chaos. Jump into a running Race against up to 7 others and Ram, Zap and Drift round a kitchen, a garden, a desk and a bathtub. Right in your browser, on desktop and mobile.">
+  <meta name="description" content="Tiny electric cars, big chaos. Jump into a running Race against up to 7 others and Ram, Zap and Drift round 50 Tracks, from the kitchen table to London, Las Vegas and a grubby Berlin. Right in your browser, on desktop and mobile.">
   <!-- what Slack, Teams, X and WhatsApp show for a shared link; client/share/ adds the card's image and the icon, and the server makes the URLs absolute -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Micro E-Racer">
   <meta property="og:title" content="Micro E-Racer">
-  <meta property="og:description" content="Tiny electric cars, big chaos. Jump into a running Race against up to 7 others and Ram, Zap and Drift round a kitchen, a garden, a desk and a bathtub. Right in your browser, on desktop and mobile.">
+  <meta property="og:description" content="Tiny electric cars, big chaos. Jump into a running Race against up to 7 others and Ram, Zap and Drift round 50 Tracks, from the kitchen table to London, Las Vegas and a grubby Berlin. Right in your browser, on desktop and mobile.">
   <meta property="og:url" content="/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
   <form id="start">
-    <h1>Micro E-Racer</h1>
-    <label for="name">Nickname</label>
-    <input id="name" maxlength="16" autocomplete="nickname" required>
-    <fieldset class="pick">
-      <legend>Body</legend>
-      <div id="garage"><canvas id="turntable" aria-hidden="true"></canvas><dl id="stats"></dl></div>
-      <div id="cycle"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><output id="body-name" aria-live="polite"></output><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
-    </fieldset>
-    <fieldset id="steering" class="pick" hidden>
-      <legend>Steering</legend>
-      <button type="button" data-steer="slider" aria-pressed="false">Slider<small>drag left or right</small></button>
-      <button type="button" data-steer="buttons" aria-pressed="true">Buttons<small>hold left or right</small></button>
-    </fieldset>
-    <fieldset id="side" class="pick" hidden>
-      <legend>Pad</legend>
-      <button type="button" data-side="left" aria-pressed="true">Left<small>for the left thumb</small></button>
-      <button type="button" data-side="right" aria-pressed="false">Right<small>for the right thumb</small></button>
-    </fieldset>
-    <button id="play" type="submit">Play</button>
-    <p id="error" role="alert"></p>
+    <div class="col">
+      <h1>Micro E-Racer</h1>
+      <div id="who"><label for="name">Nickname</label><input id="name" maxlength="16" autocomplete="nickname" required></div>
+      <fieldset class="pick">
+        <legend class="sr">Body</legend>
+        <div class="show" id="garage"><span class="tag" aria-hidden="true">Body</span><canvas id="turntable" aria-hidden="true"></canvas><dl id="stats"></dl></div>
+        <div class="cycle"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><output id="body-name" aria-live="polite"></output><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
+      </fieldset>
+    </div>
+    <div class="col">
+      <fieldset class="pick">
+        <legend class="sr">Track</legend>
+        <div class="show" id="course"><span class="tag" aria-hidden="true">Track</span><canvas id="track-map" aria-hidden="true"></canvas><div id="facts" aria-live="polite"></div></div>
+        <div class="cycle"><button type="button" id="prev-track" aria-label="Previous Track">◀</button><select id="track" aria-label="Track"></select><button type="button" id="next-track" aria-label="Next Track">▶</button></div>
+      </fieldset>
+      <div id="options">
+        <fieldset id="steering" class="pick seg" hidden>
+          <legend>Steering</legend>
+          <button type="button" data-steer="slider" aria-pressed="false" title="drag left or right">Slider</button>
+          <button type="button" data-steer="buttons" aria-pressed="true" title="hold left or right">Buttons</button>
+        </fieldset>
+        <fieldset id="side" class="pick seg" hidden>
+          <legend>Pad</legend>
+          <button type="button" data-side="left" aria-pressed="true" title="for the left thumb">Left</button>
+          <button type="button" data-side="right" aria-pressed="false" title="for the right thumb">Right</button>
+        </fieldset>
+      </div>
+      <button id="play" type="submit">Play</button>
+      <p id="error" role="alert"></p>
+    </div>
   </form>
 
   <div id="halftone" aria-hidden="true"></div>

@@ -25,7 +25,7 @@ final class RaceRoomState: SchemaRef, @unchecked Sendable {
     }
 }
 
-/// A Race on the server: the same `race` room the browsers join, so phones and browsers race each other.
+/// A Race on the server: the same `race2` room the browsers join, so phones and browsers race each other.
 final class OnlineRace: RaceLink {
     private let room: Colyseus.Room<RaceRoomState>
     private var fresh = false, events: [RaceEvent] = []
@@ -35,10 +35,18 @@ final class OnlineRace: RaceLink {
     var sessionId: String { room.sessionId ?? "" }
 
     /// The game pumps the SDK from its own loop, so every callback arrives on that thread, between frames.
-    static func join(endpoint: String, name: String, body: BodyKind) async throws -> OnlineRace {
+    /// `track`: a picked Track joins a Race on it, "" (any Track) the fullest Race there is. The `race` room is left to apps from
+    /// before the Track picker, which know only the first four Tracks.
+    static func join(endpoint: String, name: String, body: BodyKind, track: String) async throws -> OnlineRace {
         Colyseus.autoPump = false
         let client = try Colyseus.Client(endpoint: endpoint)
-        return OnlineRace(try await client.joinOrCreate("race", options: ["name": .string(name), "body": .string(body.rawValue)], state: RaceRoomState.self))
+        let room: Colyseus.Room<RaceRoomState>
+        if track.isEmpty {
+            room = try await client.joinOrCreate("race2", options: ["name": .string(name), "body": .string(body.rawValue)], state: RaceRoomState.self)
+        } else {
+            room = try await client.joinOrCreate("race2", options: ["name": .string(name), "body": .string(body.rawValue), "track": .string(track)], state: RaceRoomState.self)
+        }
+        return OnlineRace(room)
     }
 
     private init(_ room: Colyseus.Room<RaceRoomState>) {

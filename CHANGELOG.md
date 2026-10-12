@@ -10,10 +10,43 @@ happens. Everything before 1.0 is in the git history.
 
 ## 1.0 (current)
 
+### Tracks
+
+- 50 Tracks instead of 4: 46 new ones round 18 new places, each with its own ground, sky, Puddles and props, and a few
+  landmarks of its own beside the road. Offices at Google (bean bags, the T. rex skeleton, the slide), SAP in Walldorf,
+  Facebook (the giant thumbs-up, HACK on the courtyard) and Anthropic (the spark, the bookshelf); a LAN party in the dark
+  with glowing screens; a golf course and a soccer field; London (Big Ben, a double-decker, the London Eye, phone boxes,
+  a guard), New York (the Empire State Building, the Statue of Liberty, yellow cabs), Paris (the Eiffel Tower, the Arc de
+  Triomphe, the Louvre's pyramid, red wine Puddles), Las Vegas (the welcome sign, a black pyramid, dice and chips), a
+  grubby Berlin (the Fernsehturm, a Döner stand and Döner, the Brandenburg Gate, a Späti, beer Puddles), Heidelberg (the
+  castle, the Old Bridge's gate, the Heiliggeistkirche, the bridge monkey), an Indian kitchen table (thalis, a tandoor,
+  curry Puddles), Hollywood (the sign on its hill, searchlights, the Walk of Fame), San Francisco (the Golden Gate, cable
+  cars, Painted Ladies), Zuzenhausen (the training ground, tractors, hay) and Sinsheim (the Concorde on its pylon, the
+  stadium, the museum). They have bridges, climbs and jumps, and every Body can drive each one flat out.
+- Every Race's Track, and its place, is named on screen for a few seconds as the grid counts down.
+- The four songs take turns across the Tracks.
+- Every Track is lighter to draw, which phones and the watch feel most: the walls' edges are rounded in one step instead
+  of two, and small balls, thin posts and rings have fewer sides.
+- The new places are written as data (`client/src/themes/`), which the browsers build and the apps read from
+  `ios/Shared/Resources/Themes.json` (`npx tsx ios/themes.ts`), so both draw the same props.
+
+### Start screen
+
+- Pick the Track as you pick the Body: ◀ and ▶ step through every Track (held, they keep going, faster and faster), the
+  picture shows it from above on its ground, and beside it are its place, length, turns, bridges, climbs and jumps.
+  Tapping its name lists every Track by place. Any Track, the first choice, joins the fullest Race whatever it races, as
+  before; a picked Track joins a Race on that Track, or starts one, and races it again and again. An Offline Race (and
+  the watch, which picks it from a list) does the same. The Track is remembered like the rest (`track`).
+- The whole start screen fits on one screen, on phones and tablets in both orientations and on desktops, without
+  scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit. Steering and
+  Pad sit side by side, with their hints as tooltips (VoiceOver hints in the app).
+- The wire: Races are joined in the `race2` room, which takes the picked Track as `track`. The `race` room is left to apps
+  from before the picker and only races the first four Tracks, which they know.
+
 ### iPhone and iPad
 
 - **A native app for iPhone and iPad** ([ios/](ios/)), in Swift with SceneKit. It joins the same Races on the same server
-  as the browsers (`wss://micro.grails.de`, the same `race` room), so phones and browsers race each other, and falls back
+  as the browsers (`wss://micro.grails.de`, the same rooms), so phones and browsers race each other, and falls back
   to an Offline Race against the Bots when the server can't be reached within 5 seconds, as the browser does.
 - It drives exactly like the browsers: `shared/src` is ported file by file to `ios/Core`, and `swift test`
   replays the physics fixture, compares the Track data and the soundtrack with the TypeScript, and runs a headless Race in

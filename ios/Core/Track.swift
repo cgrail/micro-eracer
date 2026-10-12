@@ -2,7 +2,10 @@ import Foundation
 
 // shared/src/track.ts and shared/src/tracks/*.ts. Names match the TypeScript, so a grep finds both sides.
 
-enum Theme: String { case kitchen, garden, desk, bathtub }
+enum Theme: String {
+    case kitchen, garden, desk, bathtub
+    case google, sap, facebook, anthropic, lan, golf, soccer, london, newyork, paris, vegas, berlin, heidelberg, india, hollywood, sanfrancisco, zuzenhausen, sinsheim
+}
 
 /// A Track as authored: pieces laid like a turtle walk on a grid of TILE-sized tiles (see `TrackDef` in track.ts).
 struct TrackDef {
@@ -14,7 +17,7 @@ struct TrackDef {
     let items: [Int]
 }
 
-/// The same Tracks as shared/src/tracks/*.ts, in the same order (`TrackDataTests` compares them).
+/// The same Tracks as shared/src/tracks/*.ts, in the same order as `TRACKS` there (`testTracksMatchTheTypeScript` compares them).
 let TRACKS: [TrackDef] = [
     TrackDef(id: "kitchen", name: "Kitchen Table", theme: .kitchen,
              pieces: "S S S R* U* S* R* D* S R* L* R L S R* R* S S", puddles: [8], items: [5, 13]),
@@ -24,7 +27,101 @@ let TRACKS: [TrackDef] = [
              pieces: "S S S R* S S R* S J* S* S L R R* L R S S R* S S S", puddles: [10, 17], items: [4, 9, 19]),
     TrackDef(id: "bathtub", name: "Bathtub", theme: .bathtub,
              pieces: "S L* R R* U* R* D* L R* S R L R* R* S S", puddles: [9, 11], items: [0, 7]),
+    TrackDef(id: "google-ballpit", name: "Ball Pit Bends", theme: .google,
+             pieces: "R S R L* R* S R* L* R* S S S R S L R R* S* R* S L* L* S S", puddles: [9, 14], items: [5, 19]),
+    TrackDef(id: "google-slide", name: "Slide Ride", theme: .google,
+             pieces: "S R L* L* S* S L S L* L* U* S* R* S* S* R* D* S* S S S R S R S S", puddles: [12, 23], items: [5, 22]),
+    TrackDef(id: "google-jump", name: "Bean Bag Jump", theme: .google,
+             pieces: "J* S* S R S S S R* R* S* L* S* S* L* R* S S R* S S S R R* L* S S", puddles: [5, 23], items: [4, 12]),
+    TrackDef(id: "sap-ring", name: "Walldorf Ring", theme: .sap,
+             pieces: "S L* S S S L S S S S S L S S S L* S S S S", puddles: [2, 11], items: [7, 17]),
+    TrackDef(id: "sap-corridor", name: "Coffee Corridor", theme: .sap,
+             pieces: "S L R* R* S* S S S S R* S S S R* L* S S R S R* S L* S R* S S", puddles: [13, 23], items: [8, 22]),
+    TrackDef(id: "facebook-lane", name: "Like Lane", theme: .facebook,
+             pieces: "S R S S R S S S S L* R R* S* S S S S R S R S L S S", puddles: [4, 21], items: [7, 20]),
+    TrackDef(id: "facebook-hacker", name: "Hacker Way", theme: .facebook,
+             pieces: "S R L* U* R* S* D* R* S S S S S S R* S R L* L* S* R R* S* S S S", puddles: [12, 21], items: [9, 22]),
+    TrackDef(id: "anthropic-bridge", name: "Spark Bridge", theme: .anthropic,
+             pieces: "L* S R S R* S U* R* R* S* S* S* L* S* S* S* L* D* S* L* S S", puddles: [7, 12], items: [10, 18]),
+    TrackDef(id: "anthropic-reading", name: "Reading Room", theme: .anthropic,
+             pieces: "S R L L* S* S S L S L* S R S S L* L* S S", puddles: [1, 8], items: [6, 12]),
+    TrackDef(id: "lan-cables", name: "Cable Chaos", theme: .lan,
+             pieces: "S S R S R S L* R S* S* R* L* R* S S S R* R S* L* S S", puddles: [11, 14], items: [9, 18]),
+    TrackDef(id: "lan-respawn", name: "Respawn Jump", theme: .lan,
+             pieces: "S L L* S J* S* S S L* L R* S S S L S L S L R* S R S S", puddles: [11, 20], items: [7, 17]),
+    TrackDef(id: "golf-fairway", name: "Fairway Drive", theme: .golf,
+             pieces: "S S S S L S S S S L* L S* S* S R* S S R L S* S* L* S L S S", puddles: [19, 23], items: [6, 20]),
+    TrackDef(id: "golf-bunker", name: "Bunker Hill", theme: .golf,
+             pieces: "S R U* S* S* R* U* S* D* S* R* D* S* S S S S S R R S* S* S L S S", puddles: [10, 16], items: [12, 21]),
+    TrackDef(id: "soccer-touchline", name: "Touchline", theme: .soccer,
+             pieces: "S L* S S S R* S R* S S S S S R S S S S S R* S R S S", puddles: [1, 19], items: [8, 17]),
+    TrackDef(id: "soccer-longball", name: "Long Ball", theme: .soccer,
+             pieces: "S S R S L R* S R* S S S S S J* S* R S S S R* S S S S", puddles: [12, 15], items: [3, 18]),
+    TrackDef(id: "london-piccadilly", name: "Piccadilly Circuit", theme: .london,
+             pieces: "S S S L S L* S S S S L* R* S S L* S* S* L S L S R* S S", puddles: [6, 15], items: [4, 16]),
+    TrackDef(id: "london-towerbridge", name: "Tower Bridge", theme: .london,
+             pieces: "L* L* S S S S R S R L* R* S S R S R S U* L* S* L* D* S S", puddles: [5, 15], items: [3, 14]),
+    TrackDef(id: "london-bigben", name: "Big Ben Bends", theme: .london,
+             pieces: "R L R S R S R* L S R L* R* S S S R R S* S* L S S", puddles: [7, 12], items: [8, 18]),
+    TrackDef(id: "newyork-broadway", name: "Broadway", theme: .newyork,
+             pieces: "S R L* S L S S S S S L S S S S S S L S S S S L S S S", puddles: [10, 15], items: [3, 11]),
+    TrackDef(id: "newyork-brooklyn", name: "Brooklyn Bridge", theme: .newyork,
+             pieces: "L R L S R S* R* S S U* S* R* R* S* S* S* L* S* S* S* D* L* S L* S S", puddles: [1, 18], items: [13, 22]),
+    TrackDef(id: "newyork-timessquare", name: "Times Square", theme: .newyork,
+             pieces: "R* S S S R* S J* S* S R* S S S U* S* S* R* S* R* S* D* L* S S", puddles: [15, 19], items: [1, 12]),
+    TrackDef(id: "paris-champs", name: "Champs-Élysées", theme: .paris,
+             pieces: "S R* S S S R S S S S S R S S S R R* S L L* S* R S S", puddles: [10, 19], items: [9, 20]),
+    TrackDef(id: "paris-seine", name: "Seine Crossing", theme: .paris,
+             pieces: "R S L U* R* S* R* R* L* S* L* R* S* R* S* S* S* S* L* D* L* L* S S S S", puddles: [14, 20], items: [1, 15]),
+    TrackDef(id: "paris-eiffel", name: "Eiffel Loop", theme: .paris,
+             pieces: "R* S L S S S L S S S S S L L* S R* S S S S S L* S L S S", puddles: [10, 21], items: [5, 19]),
+    TrackDef(id: "vegas-strip", name: "The Strip", theme: .vegas,
+             pieces: "J* S* S S L* S S S S L S S S S S S S L* S S S S L* S S S", puddles: [4, 20], items: [7, 23]),
+    TrackDef(id: "vegas-jackpot", name: "Jackpot Jump", theme: .vegas,
+             pieces: "S S L* S J* S* L L S* S* R* R S S L* S S S L* S S S L* S S S", puddles: [13, 23], items: [3, 12]),
+    TrackDef(id: "vegas-highroller", name: "High Roller", theme: .vegas,
+             pieces: "S S L S L R L U* R* L* L* S* L* S* R* S* S* S* R* S* D* R* S R S S", puddles: [6, 10], items: [3, 19]),
+    TrackDef(id: "berlin-doner", name: "Döner Dash", theme: .berlin,
+             pieces: "R L R* S R L* L* S* S L* S S L* R* S L S S S S L L* S S", puddles: [3, 15], items: [8, 17]),
+    TrackDef(id: "berlin-kreuzberg", name: "Kreuzberg Corners", theme: .berlin,
+             pieces: "S L* S L R R* S* R S S S S S R* R* L* S S S R* S R S S", puddles: [1, 4], items: [2, 20]),
+    TrackDef(id: "berlin-spaeti", name: "Späti Jump", theme: .berlin,
+             pieces: "L S R S R* R* L* S J* S* L* S R R* S* S S S R S L R* S R* S S", puddles: [7, 23], items: [3, 16]),
+    TrackDef(id: "heidelberg-oldbridge", name: "Old Bridge", theme: .heidelberg,
+             pieces: "S R U* S* D* R* S R L S S S R S R* S L* R* S S", puddles: [7, 11], items: [9, 15]),
+    TrackDef(id: "heidelberg-castle", name: "Castle Climb", theme: .heidelberg,
+             pieces: "S S U* R* S* S* S* R* S* R* R* L* S* L* R* S* L* R* L* S* D* L* S L S S", puddles: [4, 7], items: [8, 19]),
+    TrackDef(id: "heidelberg-hauptstrasse", name: "Hauptstrasse", theme: .heidelberg,
+             pieces: "S R* S S S L* L* S S R L S S L* S S S L R S L* L* S S", puddles: [5, 19], items: [2, 11]),
+    TrackDef(id: "heidelberg-philosophers", name: "Philosophers Walk", theme: .heidelberg,
+             pieces: "S U* L* S* S* S* L* L* S* S* R* S* S* S* L* S* S* R* R* D* R* S S S", puddles: [13, 21], items: [4, 15]),
+    TrackDef(id: "india-curry", name: "Curry Curves", theme: .india,
+             pieces: "S R R* L* S L S L* S S S S L S S R L S L* S S L S S", puddles: [10, 20], items: [8, 19]),
+    TrackDef(id: "india-thali", name: "Thali Ring", theme: .india,
+             pieces: "S L R S* R* S* S R S S S L* S R S S R R* L* S S R S S", puddles: [9, 13], items: [8, 19]),
+    TrackDef(id: "india-chai", name: "Chai Bridge", theme: .india,
+             pieces: "S L L* R U* S* R* S* S* R* S* S* S* S* D* R* S S S S S R* S R* S S", puddles: [13, 23], items: [11, 22]),
+    TrackDef(id: "hollywood-mulholland", name: "Mulholland Drive", theme: .hollywood,
+             pieces: "S S S R S S U* R* R* S* U* S* S* L* S* S* S* S* D* L* D* L* L* R* S S", puddles: [7, 17], items: [2, 16]),
+    TrackDef(id: "hollywood-stunt", name: "Stunt Jump", theme: .hollywood,
+             pieces: "S L S J* S* R S R S S S S S S R R* L S* S* S S R* S R* S S", puddles: [2, 12], items: [10, 19]),
+    TrackDef(id: "sanfrancisco-lombard", name: "Lombard Street", theme: .sanfrancisco,
+             pieces: "S L U* U* S* R* S* R* D* D* S* S S R* L R S S S R L R S R S S", puddles: [10, 19], items: [11, 22]),
+    TrackDef(id: "sanfrancisco-nobhill", name: "Nob Hill", theme: .sanfrancisco,
+             pieces: "U* S* R* S* U* R* S* S* S* R* R* D* R* S* R* S* D* R* S S S R S S", puddles: [8, 18], items: [1, 13]),
+    TrackDef(id: "sanfrancisco-goldengate", name: "Golden Gate", theme: .sanfrancisco,
+             pieces: "S S R S S S L L* S S S U* S* S* L* S* S* S* S* D* L* S S L* S S", puddles: [14, 23], items: [3, 18]),
+    TrackDef(id: "zuzenhausen-training", name: "Training Ground", theme: .zuzenhausen,
+             pieces: "S R S S L* S L S S S S S L L S* R* S S S S L L S S", puddles: [2, 6], items: [8, 16]),
+    TrackDef(id: "zuzenhausen-elsenz", name: "Elsenz Valley", theme: .zuzenhausen,
+             pieces: "L R U* S* R* U* S* S* S* R* S* S* R* S* L* S* L* R* R* D* D* R* S S", puddles: [4, 21], items: [3, 15]),
+    TrackDef(id: "sinsheim-museum", name: "Museum Mile", theme: .sinsheim,
+             pieces: "J* S* L S S S S R* R S* S* S S S R L R S S S S R S R* S S", puddles: [10, 23], items: [12, 22]),
+    TrackDef(id: "sinsheim-concorde", name: "Concorde Jump", theme: .sinsheim,
+             pieces: "J* S* S R* R S* S* L* L* S S R* S R* S S S R* S L S R S R S S", puddles: [4, 20], items: [6, 22]),
 ]
+/// The Tracks apps from before the Track picker know: their `race` room only ever races these.
+let CLASSIC_TRACKS = ["kitchen", "garden", "desk", "bathtub"]
 
 /// `y` is the road surface; `kick` marks the ramp of a jump; `bay` is how far the Charging Station widens the road on the right.
 struct Sample { var x, y, z, dx, dz: Double; var walls, turn, kick: Bool; var bay: Double }
