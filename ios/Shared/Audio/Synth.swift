@@ -84,8 +84,6 @@ final class Synth {
     let musicGain = 0.7
 
     init() {
-        try? AVAudioSession.sharedInstance().setCategory(.ambient)
-        try? AVAudioSession.sharedInstance().setActive(true)
         rate = engine.outputNode.outputFormat(forBus: 0).sampleRate > 0 ? engine.outputNode.outputFormat(forBus: 0).sampleRate : 48000
         let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)!
         let node = AVAudioSourceNode(format: format) { [unowned self] _, _, frames, buffers in
@@ -95,7 +93,14 @@ final class Synth {
         }
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: format)
-        try? engine.start()
+        // Activating the session can block for a while, so it and the start happen off the main thread
+        // (the asynchronous activate(options:) only exists from iOS 27). The mixer resamples to whatever rate it ends up at.
+        DispatchQueue.global(qos: .userInitiated).async { [engine] in
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.ambient)
+            try? session.setActive(true)
+            try? engine.start()
+        }
     }
 
     /// Seconds since the synth started, as far as it has played.
