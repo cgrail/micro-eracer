@@ -28,7 +28,11 @@ const load = (k: string) => { try { return localStorage.getItem(k); } catch { re
 const save = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* not remembered */ } };
 
 let body: BodyKind = BODY_KINDS.find((b) => b === load('body')) ?? 'roadster';
-nameInput.value = load('name') ?? '';
+// a new Player gets a name to race under right away (the same lists as AppModel.swift's `randomName`)
+const FIRST_NAMES = ['Joe', 'Max', 'Kim', 'Lou', 'Ada', 'Sam', 'Zoe', 'Ben', 'Mia', 'Rex', 'Ivy', 'Gus', 'Lena', 'Otto', 'Rita', 'Finn'];
+const LAST_NAMES = ['Ram', 'Volt', 'Watt', 'Amp', 'Spark', 'Drift', 'Zap', 'Skid', 'Turbo', 'Fuse', 'Bolt', 'Ohm', 'Plug', 'Dash', 'Coil', 'Charge'];
+const pick = <T>(all: readonly T[]) => all[Math.floor(Math.random() * all.length)];
+nameInput.value = load('name') || `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
 const BODY_NAMES: Record<BodyKind, string> = { roadster: 'Roadster', suv: 'SUV', microbus: 'Microbus', pickup: 'Pickup', semi: 'Semi' };
 const garage = createGarage($('turntable'), $('stats'));
 const showBody = () => { $('body-name').textContent = BODY_NAMES[body]; garage.show(body); };
@@ -39,12 +43,12 @@ $('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 
-// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again. The Tracks to pick from
-// are the server's once it has said which it races (`setTracks`), so one it added or changed is there too; until then, and
-// for an Offline Race, the ones this game came with
+// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again; each visit starts on one
+// at random. The Tracks to pick from are the server's once it has said which it races (`setTracks`), so one it added or
+// changed is there too; until then, and for an Offline Race, the ones this game came with
 const trackSelect = $<HTMLSelectElement>('track'), course = createCourse($<HTMLCanvasElement>('track-map')), facts = $('facts');
-let tracks = TRACKS, trackIds = ['', ...tracks.map((t) => t.id)], picked = false;
-let track = trackIds.find((t) => t && t === load('track')) ?? '';
+let tracks = TRACKS, trackIds = ['', ...tracks.map((t) => t.id)];
+let track = pick(TRACKS).id;
 const fillTracks = () => {
   trackSelect.replaceChildren(new Option('Any Track', ''));
   for (const theme of new Set(tracks.map((t) => t.theme))) {
@@ -61,9 +65,8 @@ const sameTrack = (a: TrackDef, b: TrackDef) =>
 const setTracks = (list: TrackDef[]) => {
   tracks = list.map((d) => TRACKS.find((t) => sameTrack(t, d)) ?? d);
   trackIds = ['', ...tracks.map((t) => t.id)];
-  // the remembered pick, if it is one of the server's and nothing has been picked since
-  if (!picked) track = trackIds.find((t) => t && t === load('track')) ?? '';
-  else if (!trackIds.includes(track)) track = '';
+  // a Track no longer offered gives way to another at random
+  if (track && !trackIds.includes(track)) track = pick(tracks).id;
   fillTracks();
   showTrack();
 };
@@ -74,11 +77,11 @@ const showTrack = () => {
   const def = tracks.find((t) => t.id === track);
   course.show(def);
   $('course').classList.toggle('any', !def);
-  if (!def) { facts.replaceChildren(line('Any Track', 'place'), line('A new Track every Race'), line(`${tracks.length} to race on`)); return; }
+  if (!def) { facts.replaceChildren(line('A new Track every Race', 'place'), line(`${tracks.length} to race on`)); return; }
   const f = trackFacts(def), extras = [f.bridges && 'a bridge', f.climbs && count(f.climbs, 'a climb', 'climbs'), f.jumps && count(f.jumps, 'a jump', 'jumps')].filter(Boolean);
-  facts.replaceChildren(line(themeOf(def.theme).title, 'place'), line(`${f.length} m, ${f.turns} turns`), line(extras.join(', ') || 'all on one level'));
+  facts.replaceChildren(line(`${themeOf(def.theme).title} · ${f.length} m, ${f.turns} turns`, 'place'), line(extras.join(', ') || 'all on one level'));
 };
-const stepTrack = (by: number) => { picked = true; track = trackIds[(trackIds.indexOf(track) + by + trackIds.length) % trackIds.length]; showTrack(); };
+const stepTrack = (by: number) => { track = trackIds[(trackIds.indexOf(track) + by + trackIds.length) % trackIds.length]; showTrack(); };
 // held, ◀ and ▶ keep stepping, faster and faster, through all the Tracks; a tap on the name lists them all
 for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
   const button = $(id);
@@ -94,7 +97,7 @@ for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
   // Enter or Space on the focused button clicks without a pointer
   button.addEventListener('click', (e) => { if (e.detail === 0) stepTrack(by); });
 }
-trackSelect.addEventListener('change', () => { picked = true; track = trackSelect.value; showTrack(); trackSelect.blur(); });
+trackSelect.addEventListener('change', () => { track = trackSelect.value; showTrack(); trackSelect.blur(); });
 showTrack();
 course.run(true);
 
@@ -201,7 +204,6 @@ form.addEventListener('submit', async (e) => {
   const name = nameInput.value.trim();
   save('name', name);
   save('body', body);
-  save('track', track);
   error.textContent = '';
   play.disabled = true;
   sound.unlock();

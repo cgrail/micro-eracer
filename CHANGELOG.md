@@ -52,15 +52,25 @@ happens. Everything before 1.0 is in the git history.
 ### Start screen
 
 - Pick the Track as you pick the Body: ◀ and ▶ step through every Track (held, they keep going, faster and faster), the
-  picture shows it from above on its ground, and beside it are its place, length, turns, bridges, climbs and jumps.
-  Tapping its name lists every Track by place. Any Track, the first choice, joins the fullest Race whatever it races, as
-  before; a picked Track joins a Race on that Track, or starts one, and races it again and again. An Offline Race (and
-  the watch, which picks it from a list) does the same. The Track is remembered like the rest (`track`).
+  picture shows it from above on its ground, and below it are its place, length, turns, bridges, climbs and jumps.
+  Tapping its name lists every Track by place. Any Track, first in the list, joins the fullest Race whatever it races,
+  as before; a picked Track joins a Race on that Track, or starts one, and races it again and again. An Offline Race
+  (and the watch, which picks it from a list) does the same. Each start shows a Track picked at random, with its name,
+  and Play races it (the watch remembers its pick as `track`).
 - The picked Track's picture is the Track itself in 3D, with its scenery, landmarks, rivers and bridges, seen from above
   and turning slowly like the Body on its turntable, starting from behind the start line with a whirl as each Track comes
   up. Any Track keeps its question mark.
 - The whole start screen fits on one screen, on phones and tablets in both orientations and on desktops, without
   scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit.
+- The Body and the Track each sit between their ◀ and ▶, with the name right below the picture and the stat bars (two
+  to a row) or the place, length, turns, bridges, climbs and jumps under that. The Body turns closer up, so it fills its
+  picture, and the Body and Track tags are gone.
+- More to look at behind the form: comic rays from the middle, a chequered flag across the top and the bottom, and
+  stickers of a Zap, a Battery, a Missile, a Shield, a Mine and the flag, bobbing gently (they hold still with reduced
+  motion on).
+- Nickname is now Name, and a new Player starts with a name to race under, made up like Joe Ram or Max Volt.
+- Controls is filled in light blue with a shadow like Play's, only quieter, and Play's shadow no longer runs into the
+  form's edge on the right.
 - The wire: Races are joined in the `race2` room, which takes the picked Track as `track`. The `race` room is left to apps
   from before the picker and only races the first four Tracks, which they know.
 
@@ -90,17 +100,18 @@ happens. Everything before 1.0 is in the git history.
 - The E-Car accelerates by itself. A thumb steers anywhere on the screen (Buttons: left or right of the steering pad's
   middle; Slider: drag), the one action button right above the pad uses the Item (held, a Zap keeps firing), and a Back
   button for reversing shows only while the E-Car is stuck: the same controls as a phone's browser.
-- The same start screen (Nickname, the Body on its turntable with its stat bars, the Track, Controls, Play), HUD, cel-shaded look
+- The same start screen (Name, the Body on its turntable with its stat bars, the Track, Controls, Play), HUD, cel-shaded look
   with black outlines, themed scenery, drones, Item Boxes and weapons, synthesised sounds and soundtrack, and the Racers'
   voices. Name, Body, Steering, Pad and Sound are remembered under the same names as in the browser.
 - On an iPad with a hardware keyboard, the browsers' desktop keys work: arrows or WASD drive, Space, E or Shift uses the
   Item, and Space held keeps a Zap firing. A game controller works too: the left stick or the d-pad steers, the right
   trigger (or A) accelerates, the left trigger (or B) brakes and reverses, and X or the right shoulder uses the Item.
   Whatever was used last drives: keys and controllers have no auto-throttle (as on a desktop), and touching the screen
-  brings it back. Return in the Nickname field plays, as Enter does in the browser.
+  brings it back. Return in the Name field plays, as Enter does in the browser.
 - Two buttons under the Lap counter: the sound switch, and ✕ to leave the Race and go back to the start screen (in a
   browser, that's the back button).
-- The app icon is the browser tab's lightning bolt, drawn from the same code (`client/share/art.ts`).
+- The app icon, like the browser tab's and the home screen's, is a picture: a purple E-Car racing past Batteries under
+  MICRO E-RACER and lightning, with a Missile and a Mine, in a blue frame.
 - The browsers' faint halftone dot screen lies over the game, under the HUD, on iPhone, iPad and the watch.
 - Not on iOS: the desktop map (a phone's browser doesn't show it either).
 
@@ -129,7 +140,7 @@ happens. Everything before 1.0 is in the git history.
 ### Phones and tablets in the browser
 
 - The page never zooms, neither by pinching nor by a quick second tap anywhere (the steering pad, its wheel, a button's
-  label). Text can't be selected anywhere but the Nickname field, and a long press opens no menu. Tapping ◀ or ▶
+  label). Text can't be selected anywhere but the Name field, and a long press opens no menu. Tapping ◀ or ▶
   quickly on the start screen steps through every Body instead of skipping every other tap. On a desktop, a trackpad pinch,
   Ctrl + wheel and Ctrl or Cmd with + or − don't zoom the game either.
 
@@ -149,5 +160,11 @@ happens. Everything before 1.0 is in the git history.
 - A small HUD (Position, Lap, the Energy bar, the countdown and messages, the results; the Item is on the action
   button), and taps on the wrist for the countdown and GO, a Ram, a Hit, a Battery, an Item from a box, a Shield
   blocking, running dry and the finish.
-- The start screen is a list of the Nickname, the Body, the Track and the sound switch, the way watch apps lay out their
+- The start screen is a list of the Name, the Body, the Track and the sound switch, the way watch apps lay out their
   settings: the Body and the Track each open a list to pick from. The back button leaves the Race.
+
+### Privacy
+
+- A privacy policy at `/privacy-policy.html` (https://micro.grails.de/privacy-policy.html), for the App Store and the
+  browsers: no accounts, tracking or third parties; the name you race under and the race itself reach the server only
+  while you race, and the settings stay on the device.

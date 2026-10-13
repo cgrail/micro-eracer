@@ -1,15 +1,13 @@
 /**
  * The art for shared links, drawn as SVG in code like everything else: the 1200 × 630 card that Slack, Teams, X and
- * WhatsApp show under a link to the game, and the square icon for browser tabs and home screens. `plugin.ts` turns
- * both into PNGs at build time. Top-down E-Cars race up a road in the game's comic look (Bangers, black outlines,
- * the HUD's colours and the Seat colours).
+ * WhatsApp show under a link to the game, which `plugin.ts` turns into a PNG at build time. Top-down E-Cars race up a
+ * road in the game's comic look (Bangers, black outlines, the HUD's colours and the Seat colours).
  */
 const INK = '#1b1410', CREAM = '#ffe9c9', YELLOW = '#ffd60a', RED = '#ff4d4d', GLASS = '#1d2b45', ROAD = '#51565f', GREEN = '#39e46b';
 const FONT = `font-family="Bangers" letter-spacing="1"`;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 export const CARD = { width: 1200, height: 630 };
-export const ICON = 192;
 
 type Pose = { x: number; y: number; deg: number };
 
@@ -133,13 +131,4 @@ export function cardSvg() {
     place(roadster, speed(150, [[-30, 70], [30, 90]]) + car('roadster', RED, { n: 1, deg: roadster.deg }) +
       `<ellipse rx="104" ry="70" fill="#7fd6ff" fill-opacity="0.3" stroke="#fff" stroke-width="5" stroke-opacity="0.85"/>`, -16) +
     shot + title + caption + badge + `</svg>`;
-}
-
-/** The icon: a lightning bolt on a red tile with the backdrop's rays. */
-export function iconSvg() {
-  const s = ICON, c = s / 2, k = s / 76;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">` +
-    `<rect width="${s}" height="${s}" fill="${RED}"/>${rays(c, c, 12, s, '#ff6b5e')}` +
-    `<g transform="translate(${c + 5} ${c + 6}) scale(${k})">${bolt(INK, 5)}</g>` +
-    `<g transform="translate(${c} ${c}) scale(${k})">${bolt(YELLOW, 5)}</g></svg>`;
 }

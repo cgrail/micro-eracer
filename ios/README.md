@@ -77,7 +77,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Shared/Audio/Synth.swift`, `Sound.swift`, `Songs.swift` | `client/src/audio.ts`, `songs.ts` |
 | `Shared/HudFeed.swift`, `MicroERacer/UI/HUD.swift`, the watch's `WatchHUD` | `client/src/hud.ts` |
 | `Shared/Controls.swift`, `MicroERacer/UI/TouchControls.swift`, `MicroERacer/Pads.swift` | `client/src/input.ts` (touch, and the keys on an iPad's keyboard; `Pads.swift` adds game controllers) |
-| `MicroERacer/UI/StartView.swift`, `TrackPick.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts`, `trackmap.ts` |
+| `MicroERacer/UI/StartView.swift`, `TrackPick.swift`, `Backdrop.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts`, `trackmap.ts`, and `#backdrop` behind it in `style.css` |
 | `MicroERacer/Practice.swift`, `UI/PracticeView.swift` | `client/src/practice.ts`, and the Practice Ground's settings (`#practice`) in `client/index.html` and `main.ts` |
 | `MicroERacer/AppModel.swift` | `client/src/main.ts` |
 
@@ -113,8 +113,8 @@ a Hit, a Battery, an Item from a box, a Shield blocking, running dry and the fin
   very files the browsers load (CC0, credited in its `CREDITS.md`).
 - `Shared/Resources/Bangers.woff` is the same Bangers file the browsers get from `@fontsource/bangers` (SIL Open Font
   License, `Bangers-OFL.txt`); CoreText reads WOFF directly.
-- The app icons are drawn by `client/share/art.ts`, like the browsers' icon: `npx tsx ios/icon.ts` renders them into both
-  asset catalogs. Run it again after changing the art.
+- The app icons are a picture, `AppIcon-1024.png` in both asset catalogs; the browsers' `client/public/icon.png` is the same
+  one at 192 px. iOS lays its rounded mask over it, and watchOS its circle.
 - `Shared/Resources/Themes.json` is the scenery of every theme beyond the first four (their props, landmarks, ground and
   sky), and for each of their Tracks where `client/src/themes/staging.ts` put its river, bridge and landmarks, written by
   `npx tsx ios/themes.ts` from the web's own data in `client/src/themes/`. `ThemeData.swift` builds the same parts from it

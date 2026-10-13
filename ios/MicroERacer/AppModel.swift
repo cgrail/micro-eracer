@@ -28,8 +28,7 @@ final class AppModel: ObservableObject {
     @Published var askUpdate = false
     /// Where the new version is, as the server says (`APP_STORE_URL`); the App Store's front page otherwise.
     private(set) var updateLink = URL(string: "itms-apps://apps.apple.com")!
-    /// Whether a Track has been picked since the app started, so the server's list doesn't put the remembered one back.
-    private var picked = false, checking = false
+    private var checking = false
     let controls = Controls(), sound = Sound()
 
     /// The same game server the browsers use; `-server ws://192.168.1.20:2567` as a launch argument (or that UserDefaults
@@ -44,10 +43,10 @@ final class AppModel: ObservableObject {
         if let url = Bundle.main.url(forResource: "Bangers", withExtension: "woff") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }
         // the same keys as the browsers' localStorage
         let d = UserDefaults.standard
-        name = d.string(forKey: "name") ?? ""
+        name = d.string(forKey: "name").flatMap { $0.isEmpty ? nil : $0 } ?? randomName()
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
-        let saved = d.string(forKey: "track") ?? ""
-        track = TRACKS.contains { $0.id == saved } ? saved : ""
+        // each start on a Track at random
+        track = TRACKS.randomElement()!.id
         steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .buttons
         side = PadSide(rawValue: d.string(forKey: "side") ?? "") ?? .left
         muted = d.string(forKey: "muted") == "1"
@@ -56,12 +55,6 @@ final class AppModel: ObservableObject {
     }
 
     private func save(_ key: String, _ value: String) { UserDefaults.standard.set(value, forKey: key) }
-
-    /// Picks a Track on the start screen (or "" for any).
-    func pick(_ id: String) {
-        picked = true
-        track = id
-    }
 
     /// Asks the server whether it still races with this app, and which Tracks it races: on launch and whenever the app comes
     /// back to the front. With no answer (no network, or a server from before it gave one) nothing changes, and Play tries
@@ -80,9 +73,8 @@ final class AppModel: ObservableObject {
 
     private func setTracks(_ list: [TrackDef]) {
         tracks = list
-        // the remembered pick, if it is one of these and nothing has been picked since
-        let saved = UserDefaults.standard.string(forKey: "track") ?? ""
-        if !picked { track = list.contains { $0.id == saved } ? saved : "" } else if !list.contains(where: { $0.id == track }) { track = "" }
+        // a Track no longer offered gives way to another at random
+        if !track.isEmpty && !list.contains(where: { $0.id == track }) { track = list.randomElement()?.id ?? "" }
     }
 
     private func showOutdated() {
@@ -94,7 +86,7 @@ final class AppModel: ObservableObject {
 
     func play() async {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
-        save("name", name); save("body", body.rawValue); save("track", track)
+        save("name", name); save("body", body.rawValue)
         error = ""
         joining = true
         defer { joining = false }
@@ -162,6 +154,13 @@ final class AppModel: ObservableObject {
         hud = HudState()
         UIApplication.shared.isIdleTimerDisabled = false
     }
+}
+
+/// A name for a new Player to race under right away (the same lists as main.ts).
+private func randomName() -> String {
+    let first = ["Joe", "Max", "Kim", "Lou", "Ada", "Sam", "Zoe", "Ben", "Mia", "Rex", "Ivy", "Gus", "Lena", "Otto", "Rita", "Finn"]
+    let last = ["Ram", "Volt", "Watt", "Amp", "Spark", "Drift", "Zap", "Skid", "Turbo", "Fuse", "Bolt", "Ohm", "Plug", "Dash", "Coil", "Charge"]
+    return "\(first.randomElement()!) \(last.randomElement()!)"
 }
 
 @main

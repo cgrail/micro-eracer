@@ -86,7 +86,7 @@ struct WatchStartView: View {
             // a List, not a ScrollView: there the Pickers fall back to wheels squashed to a sliver
             List {
                 Comic(text: "Micro E-Racer", size: 24, fill: Color(hex: 0xffd60a)).listRowBackground(Color.clear)
-                TextField("Nickname", text: $model.name)
+                TextField("Name", text: $model.name)
                 Picker("Body", selection: $model.body) {
                     ForEach(BODY_KINDS, id: \.self) { Text(BODY_NAMES[$0]!).tag($0) }
                 }
