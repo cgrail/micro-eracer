@@ -39,7 +39,7 @@ Which kind of E-Car a Racer drives: a Roadster, SUV, Microbus, Pickup or Semi. E
 _Avoid_: Model, class, skin
 
 **Offline Race**:
-A Race against Bots that runs entirely in the browser, used only when no server is reachable.
+A Race against Bots that runs entirely in the browser or the app, used only when no server is reachable, or when the server no longer races with that version of the game (until it is reloaded or updated).
 _Avoid_: Single player, practice mode
 
 **Practice Ground**:

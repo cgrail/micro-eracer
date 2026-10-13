@@ -2,16 +2,16 @@ import SceneKit
 
 // The state sync of client/src/game.ts: the room's state (or the Offline Race's) into the scene.
 extension Game {
-    func loadTrack(_ id: String) {
+    func loadTrack(_ def: TrackDef) {
         for v in views.compactMap({ $0 }) { v.model.node.removeFromParentNode(); v.drone.removeFromParentNode() }
         views = [CarView?](repeating: nil, count: SEATS)
         for n in batteries.values.map(\.node) + mines.values.map(\.node) + bolts.values.map(\.node) + boxes { n.removeFromParentNode() }
         batteries = [:]; mines = [:]; bolts = [:]
         own = nil
         look?.node.removeFromParentNode()
-        let def = TRACKS.first { $0.id == id } ?? TRACKS[0], track = buildTrack(def)
+        let track = buildTrack(def)
         self.track = track
-        // every Track has its own song, and its name goes up while the grid counts down
+        // every Track has its own song (a Track only the server knows gets the first), and its name goes up while the grid counts down
         sound.music(TRACKS.firstIndex { $0.id == def.id } ?? 0)
         feed.announce("\(def.name), \(themeLook(def.theme).title)", now)
         world = createTrackWorld(track)
@@ -30,7 +30,8 @@ extension Game {
 
     func onState(_ s: RaceState) {
         state = s
-        if s.trackId != track?.def.id { loadTrack(s.trackId) }
+        // the Track the room sent, so it is the server's even where this app has none like it
+        if s.trackId != track?.def.id { loadTrack(s.track ?? TRACKS.first { $0.id == s.trackId } ?? TRACKS[0]) }
         for (i, c) in s.cars.enumerated() where i < SEATS { syncCar(c, i) }
         syncSpots(s.batteries)
         syncMines(s.mines)

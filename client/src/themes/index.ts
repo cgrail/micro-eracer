@@ -20,12 +20,12 @@ const props: Record<string, PropData> = { ...offices.props, ...rhineNeckar.props
 export const PROP_DATA: Record<string, { prop: PropData; reach: number }> = Object.fromEntries(Object.entries(props).map(([k, prop]) => [k, { prop, reach: reach(prop) }]));
 
 const staged = new Map<string, Staging>();
-/** A Track's river, bridge and landmarks, if its theme is data (staging.ts). */
+/** A Track's river, bridge and landmarks, if its theme is data (staging.ts); per layout, as the server may change a Track's. */
 export function stagingOf(track: Track): Staging | undefined {
-  const theme = THEME_DATA[track.def.theme as DataTheme];
+  const theme = THEME_DATA[track.def.theme as DataTheme], key = `${track.def.id} ${track.def.pieces}`;
   if (!theme) return undefined;
-  if (!staged.has(track.def.id)) staged.set(track.def.id, staging(track, theme));
-  return staged.get(track.def.id);
+  if (!staged.has(key)) staged.set(key, staging(track, theme));
+  return staged.get(key);
 }
 
 /** What ios/Shared/Resources/Themes.json holds (`npx tsx ios/themes.ts`): every data theme and prop, and every Track's staging, one per line. */

@@ -90,7 +90,7 @@ private func sign(_ text: String, _ w: Int, _ h: Int, _ size: CGFloat, _ fill: I
 }
 
 func buildTrackScene(_ track: Track) -> TrackScene {
-    let look = themeLook(track.def.theme), random = rng(track.def.id), stage = stagingOf(track.def.id)
+    let look = themeLook(track.def.theme), random = rng(track.def.id), stage = stagingOf(track.def)
     // the bridge over a theme's river: its walls are its railings, and it stands on its own piers instead of pillars
     let onBridge = { (i: Int) -> Bool in stage?.bridge.map { i >= $0.from && i <= $0.to } ?? false }
     var cache: [String: SCNMaterial] = [:]

@@ -8,7 +8,7 @@ import { GOODIES_FROM } from '../../shared/src/combat.ts';
 import type { World } from '../../shared/src/physics.ts';
 import type { RaceEvent } from '../../shared/src/race.ts';
 import {
-  type Progress, type Track, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
+  type Progress, type Track, type TrackDef, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
@@ -22,7 +22,7 @@ import { themeOf } from './props.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
-import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
+import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot, trackDefOf } from './state.ts';
 import { dispose } from './toon.ts';
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
@@ -61,16 +61,16 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
   let boxes: THREE.Group[] = [];
   let clock = 0, ticks = 0, status = '', shake = 0, nextShot = 0, nextBeep = 0, roulette = 0, inPit = false, stuckFor = 0;
 
-  function loadTrack(id: string) {
+  function loadTrack(def: TrackDef) {
     for (const v of views) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); }
     views.length = 0;
     for (const m of [...batteries.values(), ...mines.values(), ...[...bolts.values()].map((b) => b.mesh), ...boxes]) { scene.remove(m); dispose(m); }
     batteries.clear(); mines.clear(); bolts.clear();
     own = undefined;
     if (look) { scene.remove(look.group); dispose(look.group); look.background.dispose(); }
-    track = buildTrack(TRACKS.find((t) => t.id === id) ?? TRACKS[0]);
-    // every Track has its own song, and its name goes up while the grid counts down
-    sound.music(TRACKS.indexOf(track.def));
+    track = buildTrack(def);
+    // every Track has its own song (a Track only the server knows gets the first), and its name goes up while the grid counts down
+    sound.music(Math.max(0, TRACKS.findIndex((t) => t.id === def.id)));
     ui.announce(`${track.def.name}, ${themeOf(track.def.theme).title}`);
     world = createTrackWorld(track);
     look = buildTrackScene(track);
@@ -237,7 +237,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
 
   room.onStateChange((s: RaceState) => {
     state = s;
-    if (s.trackId !== track?.def.id) loadTrack(s.trackId);
+    if (s.trackId !== track?.def.id) loadTrack(trackDefOf(s));
     s.cars.forEach(syncCar);
     syncSpots(s.batteries, batteries, makeBattery, 1.1, (m) => {
       for (let k = 0; k < 18; k++) sparks.emit(m.position.x, m.position.y, m.position.z, (Math.random() - 0.5) * 8, Math.random() * 7, (Math.random() - 0.5) * 8, 0.5, 0.6);

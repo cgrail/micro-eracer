@@ -37,6 +37,13 @@
     </div>
   </form>
 
+  <!-- when the server no longer races with this version of the game: reload it, or race the Bots for now -->
+  <dialog id="update" aria-labelledby="update-title" aria-describedby="update-text">
+    <h2 id="update-title">New version!</h2>
+    <p id="update-text">The game has moved on, and this page is too old to race online with it. Reload it to race online again, or race the Bots offline for now.</p>
+    <div class="buttons"><button type="button" id="update-later">Race offline</button><button type="button" id="update-now">Reload</button></div>
+  </dialog>
+
   <!-- touch only: the Practice Ground, where the controls are set and tried out -->
   <section id="practice" aria-labelledby="practice-title" hidden>
     <h2 id="practice-title">Controls</h2>

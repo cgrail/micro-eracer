@@ -64,6 +64,21 @@ happens. Everything before 1.0 is in the git history.
 - The wire: Races are joined in the `race2` room, which takes the picked Track as `track`. The `race` room is left to apps
   from before the picker and only races the first four Tracks, which they know.
 
+### Online
+
+- The game and the server check that they still race together. Every browser and app tells the server which version of
+  the online game it speaks, when it starts (`GET /version?protocol=2`) and when it joins (`protocol`), and the server
+  says whether it still races with that one. If not (an app that hasn't been updated, or a browser tab left open across
+  a deploy), a New version! dialog offers Update (the App Store, `APP_STORE_URL` on the server) in the app or Reload in
+  the browser, or Race offline; Play becomes Play offline and races the Bots, and the Offline Race says how to race online
+  again. The server turns such a client away when it joins, too. The apps from before this check send no version and
+  count as the first, which the server still races with.
+- The Tracks for online Races come from the server. Once it has answered, the start screen offers the Tracks it races
+  (`GET /tracks`), and every Race is built from the Track the room sends along (`track`: its id, name, place, pieces,
+  Puddles and Item Boxes), so a Track the server adds or changes reaches the apps without an update. One set in a place
+  the game doesn't know yet is left off the start screen, and drawn on the kitchen table should Any Track bring it up. An
+  Offline Race keeps to the Tracks the game came with.
+
 ### iPhone and iPad
 
 - **A native app for iPhone and iPad** ([ios/](ios/)), in Swift with SceneKit. It joins the same Races on the same server

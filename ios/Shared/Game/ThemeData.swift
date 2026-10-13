@@ -182,7 +182,11 @@ struct Staging {
 
 private var stagings: [String: Staging] = [:]
 /// A Track's staging, if its theme is data (none for the first four themes).
-func stagingOf(_ id: String) -> Staging? {
+func stagingOf(_ def: TrackDef) -> Staging? {
+    // worked out for the Tracks this app came with: a layout the server changed, or a Track only it has, gets none, so
+    // nothing of it stands on the road
+    guard TRACKS.contains(def) else { return nil }
+    let id = def.id
     if let s = stagings[id] { return s }
     guard let t = DATA.tracks[id] else { return nil }
     let landmarks = (t["landmarks"] as? [[String: Any]] ?? []).map { l in

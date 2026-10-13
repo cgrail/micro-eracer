@@ -2,7 +2,8 @@
 import '@fontsource/bangers';
 import { Client } from '@colyseus/sdk';
 import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
-import { TRACKS } from '../../shared/src/track.ts';
+import { TRACKS, type TrackDef } from '../../shared/src/track.ts';
+import { OUTDATED, PROTOCOL, type VersionInfo } from '../../shared/src/version.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createGarage } from './garage.ts';
@@ -10,7 +11,7 @@ import { ITEM_ICONS } from './hud.ts';
 import { createInput, isTouch, PAD_SIDES, type PadSide, type Steering, STEERINGS } from './input.ts';
 import { offlineRace } from './offline.ts';
 import { startPractice } from './practice.ts';
-import { themeOf } from './props.ts';
+import { knowsTheme, themeOf } from './props.ts';
 import type { RaceLink } from './state.ts';
 import { createCourse, trackFacts } from './trackmap.ts';
 
@@ -38,29 +39,46 @@ $('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 
-// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again
+// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again. The Tracks to pick from
+// are the server's once it has said which it races (`setTracks`), so one it added or changed is there too; until then, and
+// for an Offline Race, the ones this game came with
 const trackSelect = $<HTMLSelectElement>('track'), course = createCourse($<HTMLCanvasElement>('track-map')), facts = $('facts');
-const TRACK_IDS = ['', ...TRACKS.map((t) => t.id)];
-let track = TRACK_IDS.find((t) => t && t === load('track')) ?? '';
-trackSelect.append(new Option('Any Track', ''));
-for (const theme of new Set(TRACKS.map((t) => t.theme))) {
-  const places = document.createElement('optgroup');
-  places.label = themeOf(theme).title;
-  places.append(...TRACKS.filter((t) => t.theme === theme).map((t) => new Option(t.name, t.id)));
-  trackSelect.append(places);
-}
+let tracks = TRACKS, trackIds = ['', ...tracks.map((t) => t.id)], picked = false;
+let track = trackIds.find((t) => t && t === load('track')) ?? '';
+const fillTracks = () => {
+  trackSelect.replaceChildren(new Option('Any Track', ''));
+  for (const theme of new Set(tracks.map((t) => t.theme))) {
+    const places = document.createElement('optgroup');
+    places.label = themeOf(theme).title;
+    places.append(...tracks.filter((t) => t.theme === theme).map((t) => new Option(t.name, t.id)));
+    trackSelect.append(places);
+  }
+};
+fillTracks();
+const sameTrack = (a: TrackDef, b: TrackDef) =>
+  a.id === b.id && a.name === b.name && a.theme === b.theme && a.pieces === b.pieces && `${a.puddles}` === `${b.puddles}` && `${a.items}` === `${b.items}`;
+/** Puts these Tracks up to pick from: this game's own where they are the same, so nothing is built twice. */
+const setTracks = (list: TrackDef[]) => {
+  tracks = list.map((d) => TRACKS.find((t) => sameTrack(t, d)) ?? d);
+  trackIds = ['', ...tracks.map((t) => t.id)];
+  // the remembered pick, if it is one of the server's and nothing has been picked since
+  if (!picked) track = trackIds.find((t) => t && t === load('track')) ?? '';
+  else if (!trackIds.includes(track)) track = '';
+  fillTracks();
+  showTrack();
+};
 const line = (text: string, className = '') => Object.assign(document.createElement('p'), { textContent: text, className });
 const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
 const showTrack = () => {
   trackSelect.value = track;
-  const def = TRACKS.find((t) => t.id === track);
+  const def = tracks.find((t) => t.id === track);
   course.show(def);
   $('course').classList.toggle('any', !def);
-  if (!def) { facts.replaceChildren(line('Any Track', 'place'), line('A new Track every Race'), line(`${TRACKS.length} to race on`)); return; }
+  if (!def) { facts.replaceChildren(line('Any Track', 'place'), line('A new Track every Race'), line(`${tracks.length} to race on`)); return; }
   const f = trackFacts(def), extras = [f.bridges && 'a bridge', f.climbs && count(f.climbs, 'a climb', 'climbs'), f.jumps && count(f.jumps, 'a jump', 'jumps')].filter(Boolean);
   facts.replaceChildren(line(themeOf(def.theme).title, 'place'), line(`${f.length} m, ${f.turns} turns`), line(extras.join(', ') || 'all on one level'));
 };
-const stepTrack = (by: number) => { track = TRACK_IDS[(TRACK_IDS.indexOf(track) + by + TRACK_IDS.length) % TRACK_IDS.length]; showTrack(); };
+const stepTrack = (by: number) => { picked = true; track = trackIds[(trackIds.indexOf(track) + by + trackIds.length) % trackIds.length]; showTrack(); };
 // held, ◀ and ▶ keep stepping, faster and faster, through all the Tracks; a tap on the name lists them all
 for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
   const button = $(id);
@@ -76,7 +94,7 @@ for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
   // Enter or Space on the focused button clicks without a pointer
   button.addEventListener('click', (e) => { if (e.detail === 0) stepTrack(by); });
 }
-trackSelect.addEventListener('change', () => { track = trackSelect.value; showTrack(); trackSelect.blur(); });
+trackSelect.addEventListener('change', () => { picked = true; track = trackSelect.value; showTrack(); trackSelect.blur(); });
 showTrack();
 course.run(true);
 
@@ -151,6 +169,33 @@ const serverUrl = import.meta.env.DEV ? `${location.protocol}//${location.hostna
 // waiting longer than this for the server, Play starts an Offline Race instead
 const JOIN_TIMEOUT = 5000;
 
+// A tab left open across a deploy runs the old game. The server says whether it still races with this one: if not, the
+// update dialog offers a reload, and Play races offline (`outdated`); if so, it says which Tracks it races
+const update = $<HTMLDialogElement>('update');
+let outdated = false;
+const showOutdated = () => {
+  if (!outdated) setTracks(TRACKS);
+  outdated = true;
+  play.textContent = 'Play offline';
+  if (!update.open) update.showModal();
+};
+$('update-now').addEventListener('click', () => location.reload());
+$('update-later').addEventListener('click', () => update.close());
+const isTrack = (d: any): d is TrackDef =>
+  typeof d?.id === 'string' && typeof d.name === 'string' && typeof d.pieces === 'string' && knowsTheme(d.theme)
+  && [d.puddles, d.items].every((l) => Array.isArray(l) && l.every(Number.isInteger));
+(async () => {
+  try {
+    const info: VersionInfo = await (await fetch(`${serverUrl}/version?protocol=${PROTOCOL}`)).json();
+    if (!info.compatible) { showOutdated(); return; }
+    const list: unknown = await (await fetch(`${serverUrl}/tracks`)).json();
+    // only the Tracks this game can draw: a newer server's may be set somewhere it doesn't know yet
+    if (Array.isArray(list) && list.some(isTrack) && !outdated) setTracks(list.filter(isTrack));
+  } catch {
+    // no server, or one from before it answered: this game's own Tracks, and Play tries to join all the same
+  }
+})();
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = nameInput.value.trim();
@@ -163,15 +208,22 @@ form.addEventListener('submit', async (e) => {
   try {
     // name tags and the banner are drawn on canvases, which need the comic font loaded first
     await document.fonts.load('40px Bangers').catch(() => undefined);
-    // `race2`: a picked Track joins a Race on it, any Track the fullest Race (`race` is left to apps from before the picker)
-    const join = new Client(serverUrl).joinOrCreate('race2', track ? { name, body, track } : { name, body });
-    let room: RaceLink;
-    try {
-      room = await Promise.race([join, new Promise<never>((_, fail) => setTimeout(() => fail(new Error('timeout')), JOIN_TIMEOUT))]);
-    } catch {
-      // no server to be reached: race the Bots right here
-      join.then((late) => late.leave(), () => {});
-      room = offlineRace(name, body, track || undefined);
+    let room: RaceLink | undefined;
+    if (!outdated) {
+      // `race2`: a picked Track joins a Race on it, any Track the fullest Race (`race` is left to apps from before the picker)
+      const join = new Client(serverUrl).joinOrCreate('race2', track ? { name, body, track, protocol: PROTOCOL } : { name, body, protocol: PROTOCOL });
+      try {
+        room = await Promise.race([join, new Promise<never>((_, fail) => setTimeout(() => fail(new Error('timeout')), JOIN_TIMEOUT))]);
+      } catch (err) {
+        join.then((late) => late.leave(), () => {});
+        // a server that no longer races with this game: the update dialog first, and Play then races offline
+        if ((err as { code?: unknown }).code === OUTDATED) { showOutdated(); return; }
+      }
+    }
+    if (!room) {
+      // no server to be reached (or none to race with): race the Bots right here, on this game's own Tracks
+      room = offlineRace(name, body, TRACKS.some((t) => t.id === track) ? track : undefined);
+      offline.textContent = outdated ? 'Offline Race: reload to race online' : 'Offline Race: no server, just you and the Bots';
       offline.hidden = false;
     }
     form.hidden = true;

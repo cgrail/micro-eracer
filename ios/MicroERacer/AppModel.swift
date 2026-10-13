@@ -19,6 +19,17 @@ final class AppModel: ObservableObject {
     @Published private(set) var hud = HudState()
     @Published private(set) var joining = false
     @Published var error = ""
+    /// The Tracks to pick from: the server's once it has said which it races (`check`), so one it added or changed is there
+    /// too; until then, and while the app is `outdated`, the ones it came with, which an Offline Race races.
+    @Published private(set) var tracks = TRACKS
+    /// The server no longer races with this app: Play races offline until it is updated.
+    @Published private(set) var outdated = false
+    /// The update dialog, up when the server first says the app is too old.
+    @Published var askUpdate = false
+    /// Where the new version is, as the server says (`APP_STORE_URL`); the App Store's front page otherwise.
+    private(set) var updateLink = URL(string: "itms-apps://apps.apple.com")!
+    /// Whether a Track has been picked since the app started, so the server's list doesn't put the remembered one back.
+    private var picked = false, checking = false
     let controls = Controls(), sound = Sound()
 
     /// The same game server the browsers use; `-server ws://192.168.1.20:2567` as a launch argument (or that UserDefaults
@@ -35,8 +46,8 @@ final class AppModel: ObservableObject {
         let d = UserDefaults.standard
         name = d.string(forKey: "name") ?? ""
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
-        let picked = d.string(forKey: "track") ?? ""
-        track = TRACKS.contains { $0.id == picked } ? picked : ""
+        let saved = d.string(forKey: "track") ?? ""
+        track = TRACKS.contains { $0.id == saved } ? saved : ""
         steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .buttons
         side = PadSide(rawValue: d.string(forKey: "side") ?? "") ?? .left
         muted = d.string(forKey: "muted") == "1"
@@ -46,16 +57,59 @@ final class AppModel: ObservableObject {
 
     private func save(_ key: String, _ value: String) { UserDefaults.standard.set(value, forKey: key) }
 
+    /// Picks a Track on the start screen (or "" for any).
+    func pick(_ id: String) {
+        picked = true
+        track = id
+    }
+
+    /// Asks the server whether it still races with this app, and which Tracks it races: on launch and whenever the app comes
+    /// back to the front. With no answer (no network, or a server from before it gave one) nothing changes, and Play tries
+    /// to join all the same.
+    func check() async {
+        if checking { return }
+        checking = true
+        defer { checking = false }
+        guard let info = try? await ServerInfo.fetch(endpoint: endpoint) else { return }
+        if let link = info.update { updateLink = link }
+        if !info.compatible { showOutdated(); return }
+        // racing with this app again (a server rolled back): online it is
+        outdated = false
+        if !info.tracks.isEmpty { setTracks(info.tracks) }
+    }
+
+    private func setTracks(_ list: [TrackDef]) {
+        tracks = list
+        // the remembered pick, if it is one of these and nothing has been picked since
+        let saved = UserDefaults.standard.string(forKey: "track") ?? ""
+        if !picked { track = list.contains { $0.id == saved } ? saved : "" } else if !list.contains(where: { $0.id == track }) { track = "" }
+    }
+
+    private func showOutdated() {
+        if !outdated { setTracks(TRACKS); askUpdate = true }
+        outdated = true
+    }
+
+    func openUpdate() { UIApplication.shared.open(updateLink) }
+
     func play() async {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
         save("name", name); save("body", body.rawValue); save("track", track)
         error = ""
         joining = true
         defer { joining = false }
-        var link: RaceLink? = await join(name)
+        var link: RaceLink?
+        if !outdated {
+            switch await join(name) {
+            case .joined(let race): link = race
+            // a server that no longer races with this app: the update dialog first, and Play then races offline
+            case .outdated: showOutdated(); return
+            case .unreachable: break
+            }
+        }
         let offline = link == nil
-        // no server to be reached: race the Bots right here
-        if link == nil { link = OfflineRace(name: name, body: body, track: track.isEmpty ? nil : track) }
+        // no server to be reached (or none to race with): race the Bots right here, on the app's own Tracks
+        if link == nil { link = OfflineRace(name: name, body: body, track: TRACKS.contains { $0.id == track } ? track : nil) }
         game = Game(link: link!, controls: controls, sound: sound, offline: offline, publish: { [weak self] in self?.hud = $0 }, left: { [weak self] in
             self?.game = nil
             self?.error = "Connection lost."
@@ -63,22 +117,28 @@ final class AppModel: ObservableObject {
         UIApplication.shared.isIdleTimerDisabled = true
     }
 
-    /// The online Race, or nil once `joinTimeout` has passed without one (a late one is left again).
-    private func join(_ name: String) async -> OnlineRace? {
+    private enum Joined { case joined(OnlineRace), outdated, unreachable }
+
+    /// The online Race; `.outdated` when the server refused this app as too old, `.unreachable` when it failed otherwise or
+    /// `joinTimeout` passed without one (a late one is left again).
+    private func join(_ name: String) async -> Joined {
         let endpoint = self.endpoint, body = self.body, track = self.track, timeout = joinTimeout
         var settled = false
-        return await withCheckedContinuation { (done: CheckedContinuation<OnlineRace?, Never>) in
+        return await withCheckedContinuation { (done: CheckedContinuation<Joined, Never>) in
             Task { @MainActor in
-                let race = try? await OnlineRace.join(endpoint: endpoint, name: name, body: body, track: track)
-                if settled { race?.leave(); return }
+                let joined: Joined
+                do { joined = .joined(try await OnlineRace.join(endpoint: endpoint, name: name, body: body, track: track)) } catch {
+                    joined = OnlineRace.outdated(error) ? .outdated : .unreachable
+                }
+                if settled { if case .joined(let race) = joined { race.leave() }; return }
                 settled = true
-                done.resume(returning: race)
+                done.resume(returning: joined)
             }
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: timeout)
                 if settled { return }
                 settled = true
-                done.resume(returning: nil)
+                done.resume(returning: .unreachable)
             }
         }
     }
@@ -107,6 +167,7 @@ final class AppModel: ObservableObject {
 @main
 struct MicroERacerApp: App {
     @StateObject private var model = AppModel()
+    @Environment(\.scenePhase) private var phase
     var body: some Scene {
         WindowGroup {
             Group {
@@ -116,6 +177,15 @@ struct MicroERacerApp: App {
             }
             .statusBarHidden()
             .persistentSystemOverlays(.hidden)
+            // on launch, and again on coming back: the server may have moved on while the app was away
+            .task { await model.check() }
+            .onChange(of: phase) { if $0 == .active { Task { await model.check() } } }
+            .alert("New version!", isPresented: $model.askUpdate) {
+                Button("Update") { model.openUpdate() }
+                Button("Race offline", role: .cancel) {}
+            } message: {
+                Text("The game has moved on, and this version of the app is too old to race online with it. Update it to race online again, or race the Bots offline for now.")
+            }
         }
     }
 }
@@ -129,7 +199,7 @@ struct RaceView: View {
         ZStack {
             GameView(game: game).ignoresSafeArea()
             Halftone()
-            HUDView(hud: model.hud)
+            HUDView(hud: model.hud, outdated: model.outdated)
             TouchControls(controls: model.controls, steering: model.steering, side: model.side, action: model.hud.action, showBack: model.hud.showBack)
             VStack(spacing: 10) {
                 round(model.muted ? "🔇" : "🔊", label: "Sound") { model.muted.toggle() }

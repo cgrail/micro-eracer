@@ -16,12 +16,52 @@ final class SpotSchema: SchemaRef, @unchecked Sendable {
     var spot: Spot { Spot(id: Int(view["id"]), x: view["x"], y: view["y"], z: view["z"]) }
     var bolt: BoltState { BoltState(id: Int(view["id"]), kind: view.string("kind") ?? "shot", x: view["x"], y: view["y"], z: view["z"], vx: view["vx"], vz: view["vz"]) }
 }
+final class TrackSchema: SchemaRef, @unchecked Sendable {
+    /// The Race's Track; on a theme this app doesn't know (a newer server's) it is drawn as the kitchen.
+    var def: TrackDef? {
+        guard let id = view.string("id"), !id.isEmpty, let pieces = view.string("pieces"), !pieces.isEmpty else { return nil }
+        return TrackDef(id: id, name: view.string("name") ?? id, theme: Theme(rawValue: view.string("theme") ?? "") ?? .kitchen, pieces: pieces,
+                        puddles: arrayOf("puddles", Int.self).values, items: arrayOf("items", Int.self).values)
+    }
+}
 final class RaceRoomState: SchemaRef, @unchecked Sendable {
     var state: RaceState {
-        RaceState(phase: Phase(rawValue: view.string("phase") ?? "") ?? .grid, timer: view["timer"], trackId: view.string("trackId") ?? "",
-                  cars: arrayOf("cars", CarSchema.self).values.map(\.state), results: arrayOf("results", String.self).values,
-                  batteries: arrayOf("batteries", SpotSchema.self).values.map(\.spot), bolts: arrayOf("bolts", SpotSchema.self).values.map(\.bolt),
-                  mines: arrayOf("mines", SpotSchema.self).values.map(\.spot), boxes: arrayOf("boxes", Bool.self).values)
+        let trackId = view.string("trackId") ?? "", track = refOf("track", TrackSchema.self)?.def
+        return RaceState(phase: Phase(rawValue: view.string("phase") ?? "") ?? .grid, timer: view["timer"], trackId: trackId,
+                         cars: arrayOf("cars", CarSchema.self).values.map(\.state), results: arrayOf("results", String.self).values,
+                         batteries: arrayOf("batteries", SpotSchema.self).values.map(\.spot), bolts: arrayOf("bolts", SpotSchema.self).values.map(\.bolt),
+                         mines: arrayOf("mines", SpotSchema.self).values.map(\.spot), boxes: arrayOf("boxes", Bool.self).values,
+                         track: track?.id == trackId ? track : nil)
+    }
+}
+
+/// What the server says of this app before it races online (server/src/api.ts): whether it still may (`/version`), where to
+/// get the new one if not, and the Tracks it races (`/tracks`), which the start screen offers instead of the app's own.
+struct ServerInfo {
+    let compatible: Bool
+    let update: URL?
+    /// Only those on themes this app can draw; empty when the server isn't racing with it.
+    let tracks: [TrackDef]
+
+    static func fetch(endpoint: String) async throws -> ServerInfo {
+        let client = try Colyseus.Client(endpoint: endpoint)
+        // the requests run on the client's own connection, which goes when the client does
+        defer { withExtendedLifetime(client) {} }
+        let version = try await client.http.get("/version?protocol=\(PROTOCOL)").json
+        let update = version?["update"]?.string.flatMap(URL.init(string:))
+        guard version?["compatible"]?.bool ?? true else { return ServerInfo(compatible: false, update: update, tracks: []) }
+        let tracks = try await client.http.get("/tracks").json?.array?.compactMap(TrackDef.init(wire:)) ?? []
+        return ServerInfo(compatible: true, update: update, tracks: tracks)
+    }
+}
+
+extension TrackDef {
+    /// One of the server's Tracks, as `/tracks` lists it; nil for one on a theme this app doesn't know.
+    init?(wire t: MessagePackValue) {
+        guard let id = t["id"]?.string, let name = t["name"]?.string, let theme = Theme(rawValue: t["theme"]?.string ?? ""),
+              let pieces = t["pieces"]?.string, let puddles = t["puddles"]?.array?.compactMap(\.int), let items = t["items"]?.array?.compactMap(\.int)
+        else { return nil }
+        self.init(id: id, name: name, theme: theme, pieces: pieces, puddles: puddles, items: items)
     }
 }
 
@@ -36,17 +76,21 @@ final class OnlineRace: RaceLink {
 
     /// The game pumps the SDK from its own loop, so every callback arrives on that thread, between frames.
     /// `track`: a picked Track joins a Race on it, "" (any Track) the fullest Race there is. The `race` room is left to apps from
-    /// before the Track picker, which know only the first four Tracks.
+    /// before the Track picker, which know only the first four Tracks. `protocol` tells the server what this app speaks: one
+    /// too old for it is refused (`OnlineRace.outdated`).
     static func join(endpoint: String, name: String, body: BodyKind, track: String) async throws -> OnlineRace {
         Colyseus.autoPump = false
         let client = try Colyseus.Client(endpoint: endpoint)
-        let room: Colyseus.Room<RaceRoomState>
-        if track.isEmpty {
-            room = try await client.joinOrCreate("race2", options: ["name": .string(name), "body": .string(body.rawValue)], state: RaceRoomState.self)
-        } else {
-            room = try await client.joinOrCreate("race2", options: ["name": .string(name), "body": .string(body.rawValue), "track": .string(track)], state: RaceRoomState.self)
-        }
+        var options: [String: MessagePackValue] = ["name": .string(name), "body": .string(body.rawValue), "protocol": .int(Int64(PROTOCOL))]
+        if !track.isEmpty { options["track"] = .string(track) }
+        let room = try await client.joinOrCreate("race2", options: .map(options), state: RaceRoomState.self)
         return OnlineRace(room)
+    }
+
+    /// Whether a join failed because the server no longer races with this app (the SDK hands on the HTTP status as the code).
+    static func outdated(_ error: Error) -> Bool {
+        if case Colyseus.Error.matchmaking(let code, _) = error { return Int(code) == OUTDATED }
+        return false
     }
 
     private init(_ room: Colyseus.Room<RaceRoomState>) {

@@ -133,7 +133,10 @@ const dataLook = (t: ThemeData): ThemeLook => ({
 const THEMES = { ...CODE_THEMES } as Record<Theme, ThemeLook>;
 for (const [id, t] of Object.entries(THEME_DATA)) THEMES[id as DataTheme] = dataLook(t);
 
-export const themeOf = (theme: Theme) => THEMES[theme];
+/** Whether this game can draw a theme: a Track the server sends may be set somewhere newer. */
+export const knowsTheme = (theme: unknown) => typeof theme === 'string' && Object.hasOwn(THEMES, theme);
+/** The look of a theme; one this game doesn't know (a newer server's) is drawn as the kitchen. */
+export const themeOf = (theme: Theme) => THEMES[theme] ?? THEMES.kitchen;
 
 /** Triangles with a flat normal each, for the cel look (and with the uvs every merged geometry needs). */
 function faces(tris: number[][]) {
