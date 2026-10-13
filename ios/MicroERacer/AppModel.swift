@@ -33,10 +33,10 @@ final class AppModel: ObservableObject {
         if let url = Bundle.main.url(forResource: "Bangers", withExtension: "woff") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }
         // the same keys as the browsers' localStorage
         let d = UserDefaults.standard
-        name = d.string(forKey: "name") ?? ""
+        name = d.string(forKey: "name").flatMap { $0.isEmpty ? nil : $0 } ?? randomName()
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
-        let picked = d.string(forKey: "track") ?? ""
-        track = TRACKS.contains { $0.id == picked } ? picked : ""
+        // each start on a Track at random
+        track = TRACKS.randomElement()!.id
         steering = Steering(rawValue: d.string(forKey: "steer") ?? "") ?? .buttons
         side = PadSide(rawValue: d.string(forKey: "side") ?? "") ?? .left
         muted = d.string(forKey: "muted") == "1"
@@ -48,7 +48,7 @@ final class AppModel: ObservableObject {
 
     func play() async {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
-        save("name", name); save("body", body.rawValue); save("track", track)
+        save("name", name); save("body", body.rawValue)
         error = ""
         joining = true
         defer { joining = false }
@@ -102,6 +102,13 @@ final class AppModel: ObservableObject {
         hud = HudState()
         UIApplication.shared.isIdleTimerDisabled = false
     }
+}
+
+/// A name for a new Player to race under right away (the same lists as main.ts).
+private func randomName() -> String {
+    let first = ["Joe", "Max", "Kim", "Lou", "Ada", "Sam", "Zoe", "Ben", "Mia", "Rex", "Ivy", "Gus", "Lena", "Otto", "Rita", "Finn"]
+    let last = ["Ram", "Volt", "Watt", "Amp", "Spark", "Drift", "Zap", "Skid", "Turbo", "Fuse", "Bolt", "Ohm", "Plug", "Dash", "Coil", "Charge"]
+    return "\(first.randomElement()!) \(last.randomElement()!)"
 }
 
 @main

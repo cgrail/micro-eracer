@@ -27,7 +27,11 @@ const load = (k: string) => { try { return localStorage.getItem(k); } catch { re
 const save = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* not remembered */ } };
 
 let body: BodyKind = BODY_KINDS.find((b) => b === load('body')) ?? 'roadster';
-nameInput.value = load('name') ?? '';
+// a new Player gets a name to race under right away (the same lists as AppModel.swift's `randomName`)
+const FIRST_NAMES = ['Joe', 'Max', 'Kim', 'Lou', 'Ada', 'Sam', 'Zoe', 'Ben', 'Mia', 'Rex', 'Ivy', 'Gus', 'Lena', 'Otto', 'Rita', 'Finn'];
+const LAST_NAMES = ['Ram', 'Volt', 'Watt', 'Amp', 'Spark', 'Drift', 'Zap', 'Skid', 'Turbo', 'Fuse', 'Bolt', 'Ohm', 'Plug', 'Dash', 'Coil', 'Charge'];
+const pick = <T>(all: readonly T[]) => all[Math.floor(Math.random() * all.length)];
+nameInput.value = load('name') || `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
 const BODY_NAMES: Record<BodyKind, string> = { roadster: 'Roadster', suv: 'SUV', microbus: 'Microbus', pickup: 'Pickup', semi: 'Semi' };
 const garage = createGarage($('turntable'), $('stats'));
 const showBody = () => { $('body-name').textContent = BODY_NAMES[body]; garage.show(body); };
@@ -38,10 +42,11 @@ $('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 
-// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again
+// the Track: any (''), which joins whatever Race is running, or one picked, raced again and again; each visit starts on one
+// at random
 const trackSelect = $<HTMLSelectElement>('track'), course = createCourse($<HTMLCanvasElement>('track-map')), facts = $('facts');
 const TRACK_IDS = ['', ...TRACKS.map((t) => t.id)];
-let track = TRACK_IDS.find((t) => t && t === load('track')) ?? '';
+let track = pick(TRACKS).id;
 trackSelect.append(new Option('Any Track', ''));
 for (const theme of new Set(TRACKS.map((t) => t.theme))) {
   const places = document.createElement('optgroup');
@@ -56,9 +61,9 @@ const showTrack = () => {
   const def = TRACKS.find((t) => t.id === track);
   course.show(def);
   $('course').classList.toggle('any', !def);
-  if (!def) { facts.replaceChildren(line('Any Track', 'place'), line('A new Track every Race'), line(`${TRACKS.length} to race on`)); return; }
+  if (!def) { facts.replaceChildren(line('A new Track every Race', 'place'), line(`${TRACKS.length} to race on`)); return; }
   const f = trackFacts(def), extras = [f.bridges && 'a bridge', f.climbs && count(f.climbs, 'a climb', 'climbs'), f.jumps && count(f.jumps, 'a jump', 'jumps')].filter(Boolean);
-  facts.replaceChildren(line(themeOf(def.theme).title, 'place'), line(`${f.length} m, ${f.turns} turns`), line(extras.join(', ') || 'all on one level'));
+  facts.replaceChildren(line(`${themeOf(def.theme).title} · ${f.length} m, ${f.turns} turns`, 'place'), line(extras.join(', ') || 'all on one level'));
 };
 const stepTrack = (by: number) => { track = TRACK_IDS[(TRACK_IDS.indexOf(track) + by + TRACK_IDS.length) % TRACK_IDS.length]; showTrack(); };
 // held, ◀ and ▶ keep stepping, faster and faster, through all the Tracks; a tap on the name lists them all
@@ -156,7 +161,6 @@ form.addEventListener('submit', async (e) => {
   const name = nameInput.value.trim();
   save('name', name);
   save('body', body);
-  save('track', track);
   error.textContent = '';
   play.disabled = true;
   sound.unlock();

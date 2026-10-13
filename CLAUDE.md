@@ -80,7 +80,7 @@ The browsers and the apps are one product; the browsers and the iPhone app race 
 - **What catches drift:** `swift test` reads the web side's own files. After a deliberate physics change and `UPDATE_FIXTURE=1 npm test`, it fails until the Swift steps the same way again; a Track or song changed on one side fails it too.
 - **The wire:** `OnlineRace.swift` reads the room's schema by field name and `RaceEvent(wire:)` decodes the events; a field renamed on the server reads as its default there. A phone may run an App Store build older than the deployed server for weeks, so the wire only grows: add fields, messages, event kinds and rooms, never rename or remove one (an old app drops events it doesn't know). Races are joined in the `race2` room; `race` stays for apps from before the Track picker and only races the four Tracks they know (`CLASSIC_TRACKS`), so a new Track never reaches an app that can't draw it. The next Track added after these 50 has the same problem with the apps then out: give it a new room (or a room option the older apps don't send) until they have updated. The Colyseus Swift SDK (0.18.x) must match the server's Colyseus (0.18): a new major needs a new app version out first.
 - **Assets:** the apps bundle `client/public/voices` itself (a folder reference, not a copy), their own copy of `Bangers.woff`, and the icon (`AppIcon-1024.png` in each asset catalog, the same picture as the browsers' `client/public/icon.png`).
-- **Saved data:** `UserDefaults` keys `name`, `body`, `track`, `muted`, `steer` and `side`, as in `localStorage`, with the same values.
+- **Saved data:** `UserDefaults` keys `name`, `body`, `muted`, `steer` and `side`, as in `localStorage`, with the same values (the watch also keeps its Track as `track`).
 
 ## Every change ends in the changelog
 
@@ -108,7 +108,7 @@ The browsers and the apps are one product; the browsers and the iPhone app race 
 - **Per-Seat state lives on the `Seat`** (server) or in `views[seat]` (browser), never in globals.
 - **Tracks are data:** a new Track is a file in `shared/src/tracks/` added to `TRACKS` (and to `TRACKS` in `ios/Core/Track.swift`), with a theme in `client/src/themes/` if it's new (its name in the `Theme` type on both sides; then `npx tsx ios/themes.ts`); `npm test` must pass on it, and every Body must get round it flat out (walls on the bends where it doesn't). On a theme with a river the bridge goes over the Track's highest, longest straight, which needs walls all along (its railings). A Track's id stays what it was when it is renamed: saved picks and the wire carry it.
 - **Keep files under about 300 lines.** `game.ts`, `scene.ts`, `audio.ts` and `race.ts` are already past that. When a change makes one of them grow, split it along a real seam (effects out of `game.ts`, props per theme out of `scene.ts`, voices out of `audio.ts`, Bots out of `race.ts`) instead.
-- **Saved data:** `localStorage` keys `name`, `body`, `track`, `muted`, `steer` and `side`, each read and written in `try/catch` (private mode), so the game works without storage. Old values must keep loading.
+- **Saved data:** `localStorage` keys `name`, `body`, `muted`, `steer` and `side`, each read and written in `try/catch` (private mode), so the game works without storage. Old values must keep loading. The Track isn't saved: each visit starts on one at random.
 - **Keep `README.md` in sync** when you add player-visible features, controls or settings.
 
 ## Workflow

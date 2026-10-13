@@ -25,7 +25,8 @@ export function createGarage(canvas: HTMLCanvasElement, stats: HTMLElement) {
   sun.position.set(4, 8, 3);
   scene.add(sun);
   const camera = new THREE.PerspectiveCamera(30, 1, 1, 40);
-  camera.position.set(0, 3.4, 8.6);
+  // close enough that the Body fills its picture, with room for the Semi side on
+  camera.position.set(0, 2.7, 6.9);
   camera.lookAt(0, 0, 0);
   const cars = new Map(BODY_KINDS.map((k) => [k, makeCar(k, 0x2f9bff)]));
   const turntable = new THREE.Group().add(...cars.values());

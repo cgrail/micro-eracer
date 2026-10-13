@@ -18,24 +18,34 @@
   <form id="start">
     <div class="col">
       <h1>Micro E-Racer</h1>
-      <div id="who"><label for="name">Nickname</label><input id="name" maxlength="16" autocomplete="nickname" required></div>
+      <div id="who"><label for="name">Name</label><input id="name" maxlength="16" autocomplete="nickname" required></div>
       <fieldset class="pick">
         <legend class="sr">Body</legend>
-        <div class="show" id="garage"><span class="tag" aria-hidden="true">Body</span><canvas id="turntable" aria-hidden="true"></canvas><dl id="stats"></dl></div>
-        <div class="cycle"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><output id="body-name" aria-live="polite"></output><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
+        <div class="stage"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><canvas id="turntable" aria-hidden="true"></canvas><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
+        <output id="body-name" aria-live="polite"></output>
+        <dl id="stats"></dl>
       </fieldset>
     </div>
     <div class="col">
       <fieldset class="pick">
         <legend class="sr">Track</legend>
-        <div class="show" id="course"><span class="tag" aria-hidden="true">Track</span><canvas id="track-map" aria-hidden="true"></canvas><div id="facts" aria-live="polite"></div></div>
-        <div class="cycle"><button type="button" id="prev-track" aria-label="Previous Track">◀</button><select id="track" aria-label="Track"></select><button type="button" id="next-track" aria-label="Next Track">▶</button></div>
+        <div class="stage" id="course"><button type="button" id="prev-track" aria-label="Previous Track">◀</button><canvas id="track-map" aria-hidden="true"></canvas><button type="button" id="next-track" aria-label="Next Track">▶</button></div>
+        <select id="track" aria-label="Track"></select>
+        <div id="facts" aria-live="polite"></div>
       </fieldset>
       <button type="button" id="controls" hidden><span>Controls</span><small id="controls-now"></small><span aria-hidden="true">▶</span></button>
       <button id="play" type="submit">Play</button>
       <p id="error" role="alert"></p>
     </div>
   </form>
+  <!-- behind the start form: comic rays, chequered flags and stickers of the game's things (ios/MicroERacer/UI/Backdrop.swift) -->
+  <div id="backdrop" aria-hidden="true">
+    <i class="flag"></i><i class="flag"></i>
+    <span style="--x: 8%; --y: 12%; --r: -16deg">⚡</span><span style="--x: 88%; --y: 9%; --r: 12deg">🔋</span>
+    <span style="--x: 85%; --y: 34%; --r: 24deg">🚀</span><span style="--x: 10%; --y: 40%; --r: -10deg">🛡️</span>
+    <span style="--x: 90%; --y: 64%; --r: -12deg">💣</span><span style="--x: 7%; --y: 72%; --r: 14deg">🏁</span>
+    <span style="--x: 82%; --y: 90%; --r: 18deg">⚡</span><span style="--x: 16%; --y: 91%; --r: -20deg">🔋</span>
+  </div>
 
   <!-- touch only: the Practice Ground, where the controls are set and tried out -->
   <section id="practice" aria-labelledby="practice-title" hidden>
