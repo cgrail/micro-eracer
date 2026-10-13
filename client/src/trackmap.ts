@@ -5,22 +5,24 @@ import { dispose } from './toon.ts';
 
 // The start form's Track picker: the Track in 3D on its theme's ground, and what it has in store.
 
+// per layout: the server's Tracks replace this game's when it says which it races, and it may have changed one
+const keyOf = (def: TrackDef) => `${def.id} ${def.pieces}`;
 const built = new Map<string, Track>();
 const trackOf = (def: TrackDef) => {
-  if (!built.has(def.id)) built.set(def.id, buildTrack(def));
-  return built.get(def.id)!;
+  if (!built.has(keyOf(def))) built.set(keyOf(def), buildTrack(def));
+  return built.get(keyOf(def))!;
 };
 
 const facts = new Map<string, { length: number; turns: number; climbs: number; jumps: number; bridges: number }>();
 /** Length, turns, climbs, jumps and bridges, for the lines beside the picture. */
 export function trackFacts(def: TrackDef) {
-  if (!facts.has(def.id)) {
+  if (!facts.has(keyOf(def))) {
     const track = trackOf(def), count = (c: string) => def.pieces.split(/\s+/).filter((p) => p[0] === c).length;
     // a bridge: road high over another stretch of road
     const bridge = track.samples.some((a) => track.samples.some((b) => a.y > b.y + RISE * 0.7 && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 < HALF_WIDTH ** 2));
-    facts.set(def.id, { length: Math.round(track.n / 10) * 10, turns: count('L') + count('R'), climbs: count('U'), jumps: count('J'), bridges: bridge ? 1 : 0 });
+    facts.set(keyOf(def), { length: Math.round(track.n / 10) * 10, turns: count('L') + count('R'), climbs: count('U'), jumps: count('J'), bridges: bridge ? 1 : 0 });
   }
-  return facts.get(def.id)!;
+  return facts.get(keyOf(def))!;
 }
 
 // how steeply the camera looks down on the Track; and how long a pick rests before its Track is built (◀ ▶ held step

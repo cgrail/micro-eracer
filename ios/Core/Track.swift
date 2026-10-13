@@ -7,8 +7,9 @@ enum Theme: String {
     case google, sap, facebook, anthropic, lan, golf, soccer, london, newyork, paris, vegas, berlin, heidelberg, india, hollywood, sanfrancisco, zuzenhausen, sinsheim
 }
 
-/// A Track as authored: pieces laid like a turtle walk on a grid of TILE-sized tiles (see `TrackDef` in track.ts).
-struct TrackDef {
+/// A Track as authored: pieces laid like a turtle walk on a grid of TILE-sized tiles (see `TrackDef` in track.ts). The
+/// server sends its own (`/tracks`, and the Race's in the room state), which may be one this app doesn't have.
+struct TrackDef: Equatable {
     let id: String
     let name: String
     let theme: Theme

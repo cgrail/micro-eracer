@@ -1,9 +1,10 @@
-import { Room, type Client } from '@colyseus/core';
+import { Room, ServerError, type Client } from '@colyseus/core';
 import { schema, t, type SchemaType } from '@colyseus/schema';
 import { BODY_KINDS, DT, type BodyKind } from '../../shared/src/car.ts';
 import { type PoseReport, RaceSim, SEATS } from '../../shared/src/race.ts';
 import { seatState } from '../../shared/src/snapshot.ts';
 import { CLASSIC_TRACKS, TRACKS } from '../../shared/src/track.ts';
+import { OUTDATED, compatible, protocolOf } from '../../shared/src/version.ts';
 
 const CarState = schema({
   name: t.string(), body: t.string(), owner: t.string(),
@@ -19,10 +20,16 @@ const BatteryState = schema({ id: t.uint32(), x: t.float32(), y: t.float32(), z:
 const BoltState = schema({ id: t.uint32(), kind: t.string(), x: t.float32(), y: t.float32(), z: t.float32(), vx: t.float32(), vz: t.float32() }, 'BoltState');
 const MineState = schema({ id: t.uint32(), x: t.float32(), y: t.float32(), z: t.float32() }, 'MineState');
 
+/** The Race's Track as `TrackDef` has it, so a client builds the very Track the server races, even one it doesn't know. */
+const TrackState = schema({
+  id: t.string(), name: t.string(), theme: t.string(), pieces: t.string(), puddles: t.array('uint16'), items: t.array('uint16'),
+}, 'TrackState');
+
 const RaceState = schema({
   phase: t.string(), timer: t.float32(), trackId: t.string(),
   cars: t.array(CarState), results: t.array('string'), batteries: t.array(BatteryState),
   bolts: t.array(BoltState), mines: t.array(MineState), boxes: t.array('boolean'),
+  track: t.ref(TrackState),
 }, 'RaceState');
 type RaceState = SchemaType<typeof RaceState>;
 
@@ -34,6 +41,12 @@ export class RaceRoom extends Room<{ state: RaceState }> {
   maxClients = SEATS;
   maxMessagesPerSecond = 80;
   private sim!: RaceSim;
+
+  /** Before a Seat is found: a client too old to race here (`protocol` below MIN_PROTOCOL, or none) is refused, and plays offline. */
+  static async onAuth(_token: string, options: { protocol?: unknown }) {
+    if (!compatible(protocolOf(options?.protocol))) throw new ServerError(OUTDATED, 'update');
+    return true;
+  }
 
   /** `track`: the one Track a Player picked, raced again and again; `classic`: only the Tracks apps from before the picker know. */
   onCreate(options: { track?: unknown; classic?: boolean }) {
@@ -79,7 +92,13 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     const { sim, state } = this;
     state.phase = sim.phase;
     state.timer = Math.max(0, sim.timer);
-    state.trackId = sim.track.def.id;
+    if (state.trackId !== sim.track.def.id) {
+      const { id, name, theme, pieces, puddles, items } = sim.track.def;
+      Object.assign(state.track, { id, name, theme, pieces });
+      state.track.puddles.clear(); state.track.puddles.push(...puddles);
+      state.track.items.clear(); state.track.items.push(...items);
+      state.trackId = id;
+    }
     if (state.results.join() !== sim.results.join()) { state.results.clear(); state.results.push(...sim.results); }
     if (state.batteries.map((b) => b.id).join() !== sim.batteries.map((b) => b.id).join()) {
       state.batteries.clear();

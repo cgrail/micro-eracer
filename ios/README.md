@@ -24,6 +24,12 @@ scheme (or set those UserDefaults): `-server ws://192.168.1.20:2567` for `npm ru
 `ws://localhost:2567`). In a Debug build, `-autoplay YES -name Tester` starts a Race straight away. When the server can't be
 reached within 5 seconds, Play starts an Offline Race against the Bots, as in the browser.
 
+Before it races online, the app asks the server whether it still races with this version (`GET /version?protocol=2`,
+`PROTOCOL` in `Core/Version.swift`) and which Tracks it races (`GET /tracks`), on launch and whenever it comes back to the
+front. The start screen then offers the server's Tracks, and every online Race is built from the Track the room sends, so a
+Track the server adds or changes needs no app update. When the server no longer races with this version, the app says so
+(Update opens the App Store page the server names, `APP_STORE_URL`), and Play races offline until it is updated.
+
 ## Checking
 
 ```sh
@@ -39,8 +45,8 @@ GitHub Actions runs both on every push and pull request (`.github/workflows/ios.
 fails on any warning from `xcodebuild`.
 
 `swift test` builds only `Core/` (`Package.swift`), on the Mac, and reads its references straight from the web side:
-`shared/src/physics.fixture.json`, `shared/src/tracks/*.ts` and `client/src/songs.ts`. So a change there that the port
-hasn't followed fails here.
+`shared/src/physics.fixture.json`, `shared/src/tracks/*.ts`, `shared/src/version.ts` and `client/src/songs.ts`. So a
+change there that the port hasn't followed fails here.
 
 ## Project layout
 
@@ -61,7 +67,8 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Core/Physics.swift`, `Collide.swift`, `Car.swift` | `shared/src/physics.ts`, `collide.ts`, `car.ts` |
 | `Core/Race.swift`, `Bots.swift`, `Combat.swift`, `Contact.swift`, `Energy.swift` | `shared/src/race.ts`, `bots.ts`, `combat.ts`, `contact.ts`, `energy.ts` (the Offline Race) |
 | `Core/Snapshot.swift` | `shared/src/snapshot.ts` and the state types of `client/src/state.ts` |
-| `Shared/Net/RaceLink.swift`, `OfflineRace.swift`, `MicroERacer/OnlineRace.swift` | `RaceLink` in `client/src/state.ts`, `client/src/offline.ts`, the room (`main.ts`) |
+| `Core/Version.swift` | `shared/src/version.ts` (`PROTOCOL`; `swift test` compares the two) |
+| `Shared/Net/RaceLink.swift`, `OfflineRace.swift`, `MicroERacer/OnlineRace.swift` | `RaceLink` in `client/src/state.ts`, `client/src/offline.ts`, the room and the server's `/version` and `/tracks` (`main.ts`, `server/src/api.ts`) |
 | `Shared/Game/Game.swift`, `GameSync.swift`, `GameEffects.swift` | `client/src/game.ts` |
 | `Shared/Game/Motion.swift` | `client/src/motion.ts` |
 | `Shared/Game/Toon.swift`, `Scenery.swift`, `Props.swift`, `Models.swift` | `client/src/toon.ts`, `scene.ts`, `props.ts`, `cars.ts` |
@@ -111,5 +118,6 @@ a Hit, a Battery, an Item from a box, a Shield blocking, running dry and the fin
 - `Shared/Resources/Themes.json` is the scenery of every theme beyond the first four (their props, landmarks, ground and
   sky), and for each of their Tracks where `client/src/themes/staging.ts` put its river, bridge and landmarks, written by
   `npx tsx ios/themes.ts` from the web's own data in `client/src/themes/`. `ThemeData.swift` builds the same parts from it
-  as `client/src/props.ts` does in the browsers, and `stagingOf` hands each Track's staging to the scene as it is. `npm test` fails until it is written again after a
+  as `client/src/props.ts` does in the browsers, and `stagingOf` hands each Track's staging to the scene as it is (only for
+  a Track laid out as the app has it: one the server changed, or has alone, goes without its river and landmarks). `npm test` fails until it is written again after a
   theme changes.

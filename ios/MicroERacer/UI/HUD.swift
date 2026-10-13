@@ -5,6 +5,8 @@ import SwiftUI
 
 struct HUDView: View {
     let hud: HudState
+    /// The server no longer races with this app, which is why the Race is offline.
+    var outdated = false
     @State private var pulse = false
 
     var body: some View {
@@ -35,7 +37,7 @@ struct HUDView: View {
                 .frame(maxWidth: .infinity).padding(.top, box.size.height * 0.2)
                 if hud.boardMode == .live { board(size: 18).frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 16).padding(.top, 124) }
                 if hud.offline {
-                    Text("Offline Race: no server, just you and the Bots").font(.custom("Bangers-Regular", size: 16)).foregroundColor(Color(hex: 0x1b1410))
+                    Text(outdated ? "Offline Race: update to race online" : "Offline Race: no server, just you and the Bots").font(.custom("Bangers-Regular", size: 16)).foregroundColor(Color(hex: 0x1b1410))
                         .padding(.horizontal, 12).padding(.vertical, 4)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(hex: 0xfffdf6)))
                         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(hex: 0x111111), lineWidth: 2))

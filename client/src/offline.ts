@@ -23,7 +23,7 @@ export function offlineRace(name: string, body: BodyKind, track?: string): RaceL
     onState({
       phase: sim.phase, timer: Math.max(0, sim.timer), trackId: sim.track.def.id, results: sim.results,
       cars: sim.seats.map((s) => seatState(sim, s)), batteries: sim.batteries, bolts: sim.combat.bolts, mines: sim.combat.mines,
-      boxes: sim.combat.out,
+      boxes: sim.combat.out, track: sim.track.def,
     });
   }, 1000 * DT);
   return {

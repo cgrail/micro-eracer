@@ -5,19 +5,22 @@ import UIKit
 // The start screen's Track picker (client/src/trackmap.ts and the picker in main.ts): the Track in 3D on its theme's
 // ground, what it has in store, and ◀ ▶ that keep stepping while held.
 
+// per layout: the server's Tracks replace the app's when it says which it races, and it may have changed one
+private func keyOf(_ def: TrackDef) -> String { "\(def.id) \(def.pieces)" }
 private var built: [String: Track] = [:]
 private func trackOf(_ def: TrackDef) -> Track {
-    if let t = built[def.id] { return t }
+    if let t = built[keyOf(def)] { return t }
     let t = buildTrack(def)
-    built[def.id] = t
+    built[keyOf(def)] = t
     return t
 }
 
 private var factsOf: [String: [String]] = [:]
-/// The lines beside the picture: length and turns, then the bridges, climbs and jumps (trackmap.ts `trackFacts`).
-func trackFacts(_ def: TrackDef?) -> [String] {
-    guard let def else { return ["A new Track every Race", "\(TRACKS.count) to race on"] }
-    if let f = factsOf[def.id] { return f }
+/// The lines beside the picture: length and turns, then the bridges, climbs and jumps (trackmap.ts `trackFacts`); for any
+/// Track, how many there are (`of`).
+func trackFacts(_ def: TrackDef?, of total: Int) -> [String] {
+    guard let def else { return ["A new Track every Race", "\(total) to race on"] }
+    if let f = factsOf[keyOf(def)] { return f }
     let track = trackOf(def), pieces = def.pieces.split(separator: " ")
     let count = { (c: Character) in pieces.filter { $0.first == c }.count }
     // a bridge: road high over another stretch of road
@@ -25,7 +28,7 @@ func trackFacts(_ def: TrackDef?) -> [String] {
     let many = { (n: Int, one: String, more: String) in n == 1 ? one : "\(n) \(more)" }
     let extras = [bridge ? "a bridge" : "", count("U") > 0 ? many(count("U"), "a climb", "climbs") : "", count("J") > 0 ? many(count("J"), "a jump", "jumps") : ""].filter { !$0.isEmpty }
     let lines = ["\(Int((Double(track.n) / 10).rounded()) * 10) m, \(count("L") + count("R")) turns", extras.isEmpty ? "all on one level" : extras.joined(separator: ", ")]
-    factsOf[def.id] = lines
+    factsOf[keyOf(def)] = lines
     return lines
 }
 
@@ -40,8 +43,9 @@ final class Course: NSObject, ObservableObject, SCNSceneRendererDelegate {
     let scene = SCNScene(), camera = SCNNode()
     /// The view's width over its height, from its layout.
     var aspect = 1.0
-    // an index into TRACKS, -1 for none: one word, set on the main thread and read on the render thread
-    private var wanted = -1, shown = -1, rest = 0.0
+    // the pick, set on the main thread and read on the render thread (hence the lock), and the Track shown, on the render thread
+    private let lock = NSLock()
+    private var wanted: TrackDef?, shown: TrackDef?, rest = 0.0
     private var look: TrackScene?, centre = SCNVector3(0, 0, 0), reach = 1.0, angle = 0.0, speed = 0.0, last = -1.0
     private let still = UIAccessibility.isReduceMotionEnabled
 
@@ -57,17 +61,19 @@ final class Course: NSObject, ObservableObject, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(sunNode)
     }
 
-    func show(_ id: String) {
-        wanted = TRACKS.firstIndex { $0.id == id } ?? -1
+    func show(_ def: TrackDef?) {
+        lock.lock()
+        wanted = def
+        lock.unlock()
         rest = 0
     }
 
-    private func build(_ i: Int) {
+    private func build(_ def: TrackDef?) {
         look?.node.removeFromParentNode()
         look = nil
-        shown = i
-        guard i >= 0 else { return }
-        let track = buildTrack(TRACKS[i]), xs = track.samples.map(\.x), zs = track.samples.map(\.z), s0 = track.samples[0]
+        shown = def
+        guard let def else { return }
+        let track = buildTrack(def), xs = track.samples.map(\.x), zs = track.samples.map(\.z), s0 = track.samples[0]
         let look = buildTrackScene(track)
         self.look = look
         scene.rootNode.addChildNode(look.node)
@@ -84,7 +90,9 @@ final class Course: NSObject, ObservableObject, SCNSceneRendererDelegate {
         let dt = last < 0 ? 0 : min(0.1, time - last)
         last = time
         rest += dt
+        lock.lock()
         let pick = wanted
+        lock.unlock()
         if pick != shown && rest > SETTLE { build(pick) }
         guard let look, let lens = camera.camera else { return }
         speed += ((still ? 0 : 0.15) - speed) * min(1, 3 * dt)

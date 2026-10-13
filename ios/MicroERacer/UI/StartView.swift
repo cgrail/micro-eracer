@@ -21,10 +21,12 @@ struct StartView: View {
 
     private var paper: Color { scheme == .dark ? Color(hex: 0x2f2620) : Color(hex: 0xfffdf6) }
     private var ink: Color { scheme == .dark ? Color(hex: 0xfff6e6) : Color(hex: 0x1b1410) }
-    /// Any Track first, then every Track: what ◀ and ▶ step through.
-    private let trackIds = [""] + TRACKS.map(\.id)
+    /// Any Track first, then every Track (the server's, once it has said which it races): what ◀ and ▶ step through.
+    private var trackIds: [String] { [""] + model.tracks.map(\.id) }
     /// The places, in the order their Tracks come, for the list of every Track.
-    private let places = TRACKS.map(\.theme).reduce(into: [Theme]()) { if !$0.contains($1) { $0.append($1) } }
+    private var places: [Theme] { model.tracks.map(\.theme).reduce(into: [Theme]()) { if !$0.contains($1) { $0.append($1) } } }
+    /// The picked Track, nil for any.
+    private var picked: TrackDef? { model.tracks.first { $0.id == model.track } }
 
     var body: some View {
         // the whole form on one screen, never scrolled (as in the browser): two columns side by side lying down, one standing
@@ -40,13 +42,13 @@ struct StartView: View {
         // the keyboard covers the bottom while the name is typed, rather than squashing the form
         .ignoresSafeArea(.keyboard)
         .background(Backdrop())
-        .onAppear { garage.show(model.body, whirl: false); course.show(model.track) }
+        .onAppear { garage.show(model.body, whirl: false); course.show(picked) }
         #if DEBUG
         // `-autoplay YES -name Tester` as launch arguments: straight into a Race, for trying things in the simulator
         .task { if UserDefaults.standard.bool(forKey: "autoplay") && !model.name.isEmpty { await model.play() } }
         #endif
         .onChange(of: model.body) { garage.show($0, whirl: true) }
-        .onChange(of: model.track) { course.show($0) }
+        .onChange(of: picked) { course.show($0) }
     }
 
     private func card(wide: Bool, pic: CGFloat) -> some View {
@@ -108,7 +110,7 @@ struct StartView: View {
 
     /// The Track from above between ◀ and ▶, its name below (which lists every Track), and what it has in store.
     private func trackPick(_ pic: CGFloat) -> some View {
-        let def = TRACKS.first { $0.id == model.track }, facts = trackFacts(def)
+        let def = picked, facts = trackFacts(def, of: model.tracks.count)
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
                 RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink) { stepTrack(-1) }
@@ -124,7 +126,7 @@ struct StartView: View {
                 Button("Any Track") { model.track = "" }
                 ForEach(places, id: \.self) { place in
                     Section(header: Text(themeLook(place).title)) {
-                        ForEach(TRACKS.filter { $0.theme == place }, id: \.id) { t in Button(t.name) { model.track = t.id } }
+                        ForEach(model.tracks.filter { $0.theme == place }, id: \.id) { t in Button(t.name) { model.track = t.id } }
                     }
                 }
             } label: {
@@ -167,7 +169,7 @@ struct StartView: View {
     private var playButton: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { Task { await model.play() } } label: {
-                Text("Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                Text(model.outdated ? "Play offline" : "Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
                     .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))
@@ -185,8 +187,8 @@ struct StartView: View {
     }
 
     private func stepTrack(_ by: Int) {
-        let i = trackIds.firstIndex(of: model.track) ?? 0
-        model.track = trackIds[(i + by + trackIds.count) % trackIds.count]
+        let ids = trackIds, i = ids.firstIndex(of: model.track) ?? 0
+        model.track = ids[(i + by + ids.count) % ids.count]
     }
 
     private func label(_ text: String) -> some View { Text(text).font(.custom("Bangers-Regular", size: 18)).kerning(0.5) }

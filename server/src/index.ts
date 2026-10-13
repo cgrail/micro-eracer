@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { api } from './api.ts';
 import { deployHook } from './deployHook.ts';
 import { RaceRoom } from './RaceRoom.ts';
 
@@ -22,6 +23,7 @@ const server = defineServer({
   // in development Vite serves the browser app; in production this one process does both
   express: (app) => {
     deployHook(app);
+    api(app);
     // the build leaves a Brotli copy next to each script and stylesheet (client/vite.config.ts); Caddy passes it on as it is
     app.use('/assets', (req, res, next) => {
       if (!/\.(js|css)$/.test(req.path) || !existsSync(`${dist}/assets${req.path}.br`)) return next();

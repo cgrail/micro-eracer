@@ -162,7 +162,7 @@ func placeProps(_ track: Track, _ look: ThemeLook, _ m: @escaping Mats, _ glows:
         return f
     }
     // a data theme's landmarks where client/src/themes/staging.ts put them, which small props leave alone (scene.ts does the same)
-    if let stage = stagingOf(track.def.id) {
+    if let stage = stagingOf(track.def) {
         for l in stage.landmarks {
             let prop = group(makeProp(l.kind, m, glows, rng(l.kind)))
             prop.position = SCNVector3(l.x, look.groundY, l.z)
