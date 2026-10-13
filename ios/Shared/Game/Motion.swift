@@ -31,6 +31,21 @@ final class CarView {
 
 private func smooth(_ k: Double) -> Double { k * k * (3 - 2 * k) }
 
+/// The chase camera behind an E-Car drawn at `at`, turned to `yaw`, easing after it; `last` is where it was the frame before.
+func chase(_ camera: SCNNode, _ at: SIMD3<Float>, _ yaw: Double, _ aspect: Double, _ last: inout SIMD3<Float>, _ dt: Double) {
+    let fx = Float(sin(yaw)), fz = Float(cos(yaw))
+    // portrait phones see little sideways, so look down more steeply
+    let (back, up): (Float, Float) = aspect < 1 ? (9, 24) : (13, 14)
+    let desired = SIMD3(at.x - fx * back, at.y + up, at.z - fz * back)
+    // a far jump (a new Race) cuts instead of flying the camera across the Track
+    if simd_distance(last, at) > 25 { camera.simdPosition = desired } else {
+        camera.simdPosition += (desired - camera.simdPosition) * Float(1 - exp(-dt * 4))
+    }
+    last = at
+    // world up, as three.js's lookAt: SceneKit's one-argument look(at:) keeps the camera's own up, so the horizon rolls as it turns
+    camera.simdLook(at: SIMD3(at.x + fx * 3, at.y, at.z + fz * 3), up: [0, 1, 0], localFront: [0, 0, -1])
+}
+
 /// The other E-Cars glide on at their reported speed every frame and are only nudged towards where the server says they
 /// are, so a late or early update shows as a little drift rather than a jump. Far off (a reset, a new Race) they snap.
 func glide(_ views: [CarView], _ dt: Double, _ now: Double) {

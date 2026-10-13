@@ -42,6 +42,10 @@ _Avoid_: Model, class, skin
 A Race against Bots that runs entirely in the browser, used only when no server is reachable.
 _Avoid_: Single player, practice mode
 
+**Practice Ground**:
+Where a Player on a phone or tablet sets the touch controls and tries them out before racing: their Body alone on an endless lawn with streets painted on it, with nothing to bump into, no Race, no Energy and Shots without end.
+_Avoid_: Practice mode, test track, tutorial
+
 **Position**:
 A Racer's current rank in the Race, from first to last.
 _Avoid_: Place, rank

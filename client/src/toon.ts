@@ -15,6 +15,16 @@ export function toon(color: number, { outline = true, map, opacity }: { outline?
   return m;
 }
 
+/** Frees the GPU memory of everything under `obj`: geometries, materials and their textures. */
+export function dispose(obj: THREE.Object3D) {
+  obj.traverse((o) => {
+    if (o instanceof THREE.Mesh || o instanceof THREE.Sprite || o instanceof THREE.Points) {
+      o.geometry.dispose();
+      for (const m of [o.material].flat()) { (m as THREE.MeshToonMaterial).map?.dispose(); m.dispose(); }
+    }
+  });
+}
+
 export const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => {
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);

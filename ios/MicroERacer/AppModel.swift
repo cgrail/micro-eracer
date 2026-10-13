@@ -10,10 +10,12 @@ final class AppModel: ObservableObject {
     @Published var body: BodyKind
     /// The picked Track's id, or "" for any Track.
     @Published var track: String
-    @Published var steering: Steering
-    @Published var side: PadSide
+    @Published var steering: Steering { didSet { save("steer", steering.rawValue) } }
+    @Published var side: PadSide { didSet { save("side", side.rawValue) } }
     @Published var muted: Bool { didSet { sound.setMuted(muted); save("muted", muted ? "1" : "0") } }
     @Published private(set) var game: Game?
+    /// The Practice Ground behind the start screen's Controls button, while it is open.
+    @Published private(set) var practice: Practice?
     @Published private(set) var hud = HudState()
     @Published private(set) var joining = false
     @Published var error = ""
@@ -46,7 +48,7 @@ final class AppModel: ObservableObject {
 
     func play() async {
         let name = String(self.name.trimmingCharacters(in: .whitespaces).prefix(16))
-        save("name", name); save("body", body.rawValue); save("track", track); save("steer", steering.rawValue); save("side", side.rawValue)
+        save("name", name); save("body", body.rawValue); save("track", track)
         error = ""
         joining = true
         defer { joining = false }
@@ -81,6 +83,17 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func openPractice() {
+        practice = Practice(body: body, controls: controls, sound: sound)
+        UIApplication.shared.isIdleTimerDisabled = true
+    }
+
+    func closePractice() {
+        practice?.stop()
+        practice = nil
+        UIApplication.shared.isIdleTimerDisabled = false
+    }
+
     func leave() {
         game?.stop()
         // nothing pumps the SDK any more but the SDK itself, so leaving the room goes out
@@ -97,7 +110,9 @@ struct MicroERacerApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if let game = model.game { RaceView(model: model, game: game) } else { StartView(model: model) }
+                if let game = model.game { RaceView(model: model, game: game) } else if let practice = model.practice {
+                    PracticeView(model: model, practice: practice)
+                } else { StartView(model: model) }
             }
             .statusBarHidden()
             .persistentSystemOverlays(.hidden)

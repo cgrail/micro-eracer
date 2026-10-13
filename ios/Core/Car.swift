@@ -63,9 +63,14 @@ private func sign(_ v: Double) -> Double { v > 0 ? 1 : v < 0 ? -1 : 0 }
 
 /// Arcade driving: we own the velocity in the car's plane; the physics does gravity and collisions. `wet` = in a Puddle.
 func driveCar(_ world: World, _ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool = false) {
-    let rb = car.rb
     // only the road counts as ground: on another E-Car's roof it can't drive, and gets put down beside it (`unstack`)
-    if !world.onRoad(rb, HALF.y + 0.9) { return }
+    if !world.onRoad(car.rb, HALF.y + 0.9) { return }
+    handleCar(car, input, speedScale, wet)
+}
+
+/// How the E-Car handles on the ground: speed, grip, Drifts and spins. The Practice Ground, flat everywhere, needs only this.
+func handleCar(_ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool = false) {
+    let rb = car.rb
     let p = car.kind.spec, maxSpeed = p.maxSpeed * speedScale
     let fx = sin(rb.yaw), fz = cos(rb.yaw), r = right(fx, fz)
     let v = rb.linvel

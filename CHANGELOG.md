@@ -49,8 +49,7 @@ happens. Everything before 1.0 is in the git history.
   before; a picked Track joins a Race on that Track, or starts one, and races it again and again. An Offline Race (and
   the watch, which picks it from a list) does the same. The Track is remembered like the rest (`track`).
 - The whole start screen fits on one screen, on phones and tablets in both orientations and on desktops, without
-  scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit. Steering and
-  Pad sit side by side, with their hints as tooltips (VoiceOver hints in the app).
+  scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit.
 - The wire: Races are joined in the `race2` room, which takes the picked Track as `track`. The `race` room is left to apps
   from before the picker and only races the first four Tracks, which they know.
 
@@ -65,7 +64,7 @@ happens. Everything before 1.0 is in the git history.
 - The E-Car accelerates by itself. A thumb steers anywhere on the screen (Buttons: left or right of the steering pad's
   middle; Slider: drag), the one action button right above the pad uses the Item (held, a Zap keeps firing), and a Back
   button for reversing shows only while the E-Car is stuck: the same controls as a phone's browser.
-- The same start screen (Nickname, the Body on its turntable with its stat bars, Steering, Pad, Play), HUD, cel-shaded look
+- The same start screen (Nickname, the Body on its turntable with its stat bars, the Track, Controls, Play), HUD, cel-shaded look
   with black outlines, themed scenery, drones, Item Boxes and weapons, synthesised sounds and soundtrack, and the Racers'
   voices. Name, Body, Steering, Pad and Sound are remembered under the same names as in the browser.
 - On an iPad with a hardware keyboard, the browsers' desktop keys work: arrows or WASD drive, Space, E or Shift uses the
@@ -92,8 +91,14 @@ happens. Everything before 1.0 is in the git history.
   Control Center) take two swipes, so a thumb near an edge isn't held back either.
 - Buttons is the steering a new Player starts with (a Steering picked before stays picked).
 - The action button sits right above the steering pad, and Back, while the E-Car is stuck, in the other bottom corner.
-  Pad on the start screen puts the steering pad, with the action button, in the bottom-left or the bottom-right corner,
-  and is remembered like the rest.
+  Pad puts the steering pad, with the action button, in the bottom-left or the bottom-right corner, and is remembered
+  like the rest.
+- Steering and Pad are set on the Practice Ground: Controls on the start screen (on phones and tablets, and in
+  the app), which says how they are set, opens it. The picked Body drives on an endless lawn with streets painted on it,
+  crossroads and zebra crossings, and nothing to bump into, under the same touch controls as in a Race, with Steering and
+  Pad over it (and a hint on how the picked steering works). A pick takes effect at once, so Buttons and Slider, and the
+  pad in either corner, can be felt by driving round; the action button fires Zap Shots without end. Done goes back to the
+  start screen, and every pick is remembered as it is made.
 
 ### Phones and tablets in the browser
 

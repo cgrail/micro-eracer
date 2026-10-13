@@ -13,7 +13,7 @@ import {
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
 import { makeCar } from './cars.ts';
-import { type CarView, angleDiff, dronePose, glide, ourRams, place } from './motion.ts';
+import { type CarView, angleDiff, chase, dronePose, glide, ourRams, place } from './motion.ts';
 import { shove } from '../../shared/src/contact.ts';
 import { Particles } from './effects.ts';
 import { type Hud, ITEM_ICONS, createHud, itemLabel } from './hud.ts';
@@ -22,18 +22,8 @@ import { themeOf } from './props.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
+import { dispose } from './toon.ts';
 import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
-
-
-
-function dispose(obj: THREE.Object3D) {
-  obj.traverse((o) => {
-    if (o instanceof THREE.Mesh || o instanceof THREE.Sprite || o instanceof THREE.Points) {
-      o.geometry.dispose();
-      for (const m of [o.material].flat()) { (m as THREE.MeshToonMaterial).map?.dispose(); m.dispose(); }
-    }
-  });
-}
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
 export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: Sound): () => void {
@@ -360,7 +350,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
 
   let raf = 0, acc = 0, last = performance.now(), ownBeforeYaw = 0;
   const ownBefore = new THREE.Vector3(1e9, 0, 0);
-  const focus = new THREE.Vector3(), lastTarget = new THREE.Vector3();
+  const lastTarget = new THREE.Vector3();
   function frame(now: number) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
@@ -384,15 +374,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     look?.update(now / 1000);
     const target = own?.view.mesh ?? views[0]?.mesh;
     if (target) {
-      const fx = Math.sin(target.rotation.y), fz = Math.cos(target.rotation.y);
-      // portrait phones see little sideways, so look down more steeply
-      const [back, up] = camera.aspect < 1 ? [9, 24] : [13, 14];
-      const desired = new THREE.Vector3(target.position.x - fx * back, target.position.y + up, target.position.z - fz * back);
-      // a far jump (a new Race) cuts instead of flying the camera across the Track
-      if (lastTarget.distanceTo(target.position) > 25) camera.position.copy(desired);
-      else camera.position.lerp(desired, 1 - Math.exp(-dt * 4));
-      lastTarget.copy(target.position);
-      camera.lookAt(focus.set(target.position.x + fx * 3, target.position.y, target.position.z + fz * 3));
+      chase(camera, target, lastTarget, dt);
       if (shake > 0) {
         shake = Math.max(0, shake - dt);
         camera.position.x += (Math.random() - 0.5) * shake * 1.5;

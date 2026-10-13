@@ -14,7 +14,8 @@ enum HitKind: String { case shot, missile, mine }
 struct Bolt { let id: Int; let kind: HitKind; let owner: Int; var x, y, z, vx, vz: Double; let until: Double; let target: Int }
 struct Mine { let id: Int; let owner: Int; let x, y, z, armedAt, until: Double }
 
-private let SHOT_EVERY = 1.0 / 3, SHOT_SPEED = 45.0, SHOT_LIFE = 1.1
+/// A Zap's Shots: at most one every SHOT_EVERY seconds, flying SHOT_SPEED m/s (plus the E-Car's speed) for SHOT_LIFE seconds.
+let SHOT_EVERY = 1.0 / 3, SHOT_SPEED = 45.0, SHOT_LIFE = 1.1
 private let MISSILE_SPEED = 30.0, MISSILE_TURN = 3.5, MISSILE_LIFE = 4.0
 private let MINE_LIFE = 40.0, MINE_ARM = 0.8, HIT_RADIUS = 1.8, BOX_RADIUS = 2.2, BOX_RESPAWN = 4.0
 /// What a Hit does: Energy drained, spin-out (rad/s), sideways shove and hop (m/s).

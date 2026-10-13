@@ -66,10 +66,15 @@ export const limpScale = (energy: number) => (energy >= LIMP_BELOW ? 1 : 0.5 + (
 
 /** Arcade driving: we own the velocity in the car's plane; the physics does gravity and collisions. `wet` = in a Puddle. */
 export function driveCar(world: World, car: Car, input: Input, speedScale = 1, wet = false) {
-  const { rb } = car;
   // the body stays level, so on a ramp it rides on one edge, higher above the road under its middle
   // only the road counts as ground: on another E-Car's roof it can't drive, and gets put down beside it (`unstack`)
-  if (!world.onRoad(rb, HALF.y + 0.9)) return;
+  if (!world.onRoad(car.rb, HALF.y + 0.9)) return;
+  handleCar(car, input, speedScale, wet);
+}
+
+/** How the E-Car handles on the ground: speed, grip, Drifts and spins. The Practice Ground, flat everywhere, needs only this. */
+export function handleCar(car: Car, input: Input, speedScale = 1, wet = false) {
+  const { rb } = car;
   const p = BODIES[car.kind], maxSpeed = p.maxSpeed * speedScale;
   const yaw = rb.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
   const v = rb.linvel();
