@@ -23,17 +23,8 @@ import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
 import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
+import { dispose } from './toon.ts';
 
-
-
-function dispose(obj: THREE.Object3D) {
-  obj.traverse((o) => {
-    if (o instanceof THREE.Mesh || o instanceof THREE.Sprite || o instanceof THREE.Points) {
-      o.geometry.dispose();
-      for (const m of [o.material].flat()) { (m as THREE.MeshToonMaterial).map?.dispose(); m.dispose(); }
-    }
-  });
-}
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
 export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: Sound): () => void {

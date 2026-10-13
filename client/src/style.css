@@ -55,6 +55,12 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 .tag { position: absolute; top: -2px; left: 0; z-index: 1; font: 17px var(--comic); letter-spacing: 0.5px; }
 #course .tag { top: 4px; left: 8px; color: #fff; -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 2px 2px 0 #111; }
 #track-map { border: 3px solid var(--ink); border-radius: 10px; background: var(--bg); }
+/* any Track: a question mark in the picture's place */
+#course.any::after {
+  content: '?'; position: absolute; top: 0; left: 0; width: calc(50% - 5px); height: 100%; box-sizing: border-box; display: grid; place-items: center;
+  border: 3px solid var(--ink); border-radius: 10px; background: #2f9bff; font: calc(var(--pic) * 0.8)/1 var(--comic); color: var(--yellow);
+  -webkit-text-stroke: 3px #111; paint-order: stroke fill;
+}
 #stats { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 3px 6px; margin: 0; font: 12px/1.15 system-ui, sans-serif; }
 #stats dd { margin: 0; height: 9px; border: 2px solid var(--ink); border-radius: 5px; overflow: hidden; }
 #stats i { display: block; height: 100%; background: var(--accent); transition: width 0.3s; }

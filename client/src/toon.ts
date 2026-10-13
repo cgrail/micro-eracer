@@ -25,6 +25,16 @@ export const cyl = (rt: number, rb: number, h: number, mat: THREE.Material, x = 
 export const sph = (r: number, mat: THREE.Material, x = 0, y = 0, z = 0) => mesh(new THREE.SphereGeometry(r, 16, 12), mat, x, y, z);
 export const group = (...children: THREE.Object3D[]) => new THREE.Group().add(...children);
 
+/** Frees the GPU side of everything under `obj`: geometries, materials and their textures. */
+export function dispose(obj: THREE.Object3D) {
+  obj.traverse((o) => {
+    if (o instanceof THREE.Mesh || o instanceof THREE.Sprite || o instanceof THREE.Points) {
+      o.geometry.dispose();
+      for (const m of [o.material].flat()) { (m as THREE.MeshToonMaterial).map?.dispose(); m.dispose(); }
+    }
+  });
+}
+
 export function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, repeat = 1) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;

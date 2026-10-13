@@ -48,6 +48,9 @@ happens. Everything before 1.0 is in the git history.
   Tapping its name lists every Track by place. Any Track, the first choice, joins the fullest Race whatever it races, as
   before; a picked Track joins a Race on that Track, or starts one, and races it again and again. An Offline Race (and
   the watch, which picks it from a list) does the same. The Track is remembered like the rest (`track`).
+- The picked Track's picture is the Track itself in 3D, with its scenery, landmarks, rivers and bridges, seen from above
+  and turning slowly like the Body on its turntable, starting from behind the start line with a whirl as each Track comes
+  up. Any Track keeps its question mark.
 - The whole start screen fits on one screen, on phones and tablets in both orientations and on desktops, without
   scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit. Steering and
   Pad sit side by side, with their hints as tooltips (VoiceOver hints in the app).
