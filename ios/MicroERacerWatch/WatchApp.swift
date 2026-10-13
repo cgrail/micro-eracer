@@ -6,7 +6,8 @@ import WatchKit
 
 // The Apple Watch app: an Offline Race against the Bots, with the same `Game` as on the iPhone in a smaller frame. watchOS
 // has no Colyseus SDK and allows web sockets only to audio-streaming apps, so the watch doesn't race online. The Digital
-// Crown steers, and a tap on the screen uses the Item (held, a Zap keeps firing), or reverses while the E-Car is stuck.
+// Crown steers, and so does a finger on the left or right half of the screen; the button in the top right corner uses the
+// Item (held, a Zap keeps firing). There is no Back button: an E-Car stuck for a moment is put back on the road.
 
 @MainActor
 final class WatchModel: ObservableObject {
@@ -42,6 +43,7 @@ final class WatchModel: ObservableObject {
             if hud.msg != self.hud.msg { Self.tap(["3": .click, "2": .click, "1": .click, "GO!": .start][hud.msg] ?? (hud.msg.hasPrefix("Finished") ? .success : nil)) }
             self.hud = hud
         }, left: {})
+        game.unstick = true
         game.heard = { event, mine in
             let feel: WKHapticType?
             switch event {
@@ -97,7 +99,7 @@ struct WatchStartView: View {
                     Text("Play").font(.custom("Bangers-Regular", size: 24)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent).tint(Color(hex: 0xffd60a)).listRowBackground(Color.clear)
-                Text("Turn the Crown to steer, tap to use your Item. Offline: you and the Bots.").font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
+                Text("Steer with the Crown, or touch the left or right of the screen. The button top right uses your Item. Offline: you and the Bots.").font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
             }
             .navigationDestination(isPresented: $racing) {
                 if let game = model.game { WatchRaceView(model: model, game: game) }
@@ -106,14 +108,20 @@ struct WatchStartView: View {
     }
 }
 
-/// The Race: the game, the HUD over it, the Crown and the tap.
+/// How far the Crown turns the steering, and how long it rests before the steering comes back to the middle.
+private let CROWN_GAIN = 1.5, CROWN_HOLD = 0.35
+
+/// The Race: the game, the HUD over it, the Crown, the screen's halves and the action button.
 struct WatchRaceView: View {
     @ObservedObject var model: WatchModel
     let game: Game
     @State private var crown = 0.0
-    @State private var steer = 0.0
-    @State private var idle = true
-    @State private var held = false
+    /// The Crown's steering, clamped at full lock.
+    @State private var turned = 0.0
+    /// When the Crown came to rest, nil while it turns.
+    @State private var restingSince: Date? = Date()
+    /// Full lock while a finger is on the screen: -1 on its left half, 1 on its right.
+    @State private var touch: Double? = nil
     private let center = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -124,37 +132,65 @@ struct WatchRaceView: View {
                 Halftone()
                 WatchHUD(hud: model.hud)
             }
+            // as the phone's Buttons steering: the finger can rock from one half to the other without lifting
+            .gesture(DragGesture(minimumDistance: 0).onChanged { at in touch = at.location.x < box.size.width / 2 ? -1 : 1 }.onEnded { _ in touch = nil })
             .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
         }
         .focusable()
         // the Crown is the steering wheel: turned up, the E-Car steers right; let go, it comes back to the middle. Only its
-        // turns count, into our own `steer`: a clamped Crown rubber-bands at its ends, and moving it back to the middle
+        // turns count, into our own `turned`: a clamped Crown rubber-bands at its ends, and moving it back to the middle
         // while it does flung the steering over to the other side, so it wraps round instead and is never written to
         .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: false,
-                              onChange: { _ in idle = false }, onIdle: { idle = true })
+                              onChange: { _ in restingSince = nil }, onIdle: { restingSince = Date() })
         .onChange(of: crown) { was, now in
             // a jump of more than half the Crown's range is it wrapping round, not a turn
             var turn = now - was
             if turn > 1 { turn -= 2 } else if turn < -1 { turn += 2 }
-            steer = min(1, max(-1, steer + turn * 0.5))
+            turned = min(1, max(-1, turned + turn * CROWN_GAIN))
         }
-        .onChange(of: steer) { _, steer in model.controls.setSteer(steer) }
-        .onReceive(center) { _ in if idle && steer != 0 { steer = abs(steer) < 0.03 ? 0 : steer * 0.8 } }
-        // a tap uses the Item; while stuck (the phone's Back button would show) holding the screen reverses instead
-        .gesture(DragGesture(minimumDistance: 0).onChanged { _ in
-            if held { return }
-            held = true
-            if model.hud.showBack { model.controls.setReversing(true) } else { model.controls.setFiring(true) }
-        }.onEnded { _ in
-            held = false
+        // a turn is held a moment after the Crown stops, so a bend (or turning round at a wall) can be steered through
+        .onReceive(center) { _ in
+            guard let since = restingSince, turned != 0, Date().timeIntervalSince(since) > CROWN_HOLD else { return }
+            turned = abs(turned) < 0.03 ? 0 : turned * 0.85
+        }
+        .onChange(of: touch ?? turned) { _, steer in model.controls.setSteer(steer) }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { ActionButton(item: model.hud.item, controls: model.controls) }
+        }
+        .onDisappear {
             model.controls.setFiring(false)
-            model.controls.setReversing(false)
-        })
-        .onDisappear { model.leave() }
+            model.controls.setSteer(0)
+            model.leave()
+        }
     }
 }
 
-/// The HUD at watch size: Position, the Item and the Lap on top, the Energy bar under them, messages in the middle.
+/// The action button in the top right corner, where watch apps have theirs: it shows the Item (empty, a box will fill it)
+/// and uses it when pressed, not on lifting like a `Button`; held, a Zap keeps firing.
+private struct ActionButton: View {
+    let item: String, controls: Controls
+    @State private var down = false
+
+    var body: some View {
+        Text(item).font(.system(size: 17)).lineLimit(1).minimumScaleFactor(0.5)
+            .frame(width: 38, height: 38)
+            .background(Circle().fill(Color(hex: 0xffc81e, opacity: item.isEmpty ? 0.45 : 0.9)))
+            .overlay(Circle().strokeBorder(Color(hex: 0x111111), lineWidth: 2))
+            .scaleEffect(down ? 0.9 : 1)
+            .contentShape(Circle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { _ in
+                if !down { down = true; controls.setFiring(true) }
+            }.onEnded { _ in
+                down = false
+                controls.setFiring(false)
+            })
+            .accessibilityLabel(item.isEmpty ? "Use the Item" : item)
+            .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// The HUD at watch size: Position and Lap on top (the Item is on the action button), the Energy bar under them, messages in
+/// the middle.
 struct WatchHUD: View {
     let hud: HudState
 
@@ -162,8 +198,6 @@ struct WatchHUD: View {
         VStack(spacing: 3) {
             HStack {
                 Comic(text: hud.pos, size: 20, fill: Color(hex: 0xffd60a))
-                Spacer()
-                Text(hud.item).font(.system(size: 18))
                 Spacer()
                 Comic(text: hud.lap, size: 15)
             }

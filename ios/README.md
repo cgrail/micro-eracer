@@ -87,10 +87,14 @@ scene is small.
 ## The watch
 
 The same `Game` as on the iPhone, in an Offline Race. The Digital Crown is the steering wheel: turned up it steers right,
-and let go it comes back to the middle. Only its turns count, into the view's own `steer` (clamped at full lock): a Crown
-clamped at its ends rubber-bands there, so it wraps round instead and the app never writes its value. The E-Car accelerates by itself. A tap on the screen uses the Item (held, a Zap keeps
-firing); while the E-Car is stuck (where the phone would show its Back button), holding the screen reverses instead. Watch
-apps can't use the side button, and pressing the Crown always goes home. The wrist is tapped for the countdown, GO, a Ram,
+and let go it comes back to the middle, after holding the turn for a moment (`CROWN_HOLD`). Only its turns count, into the
+view's own `turned` (`CROWN_GAIN` times the turn, clamped at full lock): a Crown clamped at its ends rubber-bands there, so
+it wraps round instead and the app never writes its value. A finger on the screen steers too, at full lock to its side of
+the middle, like the phone's Buttons steering, and wins over the Crown while it is down. The E-Car accelerates by itself.
+The action button is the toolbar's, in the top right corner (`ActionButton`): it shows the Item and uses it as it is
+pressed (held, a Zap keeps firing). There is no Back button: stuck for `UNSTICK_TIME` (where the phone would show its
+Back button), the E-Car is put back on the road where it is, facing along it (`Game.unstick`). Watch apps can't use the
+side button, and pressing the Crown always goes home. The wrist is tapped for the countdown, GO, a Ram,
 a Hit, a Battery, an Item from a box, a Shield blocking, running dry and the finish (`WatchModel.play`).
 
 ## Assets
