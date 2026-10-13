@@ -19,6 +19,8 @@ final class Game: NSObject, SCNSceneRendererDelegate {
     var aspect = 1.0
     /// Told of every event and our own Seat, on the game's thread (the watch taps the wrist with it).
     var heard: ((RaceEvent, Int) -> Void)?
+    /// No Back button (the watch): stuck for `UNSTICK_TIME`, our E-Car is put back on the road where it is instead.
+    var unstick = false
 
     var track: Track?, world: World?, look: TrackScene?
     var state: RaceState?, me: CarState?, own: Own?
@@ -115,10 +117,12 @@ final class Game: NSObject, SCNSceneRendererDelegate {
         guard let own else { return }
         if state.phase != .grid { ourRams(world, own.view, views.compactMap { $0 }, before!, now) }
         let rb = own.view.car.rb
-        if rb.y < track.samples[own.progress.idx].y + FALL_Y {
+        let fell = rb.y < track.samples[own.progress.idx].y + FALL_Y, stuck = unstick && stuckFor > UNSTICK_TIME
+        if fell || stuck {
             let others = views.compactMap { $0 }.filter { $0 !== own.view }.map { Vec3(x: $0.shown.x, y: $0.shown.y, z: $0.shown.z) }
-            teleport(own.view.car, resetToCheckpoint(track, &own.progress, others))
+            teleport(own.view.car, fell ? resetToCheckpoint(track, &own.progress, others) : ontoRoad(track, &own.progress, others))
             own.lockedUntil = clock + 1
+            stuckFor = 0
         } else { updateProgress(track, &own.progress, rb.x, rb.z) }
         // 30 times a second, as often as the server sends its state
         ticks += 1
@@ -174,6 +178,18 @@ final class Game: NSObject, SCNSceneRendererDelegate {
         sound.silenceLoops()
         link.leave()
     }
+}
+
+/// How long the watch's E-Car may be stuck before it is put back on the road.
+let UNSTICK_TIME = 2.5
+
+/// Moves progress to a free spot on the road where the E-Car is (or a little behind it, as `resetToCheckpoint` does) and
+/// returns the pose to put it at, in the road's middle and facing along it.
+private func ontoRoad(_ track: Track, _ p: inout Progress, _ others: [Vec3]) -> Pose {
+    guard let spot = freeSpot(track, [p.idx, p.idx - 6, p.idx - 12], others) else { return poseAt(track, p.idx) }
+    p.u -= p.idx - spot.idx
+    p.idx = (spot.idx + track.n) % track.n
+    return spot.pose
 }
 
 extension SCNNode {

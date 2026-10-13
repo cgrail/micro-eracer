@@ -8,7 +8,7 @@ struct Pad {
     var active: Bool { throttle != 0 || steer != 0 || fire || use }
 }
 
-/// What the player is doing (thumbs on a phone, a keyboard or game controller on an iPad, the Crown and a tap on the watch),
+/// What the player is doing (thumbs on a phone, a keyboard or game controller on an iPad, the Crown and the screen on the watch),
 /// written by SwiftUI on the main thread and read by the game loop on SceneKit's. The last one used drives: touch with
 /// auto-throttle, keys and controllers with their own throttle, as on a desktop.
 final class Controls: @unchecked Sendable {
@@ -18,7 +18,7 @@ final class Controls: @unchecked Sendable {
     /// Polls the keyboard and game controllers; nil where there are none (the watch).
     var poll: (() -> Pad)?
 
-    /// Touch: auto-throttle, full ahead unless reversing (the Back button, or the watch's screen held while stuck).
+    /// Touch: auto-throttle, full ahead unless reversing (the Back button).
     func drive() -> Input {
         let pad = poll?() ?? Pad()
         return locked {
@@ -26,7 +26,7 @@ final class Controls: @unchecked Sendable {
             return manual ? Input(throttle: pad.throttle, steer: pad.steer) : Input(throttle: reverse ? -1 : 1, steer: steer)
         }
     }
-    /// True while the action button (the watch's screen, Space) is held, for a Zap's rapid fire.
+    /// True while the action button (or Space) is held, for a Zap's rapid fire.
     func firing() -> Bool { let pad = poll?() ?? Pad(); return locked { fire } || pad.fire }
     /// True once per press.
     func takeItemPress() -> Bool {

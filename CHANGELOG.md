@@ -123,11 +123,16 @@ happens. Everything before 1.0 is in the git history.
 - **An Apple Watch app**, inside the iPhone app and also on its own: the same game in an Offline Race against 7 Bots.
   The watch can't race online (watchOS has no build of the Colyseus SDK and allows web sockets only to audio-streaming
   apps).
-- The Digital Crown is the steering wheel: turned up it steers right, and let go it comes back to the middle. Full lock
-  takes a good turn, turned on past it the steering stays at full lock, and turning back straightens up at once (it no
-  longer swings over to the other side). The E-Car accelerates by itself. A tap on the screen uses the Item (held, a Zap keeps firing), and while the E-Car is stuck,
-  holding the screen reverses. Watch apps can't use the side button, and pressing the Crown always goes home.
-- A small HUD (Position, Item, Lap, the Energy bar, the countdown and messages, the results), and taps on the wrist for
-  the countdown and GO, a Ram, a Hit, a Battery, an Item from a box, a Shield blocking, running dry and the finish.
+- The Digital Crown is the steering wheel: turned up it steers right, and let go it holds the turn for a moment, then
+  comes back to the middle. A short turn reaches full lock, turned on past it the steering stays at full lock, and turning
+  back straightens up at once (it never swings over to the other side). A finger on the screen steers too, as the phone's
+  Buttons do: full lock left on its left half, right on its right half, and it can rock from one to the other without
+  lifting. The E-Car accelerates by itself. The action button in the top right corner shows the Item and uses it (held, a
+  Zap keeps firing). An E-Car stuck for two and a half seconds (nose on a wall, or spun round against one) is put back on
+  the road where it is, facing the right way, instead of reversing. Watch apps can't use the side button, and pressing
+  the Crown always goes home.
+- A small HUD (Position, Lap, the Energy bar, the countdown and messages, the results; the Item is on the action
+  button), and taps on the wrist for the countdown and GO, a Ram, a Hit, a Battery, an Item from a box, a Shield
+  blocking, running dry and the finish.
 - The start screen is a list of the Nickname, the Body, the Track and the sound switch, the way watch apps lay out their
   settings: the Body and the Track each open a list to pick from. The back button leaves the Race.
