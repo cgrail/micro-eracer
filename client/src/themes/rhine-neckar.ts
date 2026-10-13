@@ -58,9 +58,9 @@ export const props: Record<string, PropData> = {
       ...many(4, (i) => grp(tree(6, 0x4f9a3d), -9 + i * 6, 0, 8.5))],
   },
   'sap-star': {
-    // one of the star buildings: three wings round a round glass core
-    parts: [flat(cyl(15, 15, 0.06, 0xd8d3c8, 0, 0.03, 0, 24)), cyl(5, 5, 13, 0x9fd3f0, 0, 6.5, 0, 16), cyl(5.3, 5.3, 0.5, 0xd8dde4, 0, 13.25, 0, 16),
-      ...many(3, (i) => spin(grp([...building(6.4, 12, 9, 0xf2efe8, SAP, 4, 3), box(6.8, 0.5, 9.4, 0xd8dde4, 0, 12.25, 0)], 0, 0, 9), (i * 2 * Math.PI) / 3 + Math.PI / 3))],
+    // one of the star buildings: six wings with green roofs round a glass core under its dome
+    parts: [flat(cyl(14.5, 14.5, 0.06, 0xd8d3c8, 0, 0.03, 0, 24)), cyl(5, 5, 11, 0x9fd3f0, 0, 5.5, 0, 6), cyl(5.3, 5.3, 0.5, 0xd8dde4, 0, 11.25, 0, 6), dome(3.6, 0xbfe4f7, 0, 11.5, 0),
+      ...many(6, (i) => spin(grp([...building(5.4, 10, 9.6, 0xf2efe8, SAP, 3, 3), box(5.8, 0.5, 10, 0x7f9f5a, 0, 10.25, 0)], 0, 0, 9), (i * Math.PI) / 3))],
   },
   // Heidelberg
   'hd-house': { pick: [0xb5402f, 0x8c3a2b, 0xc75b3a], parts: timbered(5, 4.4, 4, 'pick') },
@@ -175,6 +175,10 @@ export const themes: Record<'sap' | 'heidelberg' | 'zuzenhausen' | 'sinsheim', T
       ...[106, 146].flatMap((v) => [{ rect: [0, v, 256, 2] as R, c: 0xb9b3a6 }, { rect: [v, 0, 2, 256] as R, c: 0xb9b3a6 }])],
     props: ['sap-tree', 'sap-tree', 'sap-hedge', 'sap-bench', 'sap-bikes', 'sap-flag', 'sap-lamp'], landmarks: ['sap-logo', 'sap-ball'],
     big: [['sap-wdf01', 2], ['sap-star', 2], ['sap-star', 2]],
+    // Campus Loop runs round the three stars where they stand on the map: one top left, WDF19-21 below it, WDF18 on the right
+    sites: {
+      'sap-corridor': [{ kind: 'sap-star', x: 22, z: 10, yaw: 0.52 }, { kind: 'sap-star', x: 52, z: -4, yaw: 0 }, { kind: 'sap-star', x: 40, z: -72, yaw: 0.52 }],
+    },
   },
   heidelberg: {
     title: 'Heidelberg', sky: [0x8ec9f0, 0xdcefff], puddle: 0x6f9fbf, clouds: true,

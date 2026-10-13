@@ -1,7 +1,8 @@
+import SceneKit
 import SwiftUI
 import UIKit
 
-// The start screen's Track picker (client/src/trackmap.ts and the picker in main.ts): the Track from above on its theme's
+// The start screen's Track picker (client/src/trackmap.ts and the picker in main.ts): the Track in 3D on its theme's
 // ground, what it has in store, and ◀ ▶ that keep stepping while held.
 
 private var built: [String: Track] = [:]
@@ -13,7 +14,7 @@ private func trackOf(_ def: TrackDef) -> Track {
 }
 
 private var factsOf: [String: [String]] = [:]
-/// The lines beside the map: length and turns, then the bridges, climbs and jumps (trackmap.ts `trackFacts`).
+/// The lines beside the picture: length and turns, then the bridges, climbs and jumps (trackmap.ts `trackFacts`).
 func trackFacts(_ def: TrackDef?) -> [String] {
     guard let def else { return ["A new Track every Race", "\(TRACKS.count) to race on"] }
     if let f = factsOf[def.id] { return f }
@@ -28,64 +29,98 @@ func trackFacts(_ def: TrackDef?) -> [String] {
     return lines
 }
 
-private var grounds: [Theme: UIImage] = [:]
-private func groundOf(_ theme: Theme) -> UIImage {
-    if let g = grounds[theme] { return g }
-    let g = themeLook(theme).ground()
-    grounds[theme] = g
-    return g
+// how steeply the camera looks down on the Track; and how long a pick rests before its Track is built (◀ ▶ held step
+// every 60 ms, far quicker than a Track builds)
+private let TILT = 0.95, SETTLE = 0.15
+
+/// The Track on its turntable (trackmap.ts `createCourse`): the picked Track with all its scenery, seen from above and
+/// turning slowly, with a whirl as each one comes up. It is built on the render thread once the pick has rested; for none
+/// (any Track) it draws nothing, and the start form shows a question mark instead.
+final class Course: NSObject, ObservableObject, SCNSceneRendererDelegate {
+    let scene = SCNScene(), camera = SCNNode()
+    /// The view's width over its height, from its layout.
+    var aspect = 1.0
+    // an index into TRACKS, -1 for none: one word, set on the main thread and read on the render thread
+    private var wanted = -1, shown = -1, rest = 0.0
+    private var look: TrackScene?, centre = SCNVector3(0, 0, 0), reach = 1.0, angle = 0.0, speed = 0.0, last = -1.0
+    private let still = UIAccessibility.isReduceMotionEnabled
+
+    override init() {
+        super.init()
+        camera.camera = SCNCamera()
+        camera.camera!.fieldOfView = 30
+        scene.rootNode.addChildNode(camera)
+        let ambient = SCNLight(); ambient.type = .ambient; ambient.intensity = 560
+        let sun = SCNLight(); sun.type = .directional; sun.intensity = 760
+        let sunNode = SCNNode(); sunNode.light = sun; sunNode.position = SCNVector3(40, 80, 25); sunNode.look(at: SCNVector3(0, 0, 0))
+        scene.rootNode.addChildNode(SCNNode().with { $0.light = ambient })
+        scene.rootNode.addChildNode(sunNode)
+    }
+
+    func show(_ id: String) {
+        wanted = TRACKS.firstIndex { $0.id == id } ?? -1
+        rest = 0
+    }
+
+    private func build(_ i: Int) {
+        look?.node.removeFromParentNode()
+        look = nil
+        shown = i
+        guard i >= 0 else { return }
+        let track = buildTrack(TRACKS[i]), xs = track.samples.map(\.x), zs = track.samples.map(\.z), s0 = track.samples[0]
+        let look = buildTrackScene(track)
+        self.look = look
+        scene.rootNode.addChildNode(look.node)
+        scene.background.contents = look.sky
+        let cx = (xs.min()! + xs.max()!) / 2, cz = (zs.min()! + zs.max()!) / 2
+        centre = SCNVector3(cx, 0, cz)
+        reach = track.samples.map { hypot($0.x - cx, $0.z - cz) }.max()! + HALF_WIDTH + 2
+        // first from behind the start line, as the chase camera sees it
+        angle = atan2(-s0.dx, -s0.dz)
+        if !still { speed = 2 }
+    }
+
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        let dt = last < 0 ? 0 : min(0.1, time - last)
+        last = time
+        rest += dt
+        let pick = wanted
+        if pick != shown && rest > SETTLE { build(pick) }
+        guard let look, let lens = camera.camera else { return }
+        speed += ((still ? 0 : 0.15) - speed) * min(1, 3 * dt)
+        angle += speed * dt
+        look.update(time)
+        // back far enough for the whole Track: across, and up and down, where the slant squashes it
+        let half = tan(lens.fieldOfView * .pi / 360), dist = 1.1 * max(reach / (half * aspect), reach * sin(TILT) / half)
+        lens.zNear = dist / 4
+        lens.zFar = dist * 3
+        camera.position = SCNVector3(Double(centre.x) + sin(angle) * cos(TILT) * dist, sin(TILT) * dist, Double(centre.z) + cos(angle) * cos(TILT) * dist)
+        camera.look(at: centre)
+    }
 }
 
-/// The Track seen from above, its start straight running up the picture; for none (any Track), a question mark.
-struct TrackMap: View {
-    let def: TrackDef?
+struct CourseView: UIViewRepresentable {
+    let course: Course
+    func makeUIView(context: Context) -> SCNView {
+        let v = SizedView()
+        v.course = course
+        v.scene = course.scene
+        v.pointOfView = course.camera
+        v.delegate = course
+        v.antialiasingMode = .multisampling4X
+        v.rendersContinuously = true
+        v.isPlaying = true
+        v.isUserInteractionEnabled = false
+        v.accessibilityElementsHidden = true
+        return v
+    }
+    func updateUIView(_ v: SCNView, context: Context) {}
 
-    var body: some View {
-        Canvas { g, size in
-            let w = Double(size.width), h = Double(size.height)
-            guard let def else {
-                g.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(hex: 0x2f9bff)))
-                g.draw(Text("?").font(.custom("Bangers-Regular", size: size.height * 0.8)).foregroundColor(Color(hex: 0xffd60a)), at: CGPoint(x: w / 2, y: h * 0.56))
-                return
-            }
-            let track = trackOf(def), xs = track.samples.map(\.x), zs = track.samples.map(\.z)
-            let x0 = xs.min()!, x1 = xs.max()!, z0 = zs.min()!, z1 = zs.max()!, pad = 10.0
-            let scale = min((w - 2 * pad) / (x1 - x0 + 2 * HALF_WIDTH), (h - 2 * pad) / (z1 - z0 + 2 * HALF_WIDTH))
-            func at(_ x: Double, _ z: Double) -> CGPoint { CGPoint(x: w / 2 - (x - (x0 + x1) / 2) * scale, y: h / 2 - (z - (z0 + z1) / 2) * scale) }
-            func road(_ from: Int, _ to: Int) -> Path {
-                var path = Path()
-                for i in from...to {
-                    let s = track.samples[i % track.n]
-                    if i == from { path.move(to: at(s.x, s.z)) } else { path.addLine(to: at(s.x, s.z)) }
-                }
-                return path
-            }
-            // the ground tile is 17 m across, as in the game
-            g.fill(Path(CGRect(origin: .zero, size: size)), with: .tiledImage(Image(uiImage: groundOf(def.theme)), scale: 17 * scale / 256))
-            // a theme's river, right across the picture, under its bridge
-            if let river = stagingOf(def.id)?.river {
-                var band = Path()
-                band.move(to: at(river.x - river.dx * 2000, river.z - river.dz * 2000))
-                band.addLine(to: at(river.x + river.dx * 2000, river.z + river.dz * 2000))
-                g.stroke(band, with: .color(Color(hex: river.color)), style: StrokeStyle(lineWidth: river.width * scale, lineCap: .butt))
-            }
-            // the whole road, then the raised stretches again on top, so a bridge lies over the road it crosses
-            var paths = [road(0, track.n)], start = -1
-            for i in 0...track.n {
-                let up = track.samples[i % track.n].y > RISE * 0.5
-                if up && start < 0 { start = i }
-                if !up && start >= 0 { paths.append(road(max(0, start - 1), i)); start = -1 }
-            }
-            let width = max(4, 2 * HALF_WIDTH * scale)
-            for path in paths {
-                g.stroke(path, with: .color(Color(hex: 0x111111)), style: StrokeStyle(lineWidth: width + 3, lineCap: .round, lineJoin: .round))
-                g.stroke(path, with: .color(Color(hex: 0x51565f)), style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
-            }
-            let s = track.samples[0]
-            var line = Path()
-            line.move(to: at(s.x - s.dz * HALF_WIDTH, s.z + s.dx * HALF_WIDTH))
-            line.addLine(to: at(s.x + s.dz * HALF_WIDTH, s.z - s.dx * HALF_WIDTH))
-            g.stroke(line, with: .color(.white), lineWidth: 3)
+    final class SizedView: SCNView {
+        weak var course: Course?
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            course?.aspect = bounds.height > 0 ? bounds.width / bounds.height : 1
         }
     }
 }

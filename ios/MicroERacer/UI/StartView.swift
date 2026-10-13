@@ -17,6 +17,7 @@ struct StartView: View {
     @ObservedObject var model: AppModel
     @Environment(\.colorScheme) private var scheme
     @StateObject private var garage = Garage()
+    @StateObject private var course = Course()
 
     private var bg: Color { scheme == .dark ? Color(hex: 0x2a2118) : Color(hex: 0xffe9c9) }
     private var paper: Color { scheme == .dark ? Color(hex: 0x2f2620) : Color(hex: 0xfffdf6) }
@@ -40,12 +41,13 @@ struct StartView: View {
         // the keyboard covers the bottom while the name is typed, rather than squashing the form
         .ignoresSafeArea(.keyboard)
         .background(bg.ignoresSafeArea())
-        .onAppear { garage.show(model.body, whirl: false) }
+        .onAppear { garage.show(model.body, whirl: false); course.show(model.track) }
         #if DEBUG
         // `-autoplay YES -name Tester` as launch arguments: straight into a Race, for trying things in the simulator
         .task { if UserDefaults.standard.bool(forKey: "autoplay") && !model.name.isEmpty { await model.play() } }
         #endif
         .onChange(of: model.body) { garage.show($0, whirl: true) }
+        .onChange(of: model.track) { course.show($0) }
     }
 
     private func card(wide: Bool, pic: CGFloat) -> some View {
@@ -112,7 +114,9 @@ struct StartView: View {
         let def = TRACKS.first { $0.id == model.track }
         return VStack(spacing: 6) {
             HStack(alignment: .center, spacing: 10) {
-                TrackMap(def: def).frame(height: pic).frame(maxWidth: .infinity)
+                CourseView(course: course).frame(height: pic).frame(maxWidth: .infinity)
+                    // any Track: a question mark in the picture's place
+                    .overlay { if def == nil { Color(hex: 0x2f9bff).overlay(Text("?").font(.custom("Bangers-Regular", size: pic * 0.8)).foregroundColor(Color(hex: 0xffd60a)).offset(y: pic * 0.06)) } }
                     .clipShape(RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
                     .overlay(alignment: .topLeading) { Comic(text: "Track", size: 17).padding(.leading, 8).padding(.top, 4) }
                     .accessibilityHidden(true)

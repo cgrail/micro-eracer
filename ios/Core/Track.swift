@@ -36,7 +36,7 @@ let TRACKS: [TrackDef] = [
     TrackDef(id: "sap-ring", name: "Walldorf Ring", theme: .sap,
              pieces: "S L* S S S L S S S S S L S S S L* S S S S", puddles: [2, 11], items: [7, 17]),
     TrackDef(id: "sap-corridor", name: "Campus Loop", theme: .sap,
-             pieces: "S L R* R* S* S S S S R* S S S R* L* S S R S R* S L* S R* S S", puddles: [13, 23], items: [8, 22]),
+             pieces: "S S L* S S S S L S S S L* R* S S S S L* S S L* S S S R* L* S S", puddles: [9, 22], items: [5, 14]),
     TrackDef(id: "facebook-lane", name: "Like Lane", theme: .facebook,
              pieces: "S R S S R S S S S L* R R* S* S S S S R S R S L S S", puddles: [4, 21], items: [7, 20]),
     TrackDef(id: "facebook-hacker", name: "Hacker Way", theme: .facebook,

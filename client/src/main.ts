@@ -12,7 +12,7 @@ import { offlineRace } from './offline.ts';
 import { startPractice } from './practice.ts';
 import { themeOf } from './props.ts';
 import type { RaceLink } from './state.ts';
-import { drawTrackMap, trackFacts } from './trackmap.ts';
+import { createCourse, trackFacts } from './trackmap.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const form = $<HTMLFormElement>('start'), nameInput = $<HTMLInputElement>('name'), play = $<HTMLButtonElement>('play');
@@ -39,7 +39,7 @@ showBody();
 garage.run(true);
 
 // the Track: any (''), which joins whatever Race is running, or one picked, raced again and again
-const trackSelect = $<HTMLSelectElement>('track'), trackMap = $<HTMLCanvasElement>('track-map'), facts = $('facts');
+const trackSelect = $<HTMLSelectElement>('track'), course = createCourse($<HTMLCanvasElement>('track-map')), facts = $('facts');
 const TRACK_IDS = ['', ...TRACKS.map((t) => t.id)];
 let track = TRACK_IDS.find((t) => t && t === load('track')) ?? '';
 trackSelect.append(new Option('Any Track', ''));
@@ -54,7 +54,8 @@ const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} $
 const showTrack = () => {
   trackSelect.value = track;
   const def = TRACKS.find((t) => t.id === track);
-  drawTrackMap(trackMap, def);
+  course.show(def);
+  $('course').classList.toggle('any', !def);
   if (!def) { facts.replaceChildren(line('Any Track', 'place'), line('A new Track every Race'), line(`${TRACKS.length} to race on`)); return; }
   const f = trackFacts(def), extras = [f.bridges && 'a bridge', f.climbs && count(f.climbs, 'a climb', 'climbs'), f.jumps && count(f.jumps, 'a jump', 'jumps')].filter(Boolean);
   facts.replaceChildren(line(themeOf(def.theme).title, 'place'), line(`${f.length} m, ${f.turns} turns`), line(extras.join(', ') || 'all on one level'));
@@ -76,8 +77,8 @@ for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
   button.addEventListener('click', (e) => { if (e.detail === 0) stepTrack(by); });
 }
 trackSelect.addEventListener('change', () => { track = trackSelect.value; showTrack(); trackSelect.blur(); });
-// the map fills its box, which changes size with the window
-new ResizeObserver(showTrack).observe(trackMap);
+showTrack();
+course.run(true);
 
 const controls = createInput({ touch, steer: $('steer'), action: $('fire'), back: $('back') });
 // touch only, set on the Practice Ground behind the Controls button, which says how they are set
@@ -131,6 +132,7 @@ $('controls').addEventListener('click', () => {
   sound.unlock();
   form.hidden = true;
   garage.run(false);
+  course.run(false);
   practice.hidden = touch.hidden = false;
   hud.action.textContent = ITEM_ICONS.zap;
   stopPractice = startPractice(body, controls, sound);
@@ -143,6 +145,7 @@ $('practice-done').addEventListener('click', () => {
   form.hidden = false;
   fit();
   garage.run(true);
+  course.run(true);
 });
 const serverUrl = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
 // waiting longer than this for the server, Play starts an Offline Race instead
@@ -173,6 +176,7 @@ form.addEventListener('submit', async (e) => {
     }
     form.hidden = true;
     garage.run(false);
+    course.run(false);
     hudEl.hidden = mute.hidden = false;
     touch.hidden = !isTouch;
     // so Space uses the Item instead of pressing the (now hidden) Play button again
@@ -184,6 +188,7 @@ form.addEventListener('submit', async (e) => {
       fit();
       showTrack();
       garage.run(true);
+      course.run(true);
       hudEl.hidden = touch.hidden = mute.hidden = true;
       error.textContent = 'Connection lost.';
     });

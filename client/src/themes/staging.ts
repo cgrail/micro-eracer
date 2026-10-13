@@ -202,10 +202,18 @@ export function staging(track: Track, theme: ThemeData): Staging {
     }
   }
 
+  // a Track's own sites first, with the tiles round them (a big landmark reaches about a tile and a half)
+  const big = [...(theme.big ?? [])];
+  for (const site of theme.sites?.[track.def.id] ?? []) {
+    out.landmarks.push(site);
+    const i = big.findIndex(([kind]) => kind === site.kind);
+    if (i >= 0) big.splice(i, 1);
+    for (const [x, z] of grid(2)) if ((x - site.x) ** 2 + (z - site.z) ** 2 < (1.5 * TILE) ** 2) blocked.add(key(x, z));
+  }
   // the big landmarks, each over a block of free tiles beside the road (smaller and scaled down if none is free)
   const free = (x: number, z: number) => !road.has(key(x, z)) && !blocked.has(key(x, z));
   const beside = (x: number, z: number) => [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE]].find(([dx, dz]) => road.has(key(x + dx, z + dz)));
-  for (const [kind, size] of theme.big ?? []) {
+  for (const [kind, size] of big) {
     for (let n = size; n >= 2; n--) {
       const blocks = grid(4).filter(([x, z]) => {
         const tiles = many(n, (i) => many(n, (j) => [[x + i * TILE, z + j * TILE]])) as [number, number][];

@@ -22,8 +22,8 @@ import { themeOf } from './props.ts';
 import {
   SEAT_COLORS, type TrackScene, buildTrackScene, makeBattery, makeBolt, makeDrone, makeItemBox, makeMine, makeNameTag,
 } from './scene.ts';
-import { dispose } from './toon.ts';
 import { RECHARGE, type BoltState, type CarState, DRIVING, type List, type RaceLink, type RaceState, STRANDED, type Spot } from './state.ts';
+import { dispose } from './toon.ts';
 
 /** Runs one online session: our E-Car is simulated here, every other E-Car follows the server. Returns a stop function. */
 export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: Sound): () => void {
