@@ -59,6 +59,8 @@ The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `Outl
 
 A link to the game shared in Slack, Teams, X or WhatsApp shows a comic card of E-Cars racing up a road, which the build draws in code (`client/share/`) like everything else; `npm run dev` serves it at `/social.png`. The icon, in the browser tab and on the home screen, is the one picture in the game: `client/public/icon.png`, the same as the apps'.
 
+The privacy policy is `client/public/privacy-policy.html`, served at `/privacy-policy.html` (the URL App Store Connect asks for). It says what the game sends and keeps, so update it when that changes.
+
 ## Deploy
 
 `install.sh` puts the game on the Ubuntu box that [mech-vs-mech](https://github.com/cgrail/mech-vs-mech)'s `install.sh` already set up in Let's Encrypt mode, next to [Electro Car Racer](https://github.com/cgrail/e-racer) and calvo and the same way they are deployed. Run it on the server:

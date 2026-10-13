@@ -137,3 +137,9 @@ happens. Everything before 1.0 is in the git history.
   blocking, running dry and the finish.
 - The start screen is a list of the Nickname, the Body, the Track and the sound switch, the way watch apps lay out their
   settings: the Body and the Track each open a list to pick from. The back button leaves the Race.
+
+### Privacy
+
+- A privacy policy at `/privacy-policy.html` (https://micro.grails.de/privacy-policy.html), for the App Store and the
+  browsers: no accounts, tracking or third parties; the name you race under and the race itself reach the server only
+  while you race, and the settings stay on the device.
