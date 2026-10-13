@@ -31,22 +31,28 @@
         <div class="show" id="course"><span class="tag" aria-hidden="true">Track</span><canvas id="track-map" aria-hidden="true"></canvas><div id="facts" aria-live="polite"></div></div>
         <div class="cycle"><button type="button" id="prev-track" aria-label="Previous Track">◀</button><select id="track" aria-label="Track"></select><button type="button" id="next-track" aria-label="Next Track">▶</button></div>
       </fieldset>
-      <div id="options">
-        <fieldset id="steering" class="pick seg" hidden>
-          <legend>Steering</legend>
-          <button type="button" data-steer="slider" aria-pressed="false" title="drag left or right">Slider</button>
-          <button type="button" data-steer="buttons" aria-pressed="true" title="hold left or right">Buttons</button>
-        </fieldset>
-        <fieldset id="side" class="pick seg" hidden>
-          <legend>Pad</legend>
-          <button type="button" data-side="left" aria-pressed="true" title="for the left thumb">Left</button>
-          <button type="button" data-side="right" aria-pressed="false" title="for the right thumb">Right</button>
-        </fieldset>
-      </div>
+      <button type="button" id="controls" hidden><span>Controls</span><small id="controls-now"></small><span aria-hidden="true">▶</span></button>
       <button id="play" type="submit">Play</button>
       <p id="error" role="alert"></p>
     </div>
   </form>
+
+  <!-- touch only: the Practice Ground, where the controls are set and tried out -->
+  <section id="practice" aria-labelledby="practice-title" hidden>
+    <h2 id="practice-title">Controls</h2>
+    <fieldset id="steering" class="pick seg">
+      <legend>Steering</legend>
+      <button type="button" data-steer="slider" aria-pressed="false">Slider</button>
+      <button type="button" data-steer="buttons" aria-pressed="true">Buttons</button>
+    </fieldset>
+    <fieldset id="side" class="pick seg">
+      <legend>Pad</legend>
+      <button type="button" data-side="left" aria-pressed="true" title="for the left thumb">Left</button>
+      <button type="button" data-side="right" aria-pressed="false" title="for the right thumb">Right</button>
+    </fieldset>
+    <p id="practice-hint" aria-live="polite"></p>
+    <button type="button" id="practice-done">Done</button>
+  </section>
 
   <div id="halftone" aria-hidden="true"></div>
   <div id="hud" hidden>

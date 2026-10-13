@@ -68,6 +68,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Shared/HudFeed.swift`, `MicroERacer/UI/HUD.swift`, the watch's `WatchHUD` | `client/src/hud.ts` |
 | `Shared/Controls.swift`, `MicroERacer/UI/TouchControls.swift`, `MicroERacer/Pads.swift` | `client/src/input.ts` (touch, and the keys on an iPad's keyboard; `Pads.swift` adds game controllers) |
 | `MicroERacer/UI/StartView.swift`, `TrackPick.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts`, `trackmap.ts` |
+| `MicroERacer/Practice.swift`, `UI/PracticeView.swift` | `client/src/practice.ts`, and the Practice Ground's settings (`#practice`) in `client/index.html` and `main.ts` |
 | `MicroERacer/AppModel.swift` | `client/src/main.ts` |
 
 The threads: the game runs on SceneKit's render thread (`renderer(_:updateAtTime:)`), which also pumps the Colyseus SDK

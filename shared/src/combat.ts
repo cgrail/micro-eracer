@@ -14,7 +14,8 @@ export type HitKind = 'shot' | 'missile' | 'mine';
 export interface Bolt { id: number; kind: 'shot' | 'missile'; owner: number; x: number; y: number; z: number; vx: number; vz: number; until: number; target: number }
 export interface Mine { id: number; owner: number; x: number; y: number; z: number; armedAt: number; until: number }
 
-const SHOT_EVERY = 1 / 3, SHOT_SPEED = 45, SHOT_LIFE = 1.1;
+/** A Zap's Shots: at most one every SHOT_EVERY seconds, flying SHOT_SPEED m/s (plus the E-Car's speed) for SHOT_LIFE seconds. */
+export const SHOT_EVERY = 1 / 3, SHOT_SPEED = 45, SHOT_LIFE = 1.1;
 const MISSILE_SPEED = 30, MISSILE_TURN = 3.5, MISSILE_LIFE = 4;
 const MINE_LIFE = 40, MINE_ARM = 0.8, HIT_RADIUS = 1.8, BOX_RADIUS = 2.2, BOX_RESPAWN = 4;
 /** What a Hit does: Energy drained, spin-out (rad/s), sideways shove and hop (m/s). */

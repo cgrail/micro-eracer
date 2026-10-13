@@ -55,10 +55,10 @@ struct StartView: View {
             if wide {
                 HStack(alignment: .top, spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic) }
-                    VStack(alignment: .leading, spacing: 8) { trackPick(pic); options; playButton }
+                    VStack(alignment: .leading, spacing: 8) { trackPick(pic); controlsButton; playButton }
                 }
             } else {
-                VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic); trackPick(pic); options; playButton }
+                VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic); trackPick(pic); controlsButton; playButton }
             }
         }
         .foregroundColor(ink)
@@ -148,23 +148,19 @@ struct StartView: View {
         }
     }
 
-    private var options: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                label("Steering")
-                HStack(spacing: 6) {
-                    pick(model.steering == .slider, "Slider", "drag left or right") { model.steering = .slider }
-                    pick(model.steering == .buttons, "Buttons", "hold left or right") { model.steering = .buttons }
-                }
+    /// Opens the Practice Ground, where the touch controls are set and tried out, and says how they are set.
+    private var controlsButton: some View {
+        Button { model.openPractice() } label: {
+            HStack(spacing: 8) {
+                Text("Controls").font(.custom("Bangers-Regular", size: 22)).kerning(0.5)
+                Text("\(model.steering == .buttons ? "Buttons" : "Slider"), pad \(model.side.rawValue)").font(.system(size: 14))
+                    .lineLimit(1).frame(maxWidth: .infinity, alignment: .trailing)
+                Text("▶\u{FE0E}").font(.system(size: 18)).accessibilityHidden(true)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                label("Pad")
-                HStack(spacing: 6) {
-                    pick(model.side == .left, "Left", "for the left thumb") { model.side = .left }
-                    pick(model.side == .right, "Right", "for the right thumb") { model.side = .right }
-                }
-            }
+            .foregroundColor(ink).padding(.horizontal, 14).frame(minHeight: 44)
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3)).contentShape(RoundedRectangle(cornerRadius: 12))
         }
+        .accessibilityHint("Set up the touch controls and try them out")
     }
 
     private var playButton: some View {
@@ -198,17 +194,6 @@ struct StartView: View {
             .accessibilityLabel(label)
     }
 
-    /// One of two choices; the hint is for VoiceOver, as the browsers keep it in a tooltip.
-    private func pick(_ on: Bool, _ title: String, _ hint: String, _ choose: @escaping () -> Void) -> some View {
-        Button(action: choose) {
-            Text(title).font(.custom("Bangers-Regular", size: 18))
-                .foregroundColor(on ? .white : ink).frame(maxWidth: .infinity, minHeight: 44)
-                .background(RoundedRectangle(cornerRadius: 12).fill(on ? Color(hex: 0x2f9bff) : .clear))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
-        }
-        .accessibilityHint(hint)
-        .accessibilityAddTraits(on ? .isSelected : [])
-    }
 }
 
 /// The turntable: the picked Body turning slowly, with a quick whirl on each pick.

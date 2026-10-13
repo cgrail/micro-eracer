@@ -28,6 +28,18 @@ export interface CarView {
 }
 
 export const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
+
+/** The chase camera behind `target`, easing after it; `last` is where the target was the frame before. */
+export function chase(camera: THREE.PerspectiveCamera, target: THREE.Object3D, last: THREE.Vector3, dt: number) {
+  const p = target.position, fx = Math.sin(target.rotation.y), fz = Math.cos(target.rotation.y);
+  // portrait phones see little sideways, so look down more steeply
+  const [back, up] = camera.aspect < 1 ? [9, 24] : [13, 14];
+  // a far jump (a new Race) cuts instead of flying the camera across the Track
+  const k = last.distanceTo(p) > 25 ? 1 : 1 - Math.exp(-dt * 4), c = camera.position;
+  c.set(c.x + (p.x - fx * back - c.x) * k, c.y + (p.y + up - c.y) * k, c.z + (p.z - fz * back - c.z) * k);
+  last.copy(p);
+  camera.lookAt(p.x + fx * 3, p.y, p.z + fz * 3);
+}
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const smooth = (k: number) => k * k * (3 - 2 * k);
 

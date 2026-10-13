@@ -148,17 +148,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
     /// The chase camera behind our E-Car (before we have one, behind the first).
     private func follow(_ dt: Double) {
         guard let target = own?.view ?? views.compactMap({ $0 }).first else { return }
-        let fx = Float(sin(target.yaw)), fz = Float(cos(target.yaw)), at = target.model.node.simdPosition
-        // portrait phones see little sideways, so look down more steeply
-        let (back, up): (Float, Float) = aspect < 1 ? (9, 24) : (13, 14)
-        let desired = SIMD3(at.x - fx * back, at.y + up, at.z - fz * back)
-        // a far jump (a new Race) cuts instead of flying the camera across the Track
-        if simd_distance(lastTarget, at) > 25 { cameraNode.simdPosition = desired } else {
-            cameraNode.simdPosition += (desired - cameraNode.simdPosition) * Float(1 - exp(-dt * 4))
-        }
-        lastTarget = at
-        // world up, as three.js's lookAt: SceneKit's one-argument look(at:) keeps the camera's own up, so the horizon rolls as it turns
-        cameraNode.simdLook(at: SIMD3(at.x + fx * 3, at.y, at.z + fz * 3), up: [0, 1, 0], localFront: [0, 0, -1])
+        chase(cameraNode, target.model.node.simdPosition, target.yaw, aspect, &lastTarget, dt)
         if shake > 0 {
             shake = max(0, shake - dt)
             cameraNode.simdPosition += SIMD3(Float.random(in: -0.5..<0.5) * Float(shake) * 1.5, Float.random(in: -0.5..<0.5) * Float(shake) * 1.5, 0)

@@ -6,8 +6,10 @@ import { TRACKS } from '../../shared/src/track.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createGarage } from './garage.ts';
+import { ITEM_ICONS } from './hud.ts';
 import { createInput, isTouch, PAD_SIDES, type PadSide, type Steering, STEERINGS } from './input.ts';
 import { offlineRace } from './offline.ts';
+import { startPractice } from './practice.ts';
 import { themeOf } from './props.ts';
 import type { RaceLink } from './state.ts';
 import { createCourse, trackFacts } from './trackmap.ts';
@@ -79,20 +81,27 @@ showTrack();
 course.run(true);
 
 const controls = createInput({ touch, steer: $('steer'), action: $('fire'), back: $('back') });
-// touch only: steer by dragging, or by holding left or right of the pad's middle
+// touch only, set on the Practice Ground behind the Controls button, which says how they are set
+const STEER_HINTS: Record<Steering, string> = {
+  buttons: "Hold a thumb anywhere left or right of the wheel's middle, and rock it across to turn the other way.",
+  slider: 'Put a thumb down anywhere and drag it left or right: the further, the sharper.',
+};
+const showControls = () => {
+  $('controls-now').textContent = `${steering === 'buttons' ? 'Buttons' : 'Slider'}, pad ${side}`;
+  $('practice-hint').textContent = `${STEER_HINTS[steering]} The E-Car drives by itself, and the yellow button shoots.`;
+};
+// steer by dragging, or by holding left or right of the pad's middle
 let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'buttons';
-const steerButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-steer]')];
-const showSteering = () => { steerButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.steer === steering))); controls.setSteering(steering); };
-steerButtons.forEach((b) => b.addEventListener('click', () => { steering = b.dataset.steer as Steering; showSteering(); }));
-$('steering').hidden = !isTouch;
-showSteering();
-// touch only: the pad, with the action button above it, in the bottom-left or the bottom-right corner
+const steerButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-steer]')];
+const showSteering = () => { steerButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.steer === steering))); controls.setSteering(steering); showControls(); };
+steerButtons.forEach((b) => b.addEventListener('click', () => { steering = b.dataset.steer as Steering; save('steer', steering); showSteering(); }));
+// the pad, with the action button above it, in the bottom-left or the bottom-right corner
 let side: PadSide = PAD_SIDES.find((s) => s === load('side')) ?? 'left';
-const sideButtons = [...form.querySelectorAll<HTMLButtonElement>('[data-side]')];
-const showSide = () => { sideButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === side))); touch.classList.toggle('right', side === 'right'); };
-sideButtons.forEach((b) => b.addEventListener('click', () => { side = b.dataset.side as PadSide; showSide(); }));
-$('side').hidden = !isTouch;
-$('options').hidden = !isTouch;
+const sideButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-side]')];
+const showSide = () => { sideButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === side))); touch.classList.toggle('right', side === 'right'); showControls(); };
+sideButtons.forEach((b) => b.addEventListener('click', () => { side = b.dataset.side as PadSide; save('side', side); showSide(); }));
+$('controls').hidden = !isTouch;
+showSteering();
 showSide();
 
 // the whole form on one screen, never scrolled: scaled down where even its compact layout is too big for the window, and
@@ -116,6 +125,28 @@ const showMute = () => { mute.textContent = sound.muted ? '🔇' : '🔊'; mute.
 sound.setMuted(load('muted') === '1');
 showMute();
 mute.addEventListener('click', () => { sound.setMuted(!sound.muted); save('muted', sound.muted ? '1' : '0'); showMute(); mute.blur(); });
+// the Practice Ground: the picked Body under the touch controls, with the settings over it
+const practice = $('practice');
+let stopPractice: (() => void) | undefined;
+$('controls').addEventListener('click', () => {
+  sound.unlock();
+  form.hidden = true;
+  garage.run(false);
+  course.run(false);
+  practice.hidden = touch.hidden = false;
+  hud.action.textContent = ITEM_ICONS.zap;
+  stopPractice = startPractice(body, controls, sound);
+});
+$('practice-done').addEventListener('click', () => {
+  stopPractice?.();
+  stopPractice = undefined;
+  practice.hidden = touch.hidden = true;
+  hud.action.textContent = '';
+  form.hidden = false;
+  fit();
+  garage.run(true);
+  course.run(true);
+});
 const serverUrl = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
 // waiting longer than this for the server, Play starts an Offline Race instead
 const JOIN_TIMEOUT = 5000;
@@ -126,7 +157,6 @@ form.addEventListener('submit', async (e) => {
   save('name', name);
   save('body', body);
   save('track', track);
-  if (isTouch) { save('steer', steering); save('side', side); }
   error.textContent = '';
   play.disabled = true;
   sound.unlock();
