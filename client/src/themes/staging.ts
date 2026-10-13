@@ -203,8 +203,8 @@ export function staging(track: Track, theme: ThemeData): Staging {
   }
 
   // a Track's own sites first, with the tiles round them (a big landmark reaches about a tile and a half)
-  const big = [...(theme.big ?? [])];
-  for (const site of theme.sites?.[track.def.id] ?? []) {
+  const big = [...(theme.big ?? [])], sites = theme.sites?.[track.def.id] ?? [];
+  for (const site of sites) {
     out.landmarks.push(site);
     const i = big.findIndex(([kind]) => kind === site.kind);
     if (i >= 0) big.splice(i, 1);
@@ -238,6 +238,7 @@ export function staging(track: Track, theme: ThemeData): Staging {
   const spots = grid(2).filter(([x, z]) => free(x, z) && beside(x, z));
   for (const kind of theme.landmarks) {
     if (!spots.length) break;
+    if (sites.some((site) => site.kind === kind)) continue;
     const [x, z] = spots.splice(Math.floor(random() * spots.length), 1)[0], [dx, dz] = beside(x, z)!;
     out.landmarks.push({ kind, x, z, yaw: r2(Math.atan2(dx, dz)) });
     blocked.add(key(x, z));

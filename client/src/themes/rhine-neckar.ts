@@ -191,6 +191,12 @@ export const themes: Record<'sap' | 'heidelberg' | 'zuzenhausen' | 'sinsheim', T
     title: 'Zuzenhausen', sky: [0x5aaef0, 0xcfeaff], puddle: 0x6b4a2b, clouds: true,
     ground: [...stripes(0x62ba4b, 0x58ad41), ...scatter(30, 97, 57, (x, y) => [{ rect: [x, y, 3, 7], c: 0x4b9a37 }])],
     props: ['zz-hay', 'zz-tractor', 'zz-ball', 'zz-cones', 'zz-tree', 'zz-flag'], landmarks: ['zz-clubhouse', 'zz-church'], big: [['zz-pitch', 2], ['zz-pitch', 2]],
+    // Training Ground runs round the pitches where they lie on the map: two at the top, one by the woods, the big one by the
+    // training centre (its long side along the brook), and the centre itself facing its car park
+    sites: {
+      'zuzenhausen-training': [{ kind: 'zz-pitch', x: -68.8, z: 16, yaw: 0.41 }, { kind: 'zz-pitch', x: -40, z: 32, yaw: 0.79 },
+        { kind: 'zz-pitch', x: -24, z: 0, yaw: 0.79 }, { kind: 'zz-pitch', x: -24, z: -48, yaw: 0 }, { kind: 'zz-clubhouse', x: -40, z: -72, yaw: 3.14 }],
+    },
     // the Elsenz, a little river, crossed on a plain bridge with green railings
     water: { color: 0x6b8f9e, bank: 0x5a8f3a, width: [8, 14], bridge: 'beam', rail: 0x2f8f3a },
   },

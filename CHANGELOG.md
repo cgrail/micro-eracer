@@ -36,8 +36,12 @@ happens. Everything before 1.0 is in the git history.
   screen shows the river.
 - Campus Loop follows the real campus road in Walldorf, round the three star buildings where they stand: down along
   the woods, round WDF19-21 and WDF18, back through the dip between the stars, and past the Charging Station to the
-  line. It is 420 m now, the longest Track. The star buildings have six wings with green roofs round a glass dome, as
-  they really do, on Walldorf Ring too.
+  line. It is 420 m now. The star buildings have six wings with green roofs round a glass dome, as they really do, on
+  Walldorf Ring too.
+- Training Ground follows the real paths round the TSG's training pitches in Zuzenhausen, and the pitches lie where
+  they do there: up Horrenberger Straße past the pond, round the two top pitches, down along the woods and over the
+  brook on a humped little bridge, past the big pitch and round the training centre, and back along its car park to the
+  line. It is 470 m, the longest Track.
 - Every Race's Track, and its place, is named on screen for a few seconds as the grid counts down.
 - The four songs take turns across the Tracks.
 - Every Track is lighter to draw, which phones and the watch feel most: the walls' edges are rounded in one step instead

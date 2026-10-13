@@ -112,7 +112,7 @@ let TRACKS: [TrackDef] = [
     TrackDef(id: "sanfrancisco-goldengate", name: "Golden Gate", theme: .sanfrancisco,
              pieces: "S S R S S S L L* S S S U* S* S* L* S* S* S* S* D* L* S S L* S S", puddles: [14, 23], items: [3, 18]),
     TrackDef(id: "zuzenhausen-training", name: "Training Ground", theme: .zuzenhausen,
-             pieces: "S R S S L* S L S S* S* S* S L L S* R* S S S S L L S S", puddles: [2, 6], items: [8, 16]),
+             pieces: "S S R L R S S R L S R* S S R S S L* U* D* L* R* S R S S R L R S S S S", puddles: [6, 23], items: [12, 21]),
     TrackDef(id: "zuzenhausen-elsenz", name: "Elsenz Valley", theme: .zuzenhausen,
              pieces: "L R U* S* R* U* S* S* S* R* S* S* R* S* L* S* L* R* R* D* D* R* S S", puddles: [4, 21], items: [3, 15]),
     TrackDef(id: "sinsheim-museum", name: "Museum Mile", theme: .sinsheim,

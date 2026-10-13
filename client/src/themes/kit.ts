@@ -64,7 +64,7 @@ export interface ThemeData {
   big?: [string, number][];
   /**
    * Per Track id, landmarks where they stand in real life, in the Track's own coordinates: placed before all the others,
-   * each instead of one of `big` of its kind.
+   * each instead of one of `big` or `landmarks` of its kind.
    */
   sites?: Record<string, { kind: string; x: number; z: number; yaw: number }[]>;
   /** Comic clouds far away, as over the garden. */
