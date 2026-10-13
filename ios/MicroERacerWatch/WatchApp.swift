@@ -174,10 +174,10 @@ private struct ActionButton: View {
     var body: some View {
         Text(item).font(.system(size: 17)).lineLimit(1).minimumScaleFactor(0.5)
             .frame(width: 38, height: 38)
-            .background(Circle().fill(Color(hex: 0xffc81e, opacity: item.isEmpty ? 0.45 : 0.9)))
-            .overlay(Circle().strokeBorder(Color(hex: 0x111111), lineWidth: 2))
+            .background(SwiftUI.Circle().fill(Color(hex: 0xffc81e, opacity: item.isEmpty ? 0.45 : 0.9)))
+            .overlay(SwiftUI.Circle().strokeBorder(Color(hex: 0x111111), lineWidth: 2))
             .scaleEffect(down ? 0.9 : 1)
-            .contentShape(Circle())
+            .contentShape(SwiftUI.Circle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { _ in
                 if !down { down = true; controls.setFiring(true) }
             }.onEnded { _ in
