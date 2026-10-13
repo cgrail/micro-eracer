@@ -85,7 +85,8 @@ happens. Everything before 1.0 is in the git history.
   brings it back. Return in the Nickname field plays, as Enter does in the browser.
 - Two buttons under the Lap counter: the sound switch, and ✕ to leave the Race and go back to the start screen (in a
   browser, that's the back button).
-- The app icon is the browser tab's lightning bolt, drawn from the same code (`client/share/art.ts`).
+- The app icon, like the browser tab's and the home screen's, is a picture: a purple E-Car racing past Batteries under
+  MICRO E-RACER and lightning, with a Missile and a Mine, in a blue frame.
 - The browsers' faint halftone dot screen lies over the game, under the HUD, on iPhone, iPad and the watch.
 - Not on iOS: the desktop map (a phone's browser doesn't show it either).
 

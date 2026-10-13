@@ -57,7 +57,7 @@ The sounds are synthesised in the browser with WebAudio: the airflow that rises 
 
 The look is cel shading with black outlines (Three.js `MeshToonMaterial` + `OutlineEffect`), a halftone overlay and the Bangers font, bundled locally so no request goes to Google Fonts.
 
-A link to the game shared in Slack, Teams, X or WhatsApp shows a comic card of E-Cars racing up a road, and the browser tab gets a lightning-bolt icon. The build draws both in code (`client/share/`) like everything else. `npm run dev` serves them at `/social.png` and `/icon.png`.
+A link to the game shared in Slack, Teams, X or WhatsApp shows a comic card of E-Cars racing up a road, which the build draws in code (`client/share/`) like everything else; `npm run dev` serves it at `/social.png`. The icon, in the browser tab and on the home screen, is the one picture in the game: `client/public/icon.png`, the same as the apps'.
 
 ## Deploy
 

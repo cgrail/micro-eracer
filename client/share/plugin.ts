@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { deflateSync, inflateSync } from 'node:zlib';
 import type { HtmlTagDescriptor, Plugin } from 'vite';
-import { CARD, cardSvg, iconSvg } from './art.ts';
+import { CARD, cardSvg } from './art.ts';
 
 const require = createRequire(import.meta.url);
 const ALT = 'Micro E-Racer: little electric cars race up a toy road, and one zaps the Leader';
@@ -86,43 +86,41 @@ export async function renderPng(svg: string) {
   return encodePng(image.pixels, image.width, image.height);
 }
 
-const tags = (card: string, icon: string): HtmlTagDescriptor[] => [
+/** The icon is a picture, not drawn in code: `client/public/icon.png`, its 1024 px original in the apps' asset catalogs. */
+const ICON = '/icon.png';
+const tags = (card: string): HtmlTagDescriptor[] => [
   ...[['og:image', card], ['og:image:type', 'image/png'], ['og:image:width', String(CARD.width)], ['og:image:height', String(CARD.height)], ['og:image:alt', ALT]]
     .map(([property, content]) => ({ tag: 'meta', attrs: { property, content }, injectTo: 'head' as const })),
   { tag: 'meta', attrs: { name: 'twitter:image', content: card }, injectTo: 'head' },
-  { tag: 'link', attrs: { rel: 'icon', type: 'image/png', href: icon }, injectTo: 'head' },
-  { tag: 'link', attrs: { rel: 'apple-touch-icon', href: icon }, injectTo: 'head' },
+  { tag: 'link', attrs: { rel: 'icon', type: 'image/png', href: ICON }, injectTo: 'head' },
+  { tag: 'link', attrs: { rel: 'apple-touch-icon', href: ICON }, injectTo: 'head' },
 ];
 
 /**
- * Draws the link preview card and the icon (`art.ts`) into PNGs: in a build as hashed files in `assets/`, in
- * development at `/social.png` and `/icon.png`. Either way the page gets the tags that point to them. Link previews
- * need absolute URLs, so in production the server puts its origin in front (`server/src/index.ts`).
+ * Draws the link preview card (`art.ts`) into a PNG: in a build as a hashed file in `assets/`, in development at
+ * `/social.png`. Either way the page gets the tags that point to it and the icon. Link previews need absolute URLs, so
+ * in production the server puts its origin in front (`server/src/index.ts`).
  */
 export function sharePreview(): Plugin {
-  const names = { card: 'social.png', icon: 'icon.png' };
+  const name = 'social.png';
   return {
     name: 'share-preview',
     async buildStart() {
       if (this.environment.config.command !== 'build') return;
       const card = await renderPng(cardSvg());
       if (card.length > WHATSAPP_MAX) this.warn(`the link preview card is ${Math.round(card.length / 1000)} kB, and WhatsApp shows none over ${WHATSAPP_MAX / 1000} kB`);
-      this.emitFile({ type: 'asset', name: names.card, source: card });
-      this.emitFile({ type: 'asset', name: names.icon, source: await renderPng(iconSvg()) });
+      this.emitFile({ type: 'asset', name, source: card });
     },
     configureServer(server) {
-      const draw: Record<string, () => string> = { [`/${names.card}`]: cardSvg, [`/${names.icon}`]: iconSvg };
       server.middlewares.use((req, res, next) => {
-        const svg = draw[req.url?.split('?')[0] ?? ''];
-        if (!svg) return next();
-        renderPng(svg()).then((png) => { res.setHeader('Content-Type', 'image/png'); res.end(png); }, next);
+        if (req.url?.split('?')[0] !== `/${name}`) return next();
+        renderPng(cardSvg()).then((png) => { res.setHeader('Content-Type', 'image/png'); res.end(png); }, next);
       });
     },
     transformIndexHtml(_, ctx) {
-      if (!ctx.bundle) return tags(`/${names.card}`, `/${names.icon}`);
-      const file = (name: string) => Object.values(ctx.bundle!).find((f) => f.type === 'asset' && f.names.includes(name))?.fileName;
-      const card = file(names.card), icon = file(names.icon);
-      if (card && icon) return tags(`/${card}`, `/${icon}`);
+      if (!ctx.bundle) return tags(`/${name}`);
+      const card = Object.values(ctx.bundle).find((f) => f.type === 'asset' && f.names.includes(name))?.fileName;
+      if (card) return tags(`/${card}`);
     },
   };
 }
