@@ -62,6 +62,11 @@ export interface ThemeData {
   landmarks: string[];
   /** Bigger still: each over a block of n × n tiles beside the road, placed first (a smaller block, scaled down, if none). */
   big?: [string, number][];
+  /**
+   * Per Track id, landmarks where they stand in real life, in the Track's own coordinates: placed before all the others,
+   * each instead of one of `big` of its kind.
+   */
+  sites?: Record<string, { kind: string; x: number; z: number; yaw: number }[]>;
   /** Comic clouds far away, as over the garden. */
   clouds?: true;
   /** A river under the Track's best straight, which crosses it on a bridge of its own (staging.ts). */

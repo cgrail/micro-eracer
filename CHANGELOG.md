@@ -34,6 +34,10 @@ happens. Everything before 1.0 is in the git history.
   now, not offices: the SAP logo, the marble ball, WDF01 and the star buildings among lawns, trees and bikes; Coffee
   Corridor is now Campus Loop. The big sights take a block of tiles of their own, and the Track's picture on the start
   screen shows the river.
+- Campus Loop follows the real campus road in Walldorf, round the three star buildings where they stand: down along
+  the woods, round WDF19-21 and WDF18, back through the dip between the stars, and past the Charging Station to the
+  line. It is 420 m now, the longest Track. The star buildings have six wings with green roofs round a glass dome, as
+  they really do, on Walldorf Ring too.
 - Every Race's Track, and its place, is named on screen for a few seconds as the grid counts down.
 - The four songs take turns across the Tracks.
 - Every Track is lighter to draw, which phones and the watch feel most: the walls' edges are rounded in one step instead
