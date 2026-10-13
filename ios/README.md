@@ -35,6 +35,9 @@ xcodebuild -project MicroERacer.xcodeproj -scheme MicroERacer -destination 'gene
 With only the Command Line Tools selected (`xcode-select -p` shows `/Library/Developer/CommandLineTools`), put
 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in front of both.
 
+GitHub Actions runs both on every push and pull request (`.github/workflows/ios.yml`, on GitHub's `xcode-27` image), and
+fails on any warning from `xcodebuild`.
+
 `swift test` builds only `Core/` (`Package.swift`), on the Mac, and reads its references straight from the web side:
 `shared/src/physics.fixture.json`, `shared/src/tracks/*.ts` and `client/src/songs.ts`. So a change there that the port
 hasn't followed fails here.

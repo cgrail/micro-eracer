@@ -14,6 +14,8 @@ npm test           # Track checks plus a headless Race where 8 Bots must finish
 npm run typecheck
 ```
 
+GitHub Actions runs these, the build and the iOS app's checks (`swift test`, and both apps built for the simulator) on every push and pull request (`.github/workflows/`).
+
 `TRACK=garden npm run dev` starts the first Race on one Track (any Track's id: `kitchen`, `garden`, `paris-eiffel`, `berlin-doner`, … from `shared/src/tracks/`), which is handy while working on its look.
 
 To try it on a phone, open `http://<your-computer's-LAN-IP>:5173` on the same network.

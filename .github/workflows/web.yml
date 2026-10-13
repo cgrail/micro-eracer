@@ -1,0 +1,49 @@
+# The web game's checks from CLAUDE.md: the typecheck, the tests (every Track closes and 8 Bots finish a Race on it, the
+# physics fixture, the apps' Themes.json up to date), a build with no chunk-size or link-preview warning, and the deploy
+# scripts. A push to main is live before this finishes, so a red run on main means the live game is already broken.
+name: Web
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  web:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # what the server runs: install.sh wants 22.12 or newer
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: npm run build
+        run: |
+          npm run build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          # Vite's warning for a chunk past chunkSizeWarningLimit, and client/share/plugin.ts's for a card WhatsApp won't show
+          if grep -E 'Some chunks are larger than|the link preview card is' "$RUNNER_TEMP/build.log"; then
+            echo '::error::npm run build warned (see above)'
+            exit 1
+          fi
+      - name: Deploy scripts
+        run: |
+          bash -n install.sh update.sh
+          shellcheck install.sh update.sh

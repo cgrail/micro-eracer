@@ -1,0 +1,58 @@
+# The apps' checks from CLAUDE.md: `swift test` (ios/Core against the TypeScript: the physics fixture, the Track data, the
+# songs, a headless Race on every Track) and the iPhone app, with the watch app inside it, built for the simulator with no
+# warnings. The project is on Xcode 27, and the watch app targets watchOS 26.6, past the newest SDK on macos-26, hence the
+# xcode-27 image.
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**', '.claude/**', 'install.sh', 'update.sh', 'todo.md', '.github/workflows/web.yml']
+  pull_request:
+    paths-ignore: ['**.md', 'docs/**', '.claude/**', 'install.sh', 'update.sh', 'todo.md', '.github/workflows/web.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ios
+
+jobs:
+  ios:
+    name: swift test, xcodebuild
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - run: xcodebuild -version && swift --version
+      - run: swift test
+      - name: xcodebuild
+        # signing needs the team's account, which a simulator build can do without
+        run: >
+          xcodebuild -project MicroERacer.xcodeproj -scheme MicroERacer -destination 'generic/platform=iOS Simulator'
+          -onlyUsePackageVersionsFromResolvedFile -resultBundlePath "$RUNNER_TEMP/build.xcresult" -quiet
+          CODE_SIGNING_ALLOWED=NO build
+      - name: No warnings
+        run: |
+          xcrun xcresulttool get build-results --path "$RUNNER_TEMP/build.xcresult" > "$RUNNER_TEMP/build.json"
+          # each warning as an annotation on its line (the result bundle counts lines from 0)
+          jq -r --arg ws "$GITHUB_WORKSPACE/" '
+            (.warnings // []) + (.analyzerWarnings // []) | .[]
+            | ((.sourceURL // "") | capture("^file://(?<file>[^#]*)(#.*StartingLineNumber=(?<line>[0-9]+))?") // {}) as $at
+            | "::warning"
+              + (if $at.file then " file=\($at.file | ltrimstr($ws)),line=\(($at.line // "0" | tonumber) + 1)" else "" end)
+              + "::" + (.message | gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A"))
+          ' "$RUNNER_TEMP/build.json"
+          # -e: no result at all fails here rather than passing as no warnings
+          count=$(jq -e '.warningCount + (.analyzerWarningCount // 0)' "$RUNNER_TEMP/build.json")
+          if [ "$count" -gt 0 ]; then
+            echo "::error::xcodebuild warned $count times (see the annotations)"
+            exit 1
+          fi
