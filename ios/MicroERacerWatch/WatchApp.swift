@@ -111,6 +111,7 @@ struct WatchRaceView: View {
     @ObservedObject var model: WatchModel
     let game: Game
     @State private var crown = 0.0
+    @State private var steer = 0.0
     @State private var idle = true
     @State private var held = false
     private let center = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect()
@@ -126,11 +127,19 @@ struct WatchRaceView: View {
             .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
         }
         .focusable()
-        // the Crown is the steering wheel: turned up, the E-Car steers right; let go, it comes back to the middle
-        .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: false, isHapticFeedbackEnabled: false,
+        // the Crown is the steering wheel: turned up, the E-Car steers right; let go, it comes back to the middle. Only its
+        // turns count, into our own `steer`: a clamped Crown rubber-bands at its ends, and moving it back to the middle
+        // while it does flung the steering over to the other side, so it wraps round instead and is never written to
+        .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: false,
                               onChange: { _ in idle = false }, onIdle: { idle = true })
-        .onChange(of: crown) { _, steer in model.controls.setSteer(steer) }
-        .onReceive(center) { _ in if idle && crown != 0 { crown = abs(crown) < 0.03 ? 0 : crown * 0.8 } }
+        .onChange(of: crown) { was, now in
+            // a jump of more than half the Crown's range is it wrapping round, not a turn
+            var turn = now - was
+            if turn > 1 { turn -= 2 } else if turn < -1 { turn += 2 }
+            steer = min(1, max(-1, steer + turn * 0.5))
+        }
+        .onChange(of: steer) { _, steer in model.controls.setSteer(steer) }
+        .onReceive(center) { _ in if idle && steer != 0 { steer = abs(steer) < 0.03 ? 0 : steer * 0.8 } }
         // a tap uses the Item; while stuck (the phone's Back button would show) holding the screen reverses instead
         .gesture(DragGesture(minimumDistance: 0).onChanged { _ in
             if held { return }
