@@ -128,4 +128,5 @@ happens. Everything before 1.0 is in the git history.
   holding the screen reverses. Watch apps can't use the side button, and pressing the Crown always goes home.
 - A small HUD (Position, Item, Lap, the Energy bar, the countdown and messages, the results), and taps on the wrist for
   the countdown and GO, a Ram, a Hit, a Battery, an Item from a box, a Shield blocking, running dry and the finish.
-- The start screen has the Nickname, the Body and the sound switch; the back button leaves the Race.
+- The start screen is a list of the Nickname, the Body, the Track and the sound switch, the way watch apps lay out their
+  settings: the Body and the Track each open a list to pick from. The back button leaves the Race.

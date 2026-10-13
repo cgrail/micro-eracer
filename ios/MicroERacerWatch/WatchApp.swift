@@ -81,24 +81,23 @@ struct WatchStartView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    Comic(text: "Micro E-Racer", size: 24, fill: Color(hex: 0xffd60a))
-                    TextField("Nickname", text: $model.name)
-                    Picker("Body", selection: $model.body) {
-                        ForEach(BODY_KINDS, id: \.self) { Text(BODY_NAMES[$0]!).tag($0) }
-                    }
-                    Picker("Track", selection: $model.track) {
-                        Text("Any Track").tag("")
-                        ForEach(TRACKS, id: \.id) { Text($0.name).tag($0.id) }
-                    }
-                    Toggle("Sound", isOn: Binding(get: { !model.muted }, set: { model.muted = !$0 }))
-                    Button { model.play(); racing = true } label: {
-                        Text("Play").font(.custom("Bangers-Regular", size: 24)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity)
-                    }
-                    .tint(Color(hex: 0xffd60a))
-                    Text("Turn the Crown to steer, tap to use your Item. Offline: you and the Bots.").font(.footnote).foregroundColor(.secondary)
+            // a List, not a ScrollView: there the Pickers fall back to wheels squashed to a sliver
+            List {
+                Comic(text: "Micro E-Racer", size: 24, fill: Color(hex: 0xffd60a)).listRowBackground(Color.clear)
+                TextField("Nickname", text: $model.name)
+                Picker("Body", selection: $model.body) {
+                    ForEach(BODY_KINDS, id: \.self) { Text(BODY_NAMES[$0]!).tag($0) }
                 }
+                Picker("Track", selection: $model.track) {
+                    Text("Any Track").tag("")
+                    ForEach(TRACKS, id: \.id) { Text($0.name).tag($0.id) }
+                }
+                Toggle("Sound", isOn: Binding(get: { !model.muted }, set: { model.muted = !$0 }))
+                Button { model.play(); racing = true } label: {
+                    Text("Play").font(.custom("Bangers-Regular", size: 24)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(Color(hex: 0xffd60a)).listRowBackground(Color.clear)
+                Text("Turn the Crown to steer, tap to use your Item. Offline: you and the Bots.").font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
             }
             .navigationDestination(isPresented: $racing) {
                 if let game = model.game { WatchRaceView(model: model, game: game) }
