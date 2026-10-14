@@ -1,5 +1,5 @@
 # The web game's checks from CLAUDE.md: the typecheck, the tests (every Track closes and 8 Bots finish a Race on it, the
-# physics fixture, the apps' Themes.json up to date), a build with no chunk-size or link-preview warning, and the deploy
+# physics fixture, the apps' Themes.json up to date, Players meeting in one Race online), a build with no chunk-size or link-preview warning, and the deploy
 # scripts. A push to main is live before this finishes, so a red run on main means the live game is already broken.
 name: Web
 

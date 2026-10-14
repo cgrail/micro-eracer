@@ -6,7 +6,7 @@
     "dev": "vite client --host & tsx watch server/src/index.ts",
     "build": "vite build client",
     "start": "NODE_ENV=production tsx server/src/index.ts",
-    "test": "tsx --test shared/src/*.test.ts client/src/*.test.ts",
+    "test": "tsx --test shared/src/*.test.ts client/src/*.test.ts server/src/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
