@@ -15,8 +15,9 @@ const server = defineServer({
   rooms: {
     // apps from before the Track picker join `race`, so it keeps to the Tracks they know
     race: defineRoom(RaceRoom, { classic: true }),
-    // a picked Track (`track`) joins a Race on that Track; any Track joins the fullest Race there is, whatever it races
-    race2: defineRoom(RaceRoom).filterBy(['track']).sortBy({ clients: -1 }),
+    // every join takes the fullest Race there is, whatever it races: only the first Player picks the Track (`track`, or none
+    // for any), when theirs makes the Race, and everyone after joins them (the start screen shows that Race: `GET /race`)
+    race2: defineRoom(RaceRoom).sortBy({ clients: -1 }),
   },
   transport: new WebSocketTransport(),
   greet: false,

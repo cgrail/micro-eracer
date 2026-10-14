@@ -36,7 +36,8 @@ final class RaceRoomState: SchemaRef, @unchecked Sendable {
 }
 
 /// What the server says of this app before it races online (server/src/api.ts): whether it still may (`/version`), where to
-/// get the new one if not, and the Tracks it races (`/tracks`), which the start screen offers instead of the app's own.
+/// get the new one if not, the Tracks it races (`/tracks`), which the start screen offers instead of the app's own, and the
+/// Race a join would take (`/race`).
 struct ServerInfo {
     let compatible: Bool
     let update: URL?
@@ -52,6 +53,15 @@ struct ServerInfo {
         guard version?["compatible"]?.bool ?? true else { return ServerInfo(compatible: false, update: update, tracks: []) }
         let tracks = try await client.http.get("/tracks").json?.array?.compactMap(TrackDef.init(wire:)) ?? []
         return ServerInfo(compatible: true, update: update, tracks: tracks)
+    }
+
+    /// The Race a join would take (the fullest with a free Seat), nil while none is running or on a theme this app doesn't know.
+    static func race(endpoint: String) async throws -> RunningRace? {
+        let client = try Colyseus.Client(endpoint: endpoint)
+        defer { withExtendedLifetime(client) {} }
+        let answer = try await client.http.get("/race").json
+        guard let wire = answer?["track"], let track = TrackDef(wire: wire), let players = answer?["players"]?.array else { return nil }
+        return RunningRace(track: track, players: players.compactMap(\.string))
     }
 }
 
@@ -75,9 +85,9 @@ final class OnlineRace: RaceLink {
     var sessionId: String { room.sessionId ?? "" }
 
     /// The game pumps the SDK from its own loop, so every callback arrives on that thread, between frames.
-    /// `track`: a picked Track joins a Race on it, "" (any Track) the fullest Race there is. The `race` room is left to apps from
-    /// before the Track picker, which know only the first four Tracks. `protocol` tells the server what this app speaks: one
-    /// too old for it is refused (`OnlineRace.outdated`).
+    /// Joins the fullest Race there is, the one the start screen shows; `track` (a Track's id, or "" for any) only counts if
+    /// there is none and this join makes it. The `race` room is left to apps from before the Track picker, which know only the
+    /// first four Tracks. `protocol` tells the server what this app speaks: one too old for it is refused (`OnlineRace.outdated`).
     static func join(endpoint: String, name: String, body: BodyKind, track: String) async throws -> OnlineRace {
         Colyseus.autoPump = false
         let client = try Colyseus.Client(endpoint: endpoint)

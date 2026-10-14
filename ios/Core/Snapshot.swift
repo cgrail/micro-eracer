@@ -26,6 +26,13 @@ struct RaceState {
     var track: TrackDef? = nil
 }
 
+/// The Race running online, as the start screen sees it (`GET /race`): only the first Player picks a Track, and everyone
+/// after them sees this one and joins it. `players`: the names of the Players in it, without its Bots.
+struct RunningRace: Equatable {
+    let track: TrackDef
+    let players: [String]
+}
+
 /// A Seat as the screens see it, in the room state and in an Offline Race alike.
 func seatState(_ sim: RaceSim, _ s: Seat) -> CarState {
     let rb = s.car.rb

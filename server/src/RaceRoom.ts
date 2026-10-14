@@ -48,7 +48,8 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     return true;
   }
 
-  /** `track`: the one Track a Player picked, raced again and again; `classic`: only the Tracks apps from before the picker know. */
+  /** `track`: the one Track the first Player picked, raced again and again; `classic`: only the Tracks apps from before the
+   * picker know. */
   onCreate(options: { track?: unknown; classic?: boolean }) {
     const picked = TRACKS.find((t) => t.id === options?.track)?.id;
     const pool = picked ? [picked] : options?.classic ? CLASSIC_TRACKS : TRACKS.map((t) => t.id);
@@ -78,6 +79,7 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     const body = BODY_KINDS.includes(options?.body as BodyKind) ? (options.body as BodyKind) : 'roadster';
     if (!this.sim.join(client.sessionId, name, body)) throw new Error('Race is full');
     this.sync();
+    this.list();
   }
 
   onDrop(client: Client) {
@@ -86,6 +88,12 @@ export class RaceRoom extends Room<{ state: RaceState }> {
 
   onLeave(client: Client) {
     this.sim.leave(client.sessionId);
+    this.list();
+  }
+
+  /** What the start screens see of this Race (`GET /race` in api.ts): its Track, and the Players in it. */
+  private list() {
+    void this.setMetadata({ track: this.sim.track.def.id, players: this.sim.seats.filter((s) => s.owner).map((s) => s.name) });
   }
 
   private sync() {
@@ -98,6 +106,7 @@ export class RaceRoom extends Room<{ state: RaceState }> {
       state.track.puddles.clear(); state.track.puddles.push(...puddles);
       state.track.items.clear(); state.track.items.push(...items);
       state.trackId = id;
+      this.list();
     }
     if (state.results.join() !== sim.results.join()) { state.results.clear(); state.results.push(...sim.results); }
     if (state.batteries.map((b) => b.id).join() !== sim.batteries.map((b) => b.id).join()) {

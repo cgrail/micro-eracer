@@ -53,8 +53,8 @@ happens. Everything before 1.0 is in the git history.
 
 - Pick the Track as you pick the Body: ◀ and ▶ step through every Track (held, they keep going, faster and faster), the
   picture shows it from above on its ground, and below it are its place, length, turns, bridges, climbs and jumps.
-  Tapping its name lists every Track by place. Any Track, first in the list, joins the fullest Race whatever it races,
-  as before; a picked Track joins a Race on that Track, or starts one, and races it again and again. An Offline Race
+  Tapping its name lists every Track by place. Any Track, first in the list, races a new Track every Race; a picked
+  Track is raced again and again. Online, only the first Player in a Race picks (see Online). An Offline Race
   (and the watch, which picks it from a list) does the same. Each start shows a Track picked at random, with its name,
   and Play races it (the watch remembers its pick as `track`).
 - The picked Track's picture is the Track itself in 3D, with its scenery, landmarks, rivers and bridges, seen from above
@@ -71,7 +71,7 @@ happens. Everything before 1.0 is in the git history.
 - Nickname is now Name, and a new Player starts with a name to race under, made up like Joe Ram or Max Volt.
 - Controls is filled in light blue with a shadow like Play's, only quieter, and Play's shadow no longer runs into the
   form's edge on the right.
-- The wire: Races are joined in the `race2` room, which takes the picked Track as `track`. The `race` room is left to apps
+- The wire: Races are joined in the `race2` room, which takes the picked Track as `track`, for a Race the join starts. The `race` room is left to apps
   from before the picker and only races the first four Tracks, which they know.
 
 ### Online
@@ -88,6 +88,15 @@ happens. Everything before 1.0 is in the git history.
   Puddles and Item Boxes), so a Track the server adds or changes reaches the apps without an update. One set in a place
   the game doesn't know yet is left off the start screen, and drawn on the kitchen table should Any Track bring it up. An
   Offline Race keeps to the Tracks the game came with.
+- Players meet online again: only the first Player in a Race picks its Track, and everyone after them joins that Race.
+  Every join takes the Race that is running (the fullest with a free Seat), whatever Track the joining Player had up;
+  before, each visit started on a Track of its own picked at random and only met Players on the same one, so nearly
+  everyone raced the Bots alone. While a Race is running, the start screen shows its Track and who is racing on it (Ann
+  and Bob are racing here) in place of ◀ ▶ and the list, and Play becomes Join the Race. It looks again every few
+  seconds, so a Race that starts meanwhile takes the picker's place and the picker comes back once it is over or full.
+  Apps already out join the running Race too, whatever Track they show. The wire: `GET /race`, the Race a join takes
+  (its `track` and its Players' names, `players`; `{}` while none is running), and `race2` no longer matches joins on
+  `track`.
 
 ### iPhone and iPad
 

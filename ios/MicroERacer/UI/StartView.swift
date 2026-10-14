@@ -25,8 +25,8 @@ struct StartView: View {
     private var trackIds: [String] { [""] + model.tracks.map(\.id) }
     /// The places, in the order their Tracks come, for the list of every Track.
     private var places: [Theme] { model.tracks.map(\.theme).reduce(into: [Theme]()) { if !$0.contains($1) { $0.append($1) } } }
-    /// The picked Track, nil for any.
-    private var picked: TrackDef? { model.tracks.first { $0.id == model.track } }
+    /// The running Race's Track, or else the picked one; nil for any.
+    private var picked: TrackDef? { model.running?.track ?? model.tracks.first { $0.id == model.track } }
 
     var body: some View {
         // the whole form on one screen, never scrolled (as in the browser): two columns side by side lying down, one standing
@@ -43,6 +43,8 @@ struct StartView: View {
         .ignoresSafeArea(.keyboard)
         .background(Backdrop())
         .onAppear { garage.show(model.body, whirl: false); course.show(picked) }
+        // while the form is up, the Race a join would take: its Track replaces the picker, as only the first Player picks one
+        .task { while !Task.isCancelled { await model.askRace(); try? await Task.sleep(nanoseconds: 5_000_000_000) } }
         #if DEBUG
         // `-autoplay YES -name Tester` as launch arguments: straight into a Race, for trying things in the simulator
         .task { if UserDefaults.standard.bool(forKey: "autoplay") && !model.name.isEmpty { await model.play() } }
@@ -108,41 +110,67 @@ struct StartView: View {
         }
     }
 
-    /// The Track from above between ◀ and ▶, its name below (which lists every Track), and what it has in store.
+    /// The Track from above between ◀ and ▶, its name below (which lists every Track), and what it has in store. While a Race
+    /// is running online, its Track, picked by its first Player, with no ◀ ▶ and no list, and who is in it.
     private func trackPick(_ pic: CGFloat) -> some View {
-        let def = picked, facts = trackFacts(def, of: model.tracks.count)
+        let def = picked, facts = trackFacts(def, of: model.tracks.count), running = model.running
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
-                RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink) { stepTrack(-1) }
+                RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink) { stepTrack(-1) }.locked(running != nil)
                 CourseView(course: course).frame(height: pic).frame(maxWidth: .infinity)
                     // any Track: a question mark in the picture's place
                     .overlay { if def == nil { Color(hex: 0x2f9bff).overlay(Text("?").font(.custom("Bangers-Regular", size: pic * 0.8)).foregroundColor(Color(hex: 0xffd60a)).offset(y: pic * 0.06)) } }
                     .clipShape(RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
                     .accessibilityHidden(true)
-                RepeatStepper(arrow: "▶\u{FE0E}", label: "Next Track", ink: ink) { stepTrack(1) }
+                RepeatStepper(arrow: "▶\u{FE0E}", label: "Next Track", ink: ink) { stepTrack(1) }.locked(running != nil)
             }
-            // the name lists every Track, by place
-            Menu {
-                Button("Any Track") { model.track = "" }
-                ForEach(places, id: \.self) { place in
-                    Section(header: Text(themeLook(place).title)) {
-                        ForEach(model.tracks.filter { $0.theme == place }, id: \.id) { t in Button(t.name) { model.track = t.id } }
-                    }
+            if let running, let def {
+                Text(def.name).font(.custom("Bangers-Regular", size: 24)).lineLimit(1).minimumScaleFactor(0.6)
+                    .frame(maxWidth: .infinity).padding(.vertical, 4).padding(.horizontal, 56)
+                    .accessibilityLabel("Track, \(def.name)")
+                VStack(spacing: 1) {
+                    Text(racers(running.players)).font(.system(size: 12, weight: .bold)).lineLimit(1)
+                    Text("\(themeLook(def.theme).title) · \(facts[0])").font(.system(size: 12))
                 }
-            } label: {
-                Text(def?.name ?? "Any Track").font(.custom("Bangers-Regular", size: 24)).lineLimit(1).minimumScaleFactor(0.6)
-                    .foregroundColor(ink).frame(maxWidth: .infinity).padding(.vertical, 4)
-                    .overlay(alignment: .bottom) { Rectangle().fill(ink.opacity(0.5)).frame(height: 2) }
+                .multilineTextAlignment(.center)
+            } else {
+                trackMenu(def, facts)
             }
-            // under the picture, clear of ◀ and ▶
-            .padding(.horizontal, 56)
-            .accessibilityLabel("Track")
-            .accessibilityValue(def?.name ?? "Any Track")
-            VStack(spacing: 1) {
-                Text(def.map { "\(themeLook($0.theme).title) · \(facts[0])" } ?? facts[0]).font(.system(size: 12, weight: .bold))
-                Text(facts[1]).font(.system(size: 12))
+        }
+    }
+
+    /// The Track's name, which lists every Track, by place, and what it has in store.
+    @ViewBuilder private func trackMenu(_ def: TrackDef?, _ facts: [String]) -> some View {
+        Menu {
+            Button("Any Track") { model.track = "" }
+            ForEach(places, id: \.self) { place in
+                Section(header: Text(themeLook(place).title)) {
+                    ForEach(model.tracks.filter { $0.theme == place }, id: \.id) { t in Button(t.name) { model.track = t.id } }
+                }
             }
-            .multilineTextAlignment(.center)
+        } label: {
+            Text(def?.name ?? "Any Track").font(.custom("Bangers-Regular", size: 24)).lineLimit(1).minimumScaleFactor(0.6)
+                .foregroundColor(ink).frame(maxWidth: .infinity).padding(.vertical, 4)
+                .overlay(alignment: .bottom) { Rectangle().fill(ink.opacity(0.5)).frame(height: 2) }
+        }
+        // under the picture, clear of ◀ and ▶
+        .padding(.horizontal, 56)
+        .accessibilityLabel("Track")
+        .accessibilityValue(def?.name ?? "Any Track")
+        VStack(spacing: 1) {
+            Text(def.map { "\(themeLook($0.theme).title) · \(facts[0])" } ?? facts[0]).font(.system(size: 12, weight: .bold))
+            Text(facts[1]).font(.system(size: 12))
+        }
+        .multilineTextAlignment(.center)
+    }
+
+    /// Who is in the running Race, short enough for one line (`racers` in main.ts).
+    private func racers(_ names: [String]) -> String {
+        switch names.count {
+        case 0: return "A Race is on here"
+        case 1: return "\(names[0]) is racing here"
+        case 2: return "\(names[0]) and \(names[1]) are racing here"
+        default: return "\(names[0]), \(names[1]) and \(names.count - 2) more are racing here"
         }
     }
 
@@ -169,7 +197,7 @@ struct StartView: View {
     private var playButton: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { Task { await model.play() } } label: {
-                Text(model.outdated ? "Play offline" : "Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                Text(model.outdated ? "Play offline" : model.running != nil ? "Join the Race" : "Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
                     .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))

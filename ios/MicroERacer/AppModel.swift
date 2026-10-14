@@ -10,6 +10,9 @@ final class AppModel: ObservableObject {
     @Published var body: BodyKind
     /// The picked Track's id, or "" for any Track.
     @Published var track: String
+    /// The Race a join would take, while one is running online: only the first Player picks a Track, so the start screen
+    /// shows this one's in place of the picker (`askRace`).
+    @Published private(set) var running: RunningRace?
     @Published var steering: Steering { didSet { save("steer", steering.rawValue) } }
     @Published var side: PadSide { didSet { save("side", side.rawValue) } }
     @Published var muted: Bool { didSet { sound.setMuted(muted); save("muted", muted ? "1" : "0") } }
@@ -80,6 +83,17 @@ final class AppModel: ObservableObject {
     private func showOutdated() {
         if !outdated { setTracks(TRACKS); askUpdate = true }
         outdated = true
+        running = nil
+    }
+
+    /// Asks the server for the Race a join would take, while the start screen is up (it asks every few seconds): one that
+    /// starts meanwhile takes the picker's place, and the picker comes back when it is over. With no answer (no server, or
+    /// one from before it said) the Player picks.
+    func askRace() async {
+        if outdated { return }
+        let now = try? await ServerInfo.race(endpoint: endpoint)
+        if outdated || game != nil || now == running { return }
+        running = now
     }
 
     func openUpdate() { UIApplication.shared.open(updateLink) }
@@ -90,9 +104,11 @@ final class AppModel: ObservableObject {
         error = ""
         joining = true
         defer { joining = false }
+        // the running Race's Track, or the Player's own pick
+        let picked = running?.track.id ?? track
         var link: RaceLink?
         if !outdated {
-            switch await join(name) {
+            switch await join(name, track: picked) {
             case .joined(let race): link = race
             // a server that no longer races with this app: the update dialog first, and Play then races offline
             case .outdated: showOutdated(); return
@@ -101,7 +117,7 @@ final class AppModel: ObservableObject {
         }
         let offline = link == nil
         // no server to be reached (or none to race with): race the Bots right here, on the app's own Tracks
-        if link == nil { link = OfflineRace(name: name, body: body, track: TRACKS.contains { $0.id == track } ? track : nil) }
+        if link == nil { link = OfflineRace(name: name, body: body, track: TRACKS.contains { $0.id == picked } ? picked : nil) }
         game = Game(link: link!, controls: controls, sound: sound, offline: offline, publish: { [weak self] in self?.hud = $0 }, left: { [weak self] in
             self?.game = nil
             self?.error = "Connection lost."
@@ -113,8 +129,8 @@ final class AppModel: ObservableObject {
 
     /// The online Race; `.outdated` when the server refused this app as too old, `.unreachable` when it failed otherwise or
     /// `joinTimeout` passed without one (a late one is left again).
-    private func join(_ name: String) async -> Joined {
-        let endpoint = self.endpoint, body = self.body, track = self.track, timeout = joinTimeout
+    private func join(_ name: String, track: String) async -> Joined {
+        let endpoint = self.endpoint, body = self.body, timeout = joinTimeout
         var settled = false
         return await withCheckedContinuation { (done: CheckedContinuation<Joined, Never>) in
             Task { @MainActor in

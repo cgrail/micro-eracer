@@ -88,6 +88,10 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 #track { -webkit-appearance: none; appearance: none; margin: 0 56px; padding: 6px 2px 4px; border: 0; border-bottom: 2px dashed currentColor; border-radius: 0;
   background: transparent; color: inherit; text-align-last: center; cursor: pointer; -webkit-user-select: none; }
 #track option, #track optgroup { font: 16px system-ui, sans-serif; color: #1b1410; background: #fff; }
+/* a Race running online: its Track, picked by its first Player, and nothing to pick; who is in it on one line below */
+#course.racing button { visibility: hidden; }
+#track:disabled { opacity: 1; color: inherit; -webkit-text-fill-color: currentColor; border-bottom-color: transparent; cursor: default; }
+#facts .racing { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* touch only: opens the Practice Ground, and says how the controls are set; shaped like Play, but quieter */
 #controls { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-right: 4px; padding: 6px 14px; background: #8ecbff; color: #1b1410; box-shadow: 4px 4px 0 var(--ink); }
 #controls small { flex: 1; text-align: right; font: 14px system-ui, sans-serif; }

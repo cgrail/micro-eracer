@@ -7,7 +7,7 @@ A multiplayer 3D racing web game in the spirit of Micro Machines, played with el
 ### Racing
 
 **Race**:
-A lap race of eight E-Cars on one Track. The first Racer to finish the last Lap wins, the Race ends 5 seconds later, and the next Race starts 3 seconds after that: on another Track picked at random, or on the same Track again where the Players picked it.
+A lap race of eight E-Cars on one Track. The first Racer to finish the last Lap wins, the Race ends 5 seconds later, and the next Race starts 3 seconds after that: on another Track picked at random, or on the same Track again where its first Player picked it.
 _Avoid_: Match, round, game
 
 **Seat**:
@@ -15,7 +15,7 @@ One of the eight places in a Race, held by a Player or a Bot. A joining Player t
 _Avoid_: Slot
 
 **Quick Play**:
-Joining a Race with a free Seat by entering only a name and picking a Body, and if they like a Track (otherwise any Race will do). Mid-Race, the Player takes over the last-Position Bot's E-Car where it is.
+Joining a Race with a free Seat by entering only a name and picking a Body. Only the first Player in a Race picks its Track (or any); everyone after them joins the Race that is running, on its Track. Mid-Race, the Player takes over the last-Position Bot's E-Car where it is.
 _Avoid_: Matchmaking, lobby
 
 **Racer**:

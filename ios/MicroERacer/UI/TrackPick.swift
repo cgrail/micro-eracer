@@ -159,3 +159,8 @@ struct RepeatStepper: View {
         }
     }
 }
+
+extension RepeatStepper {
+    /// Out of sight and out of reach, but keeping its place: ◀ and ▶ while a running Race shows its Track.
+    func locked(_ on: Bool) -> some View { opacity(on ? 0 : 1).allowsHitTesting(!on).accessibilityHidden(on) }
+}

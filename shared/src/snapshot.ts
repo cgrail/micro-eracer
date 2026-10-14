@@ -1,4 +1,12 @@
 import type { RaceSim, Seat } from './race.ts';
+import type { TrackDef } from './track.ts';
+
+/** The Race running online, as the start screens see it (`GET /race`): only the first Player picks a Track, and everyone
+ * after them sees this one and joins it. `players`: the names of the Players in it, without its Bots. */
+export interface RunningRace {
+  track: TrackDef;
+  players: string[];
+}
 
 /** A Seat as the browsers see it, in the room state and in an Offline Race alike. `mode`: 0 driving, 1 Stranded, 2 Recharging. */
 export function seatState(sim: RaceSim, s: Seat) {

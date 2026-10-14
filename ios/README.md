@@ -68,7 +68,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Core/Race.swift`, `Bots.swift`, `Combat.swift`, `Contact.swift`, `Energy.swift` | `shared/src/race.ts`, `bots.ts`, `combat.ts`, `contact.ts`, `energy.ts` (the Offline Race) |
 | `Core/Snapshot.swift` | `shared/src/snapshot.ts` and the state types of `client/src/state.ts` |
 | `Core/Version.swift` | `shared/src/version.ts` (`PROTOCOL`; `swift test` compares the two) |
-| `Shared/Net/RaceLink.swift`, `OfflineRace.swift`, `MicroERacer/OnlineRace.swift` | `RaceLink` in `client/src/state.ts`, `client/src/offline.ts`, the room and the server's `/version` and `/tracks` (`main.ts`, `server/src/api.ts`) |
+| `Shared/Net/RaceLink.swift`, `OfflineRace.swift`, `MicroERacer/OnlineRace.swift` | `RaceLink` in `client/src/state.ts`, `client/src/offline.ts`, the room and the server's `/version`, `/tracks` and `/race` (`main.ts`, `server/src/api.ts`) |
 | `Shared/Game/Game.swift`, `GameSync.swift`, `GameEffects.swift` | `client/src/game.ts` |
 | `Shared/Game/Motion.swift` | `client/src/motion.ts` |
 | `Shared/Game/Toon.swift`, `Scenery.swift`, `Props.swift`, `Models.swift` | `client/src/toon.ts`, `scene.ts`, `props.ts`, `cars.ts` |
