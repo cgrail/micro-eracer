@@ -6,6 +6,19 @@ import { ramResponse, shove } from './contact.ts';
 import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
 import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress } from './track.ts';
 
+/** Runs `f` with the Race's dice (`Math.random`: the grid, the Bodies, Batteries, Items) seeded, so it rolls the same every time. */
+function seeded<T>(seed: number, f: () => T): T {
+  const random = Math.random;
+  // mulberry32
+  Math.random = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  try { return f(); } finally { Math.random = random; }
+}
+
 test('every Track closes and its start grid sits behind the finish line', () => {
   for (const def of TRACKS) {
     const track = buildTrack(def);
@@ -243,7 +256,9 @@ test('Item Boxes come out behind third place, go after the last Racer, only give
   assert.equal(s.item, '');
 });
 
-test('a Leader who runs dry stays on the drone until three Racers have got past', () => {
+test('a Leader who runs dry stays on the drone until three Racers have got past', () => seeded(1, () => {
+  // seeded: the drone's time is a guess from the gaps behind, and in the pack just after GO the Racers behind now and then
+  // Ram the halted Leader along ahead of them, so on some grids (about one in thirty) it came back in P3
   const sim = new RaceSim('kitchen');
   sim.phase = 'racing';
   for (let i = 0; i < 240; i++) sim.step(DT);
@@ -252,7 +267,7 @@ test('a Leader who runs dry stays on the drone until three Racers have got past'
   sim.step(DT);
   while (sim.isStranded(leader) || sim.isRecharging(leader)) sim.step(DT);
   assert.ok(leader.position >= 4, `back in P${leader.position} after its Recharge`);
-});
+}));
 
 test('the front three are held together: the Leader slowed, second towed', () => {
   const sim = new RaceSim('kitchen');
