@@ -149,9 +149,8 @@ happens. Everything before 1.0 is in the git history.
 - **An Apple Watch app**, inside the iPhone app and also on its own: the same game in an Offline Race against 7 Bots.
   The watch can't race online (watchOS has no build of the Colyseus SDK and allows web sockets only to audio-streaming
   apps).
-- The Digital Crown steers like a finger on the screen: while it turns up the E-Car steers full lock left, while it turns
-  down full lock right, so it keeps turning for as long as the Crown does, and with the Crown at rest it drives straight
-  on. A finger on the screen steers too, as the phone's Buttons do: full lock left on its left half, right on its right
+- The Digital Crown turns the E-Car: scrolled up it steers left, scrolled down right, the harder the faster the Crown
+  turns, so a nudge corrects a little and a long scroll takes a bend; with the Crown at rest it drives straight on. A finger on the screen steers too, as the phone's Buttons do: full lock left on its left half, right on its right
   half, and it can rock from one to the other without lifting. The E-Car accelerates by itself. The action button in the top right corner shows the Item and uses it (held, a
   Zap keeps firing). An E-Car stuck for two and a half seconds (nose on a wall, or spun round against one) is put back on
   the road where it is, facing the right way, instead of reversing. Watch apps can't use the side button, and pressing
