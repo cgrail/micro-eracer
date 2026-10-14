@@ -99,7 +99,8 @@ final class Game: NSObject, SCNSceneRendererDelegate {
         if let own, let me {
             let t = own.view.car.rb.translation
             let locked = state.phase == .grid || clock < own.lockedUntil || me.mode != DRIVING
-            let input = me.mode != DRIVING ? HALT : locked ? NO_INPUT : controls.drive()
+            let road = track.samples[own.progress.idx]
+            let input = me.mode != DRIVING ? HALT : locked ? NO_INPUT : controls.drive(yaw: own.view.car.rb.yaw, road: yawOf(road.dx, road.dz))
             // the Charging Station has a speed limit; a chime says it's charging
             let pit = inStation(track, own.progress.idx, t.x, t.z)
             if pit && !inPit { sound.battery() }

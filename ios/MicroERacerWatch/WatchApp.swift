@@ -20,7 +20,7 @@ final class WatchModel: ObservableObject {
     @Published var crown = STRAIGHT
     @Published private(set) var game: Game?
     @Published private(set) var hud = HudState()
-    let controls = Controls(), sound = Sound()
+    let controls = Controls(aligns: true), sound = Sound()
 
     init() {
         if let url = Bundle.main.url(forResource: "Bangers", withExtension: "woff") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }

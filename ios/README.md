@@ -98,7 +98,9 @@ scene is small.
 
 The same `Game` as on the iPhone, in an Offline Race. The Digital Crown is a steering wheel with six
 notches (`digitalCrownRotation` from -2.5 through 2.5 by 1, with the Crown's haptic clicks): the two in the middle are
-straight, then up is left, down is right, half lock and then full lock, and it stays where it is left. Its value is the
+straight, then up is left, down is right, half lock and then full lock, and it stays where it is left. Steering
+straight, `Controls(aligns: true)` lines our E-Car up with the road's direction under it, at most at half lock (full from
+`ALIGN_LOCK` off it), so a tight bend still needs steering. Its value is the
 model's `crown`, which goes back to `STRAIGHT` whenever `Game.putBack` says our E-Car was put back on the road or on a
 new grid. The phone's `Wheel` (in `Comic.swift`) sits at the foot
 of the screen and turns with the steering. A finger on the screen steers too, at full lock to its side of

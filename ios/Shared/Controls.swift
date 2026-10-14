@@ -8,6 +8,9 @@ struct Pad {
     var active: Bool { throttle != 0 || steer != 0 || fire || use }
 }
 
+/// How far off the road's direction our E-Car is when the watch's lining up steers it at its strongest (radians).
+private let ALIGN_LOCK = 0.3
+
 /// What the player is doing (thumbs on a phone, a keyboard or game controller on an iPad, the Crown and the screen on the watch),
 /// written by SwiftUI on the main thread and read by the game loop on SceneKit's. The last one used drives: touch with
 /// auto-throttle, keys and controllers with their own throttle, as on a desktop.
@@ -17,13 +20,22 @@ final class Controls: @unchecked Sendable {
     private func locked<T>(_ f: () -> T) -> T { lock.lock(); defer { lock.unlock() }; return f() }
     /// Polls the keyboard and game controllers; nil where there are none (the watch).
     var poll: (() -> Pad)?
+    /// The watch: steering straight, our E-Car lines itself up with the road.
+    let aligns: Bool
 
-    /// Touch: auto-throttle, full ahead unless reversing (the Back button).
-    func drive() -> Input {
+    init(aligns: Bool = false) { self.aligns = aligns }
+
+    /// Touch: auto-throttle, full ahead unless reversing (the Back button). Given our E-Car's `yaw` and the `road`'s
+    /// direction under it, steering straight on the watch lines it up with the road.
+    func drive(yaw: Double? = nil, road: Double? = nil) -> Input {
         let pad = poll?() ?? Pad()
         return locked {
             if pad.active { manual = true }
-            return manual ? Input(throttle: pad.throttle, steer: pad.steer) : Input(throttle: reverse ? -1 : 1, steer: steer)
+            if manual { return Input(throttle: pad.throttle, steer: pad.steer) }
+            var s = steer
+            // at most half lock, so it straightens up on a straight and after a spin, but a tight bend still needs steering
+            if aligns, s == 0, !reverse, let yaw, let road { s = clamp(-angleDiff(yaw, road) / ALIGN_LOCK, -0.5, 0.5) }
+            return Input(throttle: reverse ? -1 : 1, steer: s)
         }
     }
     /// True while the action button (or Space) is held, for a Zap's rapid fire.

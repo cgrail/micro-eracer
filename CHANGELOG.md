@@ -151,7 +151,8 @@ happens. Everything before 1.0 is in the git history.
   apps).
 - The Digital Crown is a steering wheel that clicks into six notches and stays where it is left: the two in the middle
   straight on (so it's easy to land on straight coming back from a turn), then turned up a little left and full lock
-  left, turned down the same to the right. It straightens up by itself whenever the E-Car is put back on the road (a
+  left, turned down the same to the right. Steering straight, the E-Car lines itself up with the road (gently, so a
+  tight bend still needs steering). The Crown straightens up by itself whenever the E-Car is put back on the road (a
   Fall-off, stuck) and on a new grid. A steering wheel at the foot of the screen shows how far it is turned, as on the
   phone's steering pad. A finger on the screen steers too, as the phone's Buttons do: full lock left on its left half, right on its right
   half, and it can rock from one to the other without lifting. The E-Car accelerates by itself. The action button in the top right corner shows the Item and uses it (held, a
