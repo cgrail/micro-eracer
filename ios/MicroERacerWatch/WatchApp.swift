@@ -108,23 +108,19 @@ struct WatchStartView: View {
     }
 }
 
-/// How hard the Crown steers: its speed (its range a second) times `CROWN_GAIN`, up to full lock, so the E-Car turns as
-/// far as the Crown does. `CROWN_EASE` is the share of the way there the steering goes each tick, which smooths over the
-/// bursts the Crown reports in and lets the steering straighten up just after the Crown stops.
-private let CROWN_GAIN = 0.4, CROWN_EASE = 0.4
+/// How far the Crown's value goes in a quarter turn of it, which turns the E-Car from along the road to square across it.
+// shortcut: a guess, since Apple doesn't document how far the value goes per turn; tune it on a watch
+private let CROWN_QUARTER = 0.5
 
 /// The Race: the game, the HUD over it, the Crown, the screen's halves and the action button.
 struct WatchRaceView: View {
     @ObservedObject var model: WatchModel
     let game: Game
     @State private var crown = 0.0
-    /// The Crown's steering: left while it turns up, right while it turns down, the faster the harder; 0 at rest.
-    @State private var turned = 0.0
-    /// How far the Crown turned since the last tick.
-    @State private var spun = 0.0
+    /// The E-Car's angle off the road the Crown has set: up to 90° left (positive) or right.
+    @State private var dial = 0.0
     /// Full lock while a finger is on the screen: -1 on its left half, 1 on its right.
     @State private var touch: Double? = nil
-    private let center = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { box in
@@ -136,32 +132,32 @@ struct WatchRaceView: View {
             }
             // as the phone's Buttons steering: the finger can rock from one half to the other without lifting
             .gesture(DragGesture(minimumDistance: 0).onChanged { at in touch = at.location.x < box.size.width / 2 ? -1 : 1 }.onEnded { _ in touch = nil })
-            .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
+            .onAppear {
+                game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1
+                model.controls.setDial(0)
+            }
         }
         .focusable()
-        // the Crown turns the E-Car: turned up, it steers left, turned down, right, as hard as the Crown turns fast, so a
-        // nudge corrects a little and a long scroll goes round a bend; at rest the E-Car drives straight on. Only its turns
-        // count, timed by us rather than by the Crown's idle callback, and it wraps round, so it has no ends to rubber-band at
+        // the Crown sets the E-Car's angle to the road, which it then holds through bends, Rams and Hits: in the middle it
+        // drives along the road, a quarter turn up it heads square across it to the left, a quarter turn down to the right,
+        // and never further, so it can't be turned round. Only its turns count, into our own `dial`, and it wraps round, so
+        // it has no ends to rubber-band at
         .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: false)
         .onChange(of: crown) { was, now in
             // a jump of more than half the Crown's range is it wrapping round, not a turn
             var turn = now - was
             if turn > 1 { turn -= 2 } else if turn < -1 { turn += 2 }
-            spun += turn
+            dial = min(.pi / 2, max(-.pi / 2, dial + turn / CROWN_QUARTER * .pi / 2))
+            model.controls.setDial(dial)
         }
-        .onReceive(center) { _ in
-            let aim = min(1, max(-1, -spun * 30 * CROWN_GAIN))
-            spun = 0
-            turned += (aim - turned) * CROWN_EASE
-            if aim == 0, abs(turned) < 0.02 { turned = 0 }
-        }
-        .onChange(of: touch ?? turned) { _, steer in model.controls.setSteer(steer) }
+        .onChange(of: touch ?? 0) { _, steer in model.controls.setSteer(steer) }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { ActionButton(item: model.hud.item, controls: model.controls) }
         }
         .onDisappear {
             model.controls.setFiring(false)
             model.controls.setSteer(0)
+            model.controls.setDial(nil)
             model.leave()
         }
     }
