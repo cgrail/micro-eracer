@@ -117,24 +117,3 @@ private struct Touch: UIViewRepresentable {
         override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { onTouch(nil) }
     }
 }
-
-/// The steering wheel in the middle of the pad, turning as the thumb steers.
-private struct Wheel: View {
-    var body: some View {
-        Canvas { g, size in
-            let s = min(size.width, size.height) / 100
-            g.translateBy(x: size.width / 2, y: size.height / 2)
-            g.scaleBy(x: s, y: s)
-            let spokes = Path { p in p.move(to: CGPoint(x: -38, y: 0)); p.addLine(to: CGPoint(x: 38, y: 0)); p.move(to: .zero); p.addLine(to: CGPoint(x: 0, y: 38)) }
-            let rim = Path(ellipseIn: CGRect(x: -38, y: -38, width: 76, height: 76))
-            for (path, ink, w) in [(spokes, 0x111111, 17.0), (rim, 0x111111, 18), (spokes, 0x3a3f47, 9), (rim, 0x3a3f47, 10)] {
-                g.stroke(path, with: .color(Color(hex: ink)), style: StrokeStyle(lineWidth: w, lineCap: .round))
-            }
-            g.stroke(Path { $0.addArc(center: .zero, radius: 38, startAngle: .degrees(-103.7), endAngle: .degrees(-76.3), clockwise: false) },
-                     with: .color(Color(hex: 0xffd60a)), lineWidth: 10)
-            g.fill(Path(ellipseIn: CGRect(x: -13, y: -13, width: 26, height: 26)), with: .color(Color(hex: 0xffd60a)))
-            g.stroke(Path(ellipseIn: CGRect(x: -13, y: -13, width: 26, height: 26)), with: .color(Color(hex: 0x111111)), lineWidth: 4)
-        }
-        .allowsHitTesting(false)
-    }
-}

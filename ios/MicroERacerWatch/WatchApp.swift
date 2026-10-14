@@ -108,19 +108,17 @@ struct WatchStartView: View {
     }
 }
 
-/// How far the Crown's value goes in a quarter turn of it, which turns the E-Car from along the road to square across it.
-// shortcut: a guess, since Apple doesn't document how far the value goes per turn; tune it on a watch
-private let CROWN_QUARTER = 0.5
-
 /// The Race: the game, the HUD over it, the Crown, the screen's halves and the action button.
 struct WatchRaceView: View {
     @ObservedObject var model: WatchModel
     let game: Game
+    /// The Crown's notch: 2 turned all the way up (full lock left), 0 straight, -2 all the way down (full lock right).
     @State private var crown = 0.0
-    /// The E-Car's angle off the road the Crown has set: up to 90° left (positive) or right.
-    @State private var dial = 0.0
     /// Full lock while a finger is on the screen: -1 on its left half, 1 on its right.
     @State private var touch: Double? = nil
+
+    /// A finger on the screen steers, or else the Crown's notch: full lock, half lock or straight.
+    private var steer: Double { touch ?? max(-1, min(1, -crown.rounded() / 2)) }
 
     var body: some View {
         GeometryReader { box in
@@ -129,35 +127,26 @@ struct WatchRaceView: View {
                     .ignoresSafeArea()
                 Halftone()
                 WatchHUD(hud: model.hud)
+                // as on the phone's pad, the wheel turns a quarter round at full lock
+                Wheel().frame(width: 40, height: 40).rotationEffect(.degrees(steer * 90)).animation(.easeOut(duration: 0.1), value: steer)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
             }
             // as the phone's Buttons steering: the finger can rock from one half to the other without lifting
             .gesture(DragGesture(minimumDistance: 0).onChanged { at in touch = at.location.x < box.size.width / 2 ? -1 : 1 }.onEnded { _ in touch = nil })
-            .onAppear {
-                game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1
-                model.controls.setDial(0)
-            }
+            .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
         }
         .focusable()
-        // the Crown sets the E-Car's angle to the road, which it then holds through bends, Rams and Hits: in the middle it
-        // drives along the road, a quarter turn up it heads square across it to the left, a quarter turn down to the right,
-        // and never further, so it can't be turned round. Only its turns count, into our own `dial`, and it wraps round, so
-        // it has no ends to rubber-band at
-        .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: false)
-        .onChange(of: crown) { was, now in
-            // a jump of more than half the Crown's range is it wrapping round, not a turn
-            var turn = now - was
-            if turn > 1 { turn -= 2 } else if turn < -1 { turn += 2 }
-            dial = min(.pi / 2, max(-.pi / 2, dial + turn / CROWN_QUARTER * .pi / 2))
-            model.controls.setDial(dial)
-        }
-        .onChange(of: touch ?? 0) { _, steer in model.controls.setSteer(steer) }
+        // the Crown is a steering wheel that stays where it is left, clicking into five notches: turned up, a little left
+        // and then full lock left, turned down the same to the right. The app never writes its value, so the Crown's
+        // rubber-banding at its ends can't fling the steering over to the other side
+        .digitalCrownRotation($crown, from: -2, through: 2, by: 1, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true)
+        .onChange(of: steer) { _, steer in model.controls.setSteer(steer) }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { ActionButton(item: model.hud.item, controls: model.controls) }
         }
         .onDisappear {
             model.controls.setFiring(false)
             model.controls.setSteer(0)
-            model.controls.setDial(nil)
             model.leave()
         }
     }

@@ -8,9 +8,6 @@ struct Pad {
     var active: Bool { throttle != 0 || steer != 0 || fire || use }
 }
 
-/// How far off the Crown's heading our E-Car is when it steers at full lock (radians).
-private let DIAL_LOCK = 0.3
-
 /// What the player is doing (thumbs on a phone, a keyboard or game controller on an iPad, the Crown and the screen on the watch),
 /// written by SwiftUI on the main thread and read by the game loop on SceneKit's. The last one used drives: touch with
 /// auto-throttle, keys and controllers with their own throttle, as on a desktop.
@@ -21,19 +18,12 @@ final class Controls: @unchecked Sendable {
     /// Polls the keyboard and game controllers; nil where there are none (the watch).
     var poll: (() -> Pad)?
 
-    /// The watch's Crown: the angle off the road's direction our E-Car steers for (radians, left positive), nil elsewhere.
-    private var dial: Double?
-
-    /// Touch: auto-throttle, full ahead unless reversing (the Back button). Given our E-Car's `yaw` and the `road`'s
-    /// direction, the watch's Crown steers it to its angle off the road, unless a finger on the screen steers.
-    func drive(yaw: Double? = nil, road: Double? = nil) -> Input {
+    /// Touch: auto-throttle, full ahead unless reversing (the Back button).
+    func drive() -> Input {
         let pad = poll?() ?? Pad()
         return locked {
             if pad.active { manual = true }
-            if manual { return Input(throttle: pad.throttle, steer: pad.steer) }
-            var s = steer
-            if let dial, let yaw, let road, s == 0 { s = clamp(-angleDiff(yaw, road + dial) / DIAL_LOCK, -1, 1) }
-            return Input(throttle: reverse ? -1 : 1, steer: s)
+            return manual ? Input(throttle: pad.throttle, steer: pad.steer) : Input(throttle: reverse ? -1 : 1, steer: steer)
         }
     }
     /// True while the action button (or Space) is held, for a Zap's rapid fire.
@@ -47,7 +37,6 @@ final class Controls: @unchecked Sendable {
     var usesPad: Bool { locked { manual } }
 
     func setSteer(_ v: Double) { locked { steer = v; manual = false } }
-    func setDial(_ angle: Double?) { locked { dial = angle; manual = false } }
     func setFiring(_ on: Bool) { locked { if on && !fire { pressed = true }; fire = on; manual = false } }
     func setReversing(_ on: Bool) { locked { reverse = on } }
 }
