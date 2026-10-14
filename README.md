@@ -1,6 +1,6 @@
 # micro-eracer
 
-Micro E-Racer: a multiplayer 3D racing web game in the spirit of Micro Machines, with electric cars on small tracks, for desktop and mobile browsers, and as an app for iPhone and iPad that races in the same Races, with an Apple Watch app that races the Bots: [Micro E-Racer on the App Store](https://apps.apple.com/app/micro-e-racer/id6821823103). On an iPhone or iPad, the browser game offers the app first, or to play on in the browser.
+Micro E-Racer: a multiplayer 3D racing web game in the spirit of Micro Machines, with electric cars on small tracks, for desktop and mobile browsers, and as an app for iPhone and iPad that races in the same Races, with an Apple Watch app that races the Bots: [Micro E-Racer on the App Store](https://apps.apple.com/app/micro-e-racer/id6821823103). On an iPhone or iPad, the browser game offers the app first, or to play on in the browser, and Safari shows the app's banner across the top.
 
 - Terms: [CONTEXT.md](CONTEXT.md)
 - Decisions: [docs/adr/](docs/adr/)

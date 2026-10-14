@@ -169,7 +169,7 @@ $('practice-done').addEventListener('click', () => {
   course.run(true);
 });
 // The game is an app for iPhone and iPad too, so there the first thing each visit offers it, over the start form, or play on
-// in the browser. The App Store only has it for Apple's devices, so this asks for those, not for touch (`isTouch`); an iPad
+// in the browser (and Safari's banner at the top offers it too: `apple-itunes-app` in index.html). The App Store only has it for Apple's devices, so this asks for those, not for touch (`isTouch`); an iPad
 // says it is a Mac, but one with a touch screen
 const appOffer = $<HTMLDialogElement>('app');
 $<HTMLAnchorElement>('app-store').href = APP_STORE;

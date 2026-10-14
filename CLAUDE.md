@@ -11,7 +11,7 @@ It is TypeScript throughout: Three.js in the browser (built with Vite), Colyseus
 
 - `npm run dev` starts Vite on `:5173` (with `--host`, so a phone on the LAN can join) and the game server on `:2567` (`tsx watch`). In development the browser connects to `<hostname>:2567`; in production, to its own origin.
 - `TRACK=garden` picks the first Race's Track, and `DRAIN_SCALE=10` makes Energy run out ten times faster (for trying out Stranded and the Recharge). Both work with `npm run dev` and in `/etc/default/micro-eracer` on the server.
-- The app's App Store page is `APP_STORE` (`shared/src/version.ts`, `ios/Core/Version.swift`): the browser offers it on an iPhone or iPad, and `/version` hands it to the apps for their update dialog. `APP_STORE_URL` in `/etc/default/micro-eracer` puts another page there in its place.
+- The app's App Store page is `APP_STORE` (`shared/src/version.ts`, `ios/Core/Version.swift`): the browser offers it on an iPhone or iPad (a dialog over the start form, and Safari's Smart App Banner, `apple-itunes-app` in `index.html`, which carries its id), and `/version` hands it to the apps for their update dialog. `APP_STORE_URL` in `/etc/default/micro-eracer` puts another page there in its place.
 - The user usually has `npm run dev` running. Start any server of your own on another port (`PORT=2600 npx tsx server/src/index.ts`) and never kill theirs.
 - After every change, run these from the repo root:
   - `npm run typecheck` (`tsc --noEmit`; nothing is emitted, since Vite and tsx run the TypeScript as it is).

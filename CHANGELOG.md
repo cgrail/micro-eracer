@@ -141,7 +141,8 @@ happens. Everything before 1.0 is in the git history.
 
 - On an iPhone or iPad the browser game first offers the app: Race in the app! over the start screen, with Get the app
   (its App Store page, https://apps.apple.com/app/micro-e-racer/id6821823103) or Play in the browser. The server names
-  the same page for the app's Update button, which falls back to it too instead of the App Store's front page.
+  the same page for the app's Update button, which falls back to it too instead of the App Store's front page. Safari
+  also shows its App Store banner across the top of the page, with Open where the app is installed.
 - The page never zooms, neither by pinching nor by a quick second tap anywhere (the steering pad, its wheel, a button's
   label). Text can't be selected anywhere but the Name field, and a long press opens no menu. Tapping ◀ or ▶
   quickly on the start screen steps through every Body instead of skipping every other tap. On a desktop, a trackpad pinch,
