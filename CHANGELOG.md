@@ -91,9 +91,10 @@ happens. Everything before 1.0 is in the git history.
 - Players meet online again: only the first Player in a Race picks its Track, and everyone after them joins that Race.
   Every join takes the Race that is running (the fullest with a free Seat), whatever Track the joining Player had up;
   before, each visit started on a Track of its own picked at random and only met Players on the same one, so nearly
-  everyone raced the Bots alone. While a Race is running, the start screen shows its Track and who is racing on it (Ann
-  and Bob are racing here) in place of ◀ ▶ and the list, and Play becomes Join the Race. It looks again every few
-  seconds, so a Race that starts meanwhile takes the picker's place and the picker comes back once it is over or full.
+  everyone raced the Bots alone. While a Race is running, the start screen shows its Track and how many Players are
+  racing on it, and who (3 Players racing: Ann, Bob, Kim), in place of ◀ ▶ and the list, and Play becomes Join the
+  Race. It looks again every few seconds, so a Race that starts meanwhile takes the picker's place and the picker comes
+  back once it is over or full.
   Apps already out join the running Race too, whatever Track they show. The wire: `GET /race`, the Race a join takes
   (its `track` and its Players' names, `players`; `{}` while none is running), and `race2` no longer matches joins on
   `track`.

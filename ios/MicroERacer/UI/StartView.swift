@@ -164,14 +164,10 @@ struct StartView: View {
         .multilineTextAlignment(.center)
     }
 
-    /// Who is in the running Race, short enough for one line (`racers` in main.ts).
+    /// How many Players are in the running Race, and who: on one line, cut short at the end where the names don't fit
+    /// (`racers` in main.ts).
     private func racers(_ names: [String]) -> String {
-        switch names.count {
-        case 0: return "A Race is on here"
-        case 1: return "\(names[0]) is racing here"
-        case 2: return "\(names[0]) and \(names[1]) are racing here"
-        default: return "\(names[0]), \(names[1]) and \(names.count - 2) more are racing here"
-        }
+        names.isEmpty ? "A Race is on" : "\(names.count) \(names.count == 1 ? "Player" : "Players") racing: \(names.joined(separator: ", "))"
     }
 
     /// Opens the Practice Ground, where the touch controls are set and tried out, and says how they are set. Shaped like

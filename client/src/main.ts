@@ -76,10 +76,8 @@ const setTracks = (list: TrackDef[]) => {
 };
 const line = (text: string, className = '') => Object.assign(document.createElement('p'), { textContent: text, className });
 const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
-/** Who is in the running Race, short enough for one line. */
-const racers = (names: string[]) =>
-  names.length === 0 ? 'A Race is on here' : names.length === 1 ? `${names[0]} is racing here`
-  : `${names.length === 2 ? names.join(' and ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`} are racing here`;
+/** How many Players are in the running Race, and who: on one line, cut short at the end where the names don't fit. */
+const racers = (names: string[]) => (names.length ? `${count(names.length, '1 Player', 'Players')} racing: ${names.join(', ')}` : 'A Race is on');
 const showTrack = () => {
   const def = running?.track ?? tracks.find((t) => t.id === track);
   // the running Race's Track may be one the list doesn't have (yet)
