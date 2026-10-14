@@ -6,5 +6,9 @@ import Foundation
 /// The same as `PROTOCOL` in version.ts (`testProtocolMatchesTheTypeScript` compares them): bumped together, in one commit.
 let PROTOCOL = 2
 
+/// The same as `APP_STORE` in version.ts (`testProtocolMatchesTheTypeScript` compares them): the app's page on the App Store,
+/// which the update dialog opens when the server names none.
+let APP_STORE = URL(string: "https://apps.apple.com/app/micro-e-racer/id6821823103")!
+
 /// The status (and the error's code) of a join the server refused because the app is too old: Upgrade Required.
 let OUTDATED = 426

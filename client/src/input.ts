@@ -8,7 +8,7 @@ const inField = (e: Event) => e.target instanceof HTMLInputElement;
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 // a quick second tap zooms wherever it lands, not only on the element of the first (the pad then its wheel, a button's label
-// then its edge), so any is cancelled; a button tapped (not swiped over) still gets its click, so ▶ can be hammered through the Bodies
+// then its edge), so any is cancelled; a button or link tapped (not swiped over) still gets its click, so ▶ can be hammered through the Bodies
 const touchFrom = new Map<number, { x: number; y: number }>();
 let lastTouchEnd = -1e9;
 document.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) touchFrom.set(t.identifier, { x: t.clientX, y: t.clientY }); }, { passive: true });
@@ -19,7 +19,7 @@ document.addEventListener('touchend', (e) => {
   for (const c of e.changedTouches) touchFrom.delete(c.identifier);
   if (!quick || inField(e)) return;
   e.preventDefault();
-  if (from && Math.hypot(t.clientX - from.x, t.clientY - from.y) < 10) (e.target as Element).closest('button')?.click();
+  if (from && Math.hypot(t.clientX - from.x, t.clientY - from.y) < 10) (e.target as Element).closest<HTMLElement>('button, a')?.click();
 }, { passive: false });
 document.addEventListener('touchcancel', (e) => { for (const t of e.changedTouches) touchFrom.delete(t.identifier); });
 document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });

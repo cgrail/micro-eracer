@@ -28,7 +28,7 @@ Before it races online, the app asks the server whether it still races with this
 `PROTOCOL` in `Core/Version.swift`) and which Tracks it races (`GET /tracks`), on launch and whenever it comes back to the
 front. The start screen then offers the server's Tracks, and every online Race is built from the Track the room sends, so a
 Track the server adds or changes needs no app update. When the server no longer races with this version, the app says so
-(Update opens the App Store page the server names, `APP_STORE_URL`), and Play races offline until it is updated.
+(Update opens the app's App Store page, `APP_STORE` in `Core/Version.swift`, or another one the server names), and Play races offline until it is updated.
 
 ## Checking
 

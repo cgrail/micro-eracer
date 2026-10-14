@@ -3,7 +3,7 @@ import '@fontsource/bangers';
 import { Client } from '@colyseus/sdk';
 import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
 import { TRACKS, type TrackDef } from '../../shared/src/track.ts';
-import { OUTDATED, PROTOCOL, type VersionInfo } from '../../shared/src/version.ts';
+import { APP_STORE, OUTDATED, PROTOCOL, type VersionInfo } from '../../shared/src/version.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createGarage } from './garage.ts';
@@ -168,6 +168,14 @@ $('practice-done').addEventListener('click', () => {
   garage.run(true);
   course.run(true);
 });
+// The game is an app for iPhone and iPad too, so there the first thing each visit offers it, over the start form, or play on
+// in the browser. The App Store only has it for Apple's devices, so this asks for those, not for touch (`isTouch`); an iPad
+// says it is a Mac, but one with a touch screen
+const appOffer = $<HTMLDialogElement>('app');
+$<HTMLAnchorElement>('app-store').href = APP_STORE;
+$('app-web').addEventListener('click', () => appOffer.close());
+const onAppleTouch = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+if (onAppleTouch) appOffer.showModal();
 const serverUrl = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
 // waiting longer than this for the server, Play starts an Offline Race instead
 const JOIN_TIMEOUT = 5000;

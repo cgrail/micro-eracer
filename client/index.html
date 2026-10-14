@@ -51,7 +51,15 @@
   <dialog id="update" aria-labelledby="update-title" aria-describedby="update-text">
     <h2 id="update-title">New version!</h2>
     <p id="update-text">The game has moved on, and this page is too old to race online with it. Reload it to race online again, or race the Bots offline for now.</p>
-    <div class="buttons"><button type="button" id="update-later">Race offline</button><button type="button" id="update-now">Reload</button></div>
+    <div class="buttons"><button type="button" id="update-later">Race offline</button><button type="button" id="update-now" class="go">Reload</button></div>
+  </dialog>
+
+  <!-- on an iPhone or iPad, the first thing each visit: get the app, or play on in the browser -->
+  <dialog id="app" aria-labelledby="app-title" aria-describedby="app-text">
+    <img src="/icon.png" alt="" width="80" height="80">
+    <h2 id="app-title">Race in the app!</h2>
+    <p id="app-text">Micro E-Racer is an app for iPhone and iPad too. It races in the same Races as the browsers, and brings an Apple Watch app that races the Bots.</p>
+    <div class="buttons"><button type="button" id="app-web">Play in the browser</button><a id="app-store" class="go">Get the app</a></div>
   </dialog>
 
   <!-- touch only: the Practice Ground, where the controls are set and tried out -->

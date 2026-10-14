@@ -26,8 +26,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var outdated = false
     /// The update dialog, up when the server first says the app is too old.
     @Published var askUpdate = false
-    /// Where the new version is, as the server says (`APP_STORE_URL`); the App Store's front page otherwise.
-    private(set) var updateLink = URL(string: "itms-apps://apps.apple.com")!
+    /// Where the new version is, as the server says (`APP_STORE_URL`); the app's own page otherwise.
+    private(set) var updateLink = APP_STORE
     private var checking = false
     let controls = Controls(), sound = Sound()
 

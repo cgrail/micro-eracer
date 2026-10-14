@@ -79,7 +79,7 @@ happens. Everything before 1.0 is in the git history.
 - The game and the server check that they still race together. Every browser and app tells the server which version of
   the online game it speaks, when it starts (`GET /version?protocol=2`) and when it joins (`protocol`), and the server
   says whether it still races with that one. If not (an app that hasn't been updated, or a browser tab left open across
-  a deploy), a New version! dialog offers Update (the App Store, `APP_STORE_URL` on the server) in the app or Reload in
+  a deploy), a New version! dialog offers Update (the app's App Store page) in the app or Reload in
   the browser, or Race offline; Play becomes Play offline and races the Bots, and the Offline Race says how to race online
   again. The server turns such a client away when it joins, too. The apps from before this check send no version and
   count as the first, which the server still races with.
@@ -139,6 +139,9 @@ happens. Everything before 1.0 is in the git history.
 
 ### Phones and tablets in the browser
 
+- On an iPhone or iPad the browser game first offers the app: Race in the app! over the start screen, with Get the app
+  (its App Store page, https://apps.apple.com/app/micro-e-racer/id6821823103) or Play in the browser. The server names
+  the same page for the app's Update button, which falls back to it too instead of the App Store's front page.
 - The page never zooms, neither by pinching nor by a quick second tap anywhere (the steering pad, its wheel, a button's
   label). Text can't be selected anywhere but the Name field, and a long press opens no menu. Tapping ◀ or ▶
   quickly on the start screen steps through every Body instead of skipping every other tap. On a desktop, a trackpad pinch,

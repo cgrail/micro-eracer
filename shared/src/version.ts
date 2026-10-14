@@ -16,6 +16,10 @@ export const MIN_PROTOCOL = 1;
 /** The HTTP status (and the error's code) of a join refused because the client is too old: Upgrade Required. */
 export const OUTDATED = 426;
 
+/** The app's page on the App Store: where the browser game offers the app on an iPhone or iPad, and where an app too old to
+ * race online gets the new one. The apps keep their own copy in ios/Core/Version.swift, which `swift test` compares. */
+export const APP_STORE = 'https://apps.apple.com/app/micro-e-racer/id6821823103';
+
 /** The version a client sent: a whole number from 1, or 1 for a client that sent none (an app from before this check). */
 export const protocolOf = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 ? v : typeof v === 'string' && /^[1-9]\d{0,5}$/.test(v) ? Number(v) : 1);
 
@@ -27,6 +31,6 @@ export interface VersionInfo {
   protocol: number;
   minProtocol: number;
   compatible: boolean;
-  /** Where an app too old for online Races gets the new one, when the server knows (`APP_STORE_URL`). */
+  /** Where an app too old for online Races gets the new one: `APP_STORE`, or the server's `APP_STORE_URL` in its place. */
   update?: string;
 }
