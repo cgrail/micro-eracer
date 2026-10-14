@@ -96,10 +96,11 @@ scene is small.
 
 ## The watch
 
-The same `Game` as on the iPhone, in an Offline Race. The Digital Crown is a steering wheel with five
-notches (`digitalCrownRotation` from -2 through 2 by 1, with the Crown's haptic clicks): up is left, down is right, the
-outer notches full lock and the inner ones half, and it stays where it is left. The app never writes its value, so the
-Crown's rubber-banding at its ends can't fling the steering over. The phone's `Wheel` (in `Comic.swift`) sits at the foot
+The same `Game` as on the iPhone, in an Offline Race. The Digital Crown is a steering wheel with six
+notches (`digitalCrownRotation` from -2.5 through 2.5 by 1, with the Crown's haptic clicks): the two in the middle are
+straight, then up is left, down is right, half lock and then full lock, and it stays where it is left. Its value is the
+model's `crown`, which goes back to `STRAIGHT` whenever `Game.putBack` says our E-Car was put back on the road or on a
+new grid. The phone's `Wheel` (in `Comic.swift`) sits at the foot
 of the screen and turns with the steering. A finger on the screen steers too, at full lock to its side of
 the middle, like the phone's Buttons steering, and wins over the Crown while it is down. The E-Car accelerates by itself.
 The action button is the toolbar's, in the top right corner (`ActionButton`): it shows the Item and uses it as it is

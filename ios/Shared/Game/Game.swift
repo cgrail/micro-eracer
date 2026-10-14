@@ -21,6 +21,8 @@ final class Game: NSObject, SCNSceneRendererDelegate {
     var heard: ((RaceEvent, Int) -> Void)?
     /// No Back button (the watch): stuck for `UNSTICK_TIME`, our E-Car is put back on the road where it is instead.
     var unstick = false
+    /// Told on the game's thread when our E-Car is put back on the road or on a new grid (the watch straightens its Crown).
+    var putBack: (() -> Void)?
 
     var track: Track?, world: World?, look: TrackScene?
     var state: RaceState?, me: CarState?, own: Own?
@@ -123,6 +125,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
             teleport(own.view.car, fell ? resetToCheckpoint(track, &own.progress, others) : ontoRoad(track, &own.progress, others))
             own.lockedUntil = clock + 1
             stuckFor = 0
+            putBack?()
         } else { updateProgress(track, &own.progress, rb.x, rb.z) }
         // 30 times a second, as often as the server sends its state
         ticks += 1

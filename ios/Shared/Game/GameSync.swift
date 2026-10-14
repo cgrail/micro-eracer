@@ -76,6 +76,7 @@ extension Game {
             teleport(v.car, pose, c.vx, c.vz)
             own.spawn = c.spawn
             own.progress = startProgress(track, nearestSample(track, c.x, c.y, c.z))
+            putBack?()
         }
     }
 

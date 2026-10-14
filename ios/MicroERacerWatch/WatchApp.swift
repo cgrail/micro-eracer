@@ -16,6 +16,8 @@ final class WatchModel: ObservableObject {
     /// The picked Track's id, or "" for a different one each Race.
     @Published var track: String
     @Published var muted: Bool { didSet { sound.setMuted(muted); UserDefaults.standard.set(muted ? "1" : "0", forKey: "muted") } }
+    /// The Crown's notch, from 2.5 turned all the way up to -2.5 all the way down (`WatchRaceView.steer`).
+    @Published var crown = STRAIGHT
     @Published private(set) var game: Game?
     @Published private(set) var hud = HudState()
     let controls = Controls(), sound = Sound()
@@ -44,6 +46,9 @@ final class WatchModel: ObservableObject {
             self.hud = hud
         }, left: {})
         game.unstick = true
+        // back on the road after a Fall-off or being stuck, or on a new grid, the steering starts straight again
+        game.putBack = { [weak self] in DispatchQueue.main.async { self?.crown = STRAIGHT } }
+        crown = STRAIGHT
         game.heard = { event, mine in
             let feel: WKHapticType?
             switch event {
@@ -74,6 +79,9 @@ struct MicroERacerWatchApp: App {
     @StateObject private var model = WatchModel()
     var body: some Scene { WindowGroup { WatchStartView(model: model) } }
 }
+
+/// The upper of the Crown's two straight notches, where it starts.
+private let STRAIGHT = 0.5
 
 private let BODY_NAMES: [BodyKind: String] = [.roadster: "Roadster", .suv: "SUV", .microbus: "Microbus", .pickup: "Pickup", .semi: "Semi"]
 
@@ -112,13 +120,16 @@ struct WatchStartView: View {
 struct WatchRaceView: View {
     @ObservedObject var model: WatchModel
     let game: Game
-    /// The Crown's notch: 2 turned all the way up (full lock left), 0 straight, -2 all the way down (full lock right).
-    @State private var crown = 0.0
     /// Full lock while a finger is on the screen: -1 on its left half, 1 on its right.
     @State private var touch: Double? = nil
 
-    /// A finger on the screen steers, or else the Crown's notch: full lock, half lock or straight.
-    private var steer: Double { touch ?? max(-1, min(1, -crown.rounded() / 2)) }
+    /// A finger on the screen steers, or else the Crown's notch: the outer ones full lock, the next half lock, the two in
+    /// the middle straight (so coming back from a turn it's easy to land on straight). Up is left.
+    private var steer: Double {
+        if let touch { return touch }
+        let lock = abs(model.crown) < 1 ? 0 : abs(model.crown) < 2 ? 0.5 : 1
+        return model.crown > 0 ? -lock : lock
+    }
 
     var body: some View {
         GeometryReader { box in
@@ -136,10 +147,9 @@ struct WatchRaceView: View {
             .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
         }
         .focusable()
-        // the Crown is a steering wheel that stays where it is left, clicking into five notches: turned up, a little left
-        // and then full lock left, turned down the same to the right. The app never writes its value, so the Crown's
-        // rubber-banding at its ends can't fling the steering over to the other side
-        .digitalCrownRotation($crown, from: -2, through: 2, by: 1, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true)
+        // the Crown is a steering wheel that stays where it is left, clicking into six notches: two straight, then turned up
+        // a little left and full lock left, turned down the same to the right
+        .digitalCrownRotation($model.crown, from: -2.5, through: 2.5, by: 1, sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true)
         .onChange(of: steer) { _, steer in model.controls.setSteer(steer) }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { ActionButton(item: model.hud.item, controls: model.controls) }
