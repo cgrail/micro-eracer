@@ -108,18 +108,19 @@ struct WatchStartView: View {
     }
 }
 
-/// How far the Crown turns the steering, and how long it rests before the steering comes back to the middle.
-private let CROWN_GAIN = 1.5, CROWN_HOLD = 0.35
+/// How long the steering stays at full lock after the Crown's last turn: it reports in bursts while it turns, and this
+/// bridges the gaps, so a steady turn holds the lock and a Crown at rest drives straight on.
+private let CROWN_HOLD = 0.2
 
 /// The Race: the game, the HUD over it, the Crown, the screen's halves and the action button.
 struct WatchRaceView: View {
     @ObservedObject var model: WatchModel
     let game: Game
     @State private var crown = 0.0
-    /// The Crown's steering, clamped at full lock.
+    /// The Crown's steering: full lock while it turns (-1 turned up, 1 turned down), 0 at rest.
     @State private var turned = 0.0
-    /// When the Crown came to rest, nil while it turns.
-    @State private var restingSince: Date? = Date()
+    /// When the Crown last turned.
+    @State private var lastTurn = Date.distantPast
     /// Full lock while a finger is on the screen: -1 on its left half, 1 on its right.
     @State private var touch: Double? = nil
     private let center = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect()
@@ -137,22 +138,19 @@ struct WatchRaceView: View {
             .onAppear { game.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
         }
         .focusable()
-        // the Crown is the steering wheel: turned up, the E-Car steers right; let go, it comes back to the middle. Only its
-        // turns count, into our own `turned`: a clamped Crown rubber-bands at its ends, and moving it back to the middle
-        // while it does flung the steering over to the other side, so it wraps round instead and is never written to
-        .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: false,
-                              onChange: { _ in restingSince = nil }, onIdle: { restingSince = Date() })
+        // the Crown steers like a finger on the screen: turned up, full lock left, turned down, full lock right, for as long
+        // as it keeps turning; at rest the E-Car drives straight on. Only the direction of its turns counts, timed by us
+        // rather than by the Crown's idle callback, and it wraps round, so it has no ends to rubber-band at
+        .digitalCrownRotation($crown, from: -1, through: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: false)
         .onChange(of: crown) { was, now in
             // a jump of more than half the Crown's range is it wrapping round, not a turn
             var turn = now - was
             if turn > 1 { turn -= 2 } else if turn < -1 { turn += 2 }
-            turned = min(1, max(-1, turned + turn * CROWN_GAIN))
+            guard turn != 0 else { return }
+            turned = turn > 0 ? -1 : 1
+            lastTurn = Date()
         }
-        // a turn is held a moment after the Crown stops, so a bend (or turning round at a wall) can be steered through
-        .onReceive(center) { _ in
-            guard let since = restingSince, turned != 0, Date().timeIntervalSince(since) > CROWN_HOLD else { return }
-            turned = abs(turned) < 0.03 ? 0 : turned * 0.85
-        }
+        .onReceive(center) { _ in if turned != 0, Date().timeIntervalSince(lastTurn) > CROWN_HOLD { turned = 0 } }
         .onChange(of: touch ?? turned) { _, steer in model.controls.setSteer(steer) }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { ActionButton(item: model.hud.item, controls: model.controls) }

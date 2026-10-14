@@ -96,10 +96,11 @@ scene is small.
 
 ## The watch
 
-The same `Game` as on the iPhone, in an Offline Race. The Digital Crown is the steering wheel: turned up it steers right,
-and let go it comes back to the middle, after holding the turn for a moment (`CROWN_HOLD`). Only its turns count, into the
-view's own `turned` (`CROWN_GAIN` times the turn, clamped at full lock): a Crown clamped at its ends rubber-bands there, so
-it wraps round instead and the app never writes its value. A finger on the screen steers too, at full lock to its side of
+The same `Game` as on the iPhone, in an Offline Race. The Digital Crown steers like a finger on the screen: while it turns
+up, full lock left, while it turns down, full lock right, and at rest the E-Car drives straight on. Only the direction of
+its turns counts, into the view's own `turned`, which goes back to 0 once the Crown hasn't turned for `CROWN_HOLD` (it
+reports in bursts, and this bridges the gaps). It wraps round, so it has no ends to rubber-band at, and the app never
+writes its value. A finger on the screen steers too, at full lock to its side of
 the middle, like the phone's Buttons steering, and wins over the Crown while it is down. The E-Car accelerates by itself.
 The action button is the toolbar's, in the top right corner (`ActionButton`): it shows the Item and uses it as it is
 pressed (held, a Zap keeps firing). There is no Back button: stuck for `UNSTICK_TIME` (where the phone would show its
