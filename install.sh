@@ -91,7 +91,9 @@ log "Syncing code to $APP_DIR and building"
 install -d -m 755 "$APP_DIR"
 rsync -a --delete --exclude .git --exclude node_modules --exclude dist --exclude .claude "$SRC_DIR/" "$APP_DIR/"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
-runuser -u "$APP_USER" -- bash -c "cd '$APP_DIR' && HOME='$APP_HOME' npm ci --no-audit --no-fund && HOME='$APP_HOME' npm run build"
+# COMMIT: the copy has no .git, so the build is told which commit it is (for the About dialog)
+commit="$(git -c safe.directory="$SRC_DIR" -C "$SRC_DIR" rev-parse HEAD 2> /dev/null || true)"
+runuser -u "$APP_USER" -- bash -c "cd '$APP_DIR' && HOME='$APP_HOME' npm ci --no-audit --no-fund && HOME='$APP_HOME' COMMIT='$commit' npm run build"
 # the service user may read the code but never write it
 chown -R "root:$APP_USER" "$APP_DIR"
 chmod -R g-w,o-rwx "$APP_DIR"

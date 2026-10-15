@@ -16,6 +16,11 @@ Requires Xcode 16 or newer (the project uses the synchronized-folder format).
 3. Run the `MicroERacer` scheme on an iPhone, an iPad or the simulator (portrait or landscape), or `MicroERacerWatch` on an
    Apple Watch. The watch app ships inside the iPhone app and also runs on its own (`WKRunsIndependentlyOfCompanionApp`).
 
+Both targets end with a Build Info phase, which writes the commit they are built from (`git rev-parse HEAD`) and the time
+into the app as `BuildInfo.json`, for the About page (`BuildInfo` in `Shared/About.swift`). It reads the repository's
+`.git`, so the two targets build with `ENABLE_USER_SCRIPT_SANDBOXING = NO`; built from a copy without one, the About
+page shows no commit.
+
 A Swift file added to a folder joins the targets that folder belongs to (below). The only dependency is the Colyseus SDK,
 for the iPhone app (Swift Package Manager, pinned in `Package.resolved`).
 
@@ -80,6 +85,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `MicroERacer/UI/StartView.swift`, `TrackPick.swift`, `Backdrop.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts`, `trackmap.ts`, and `#backdrop` behind it in `style.css` |
 | `MicroERacer/Practice.swift`, `UI/PracticeView.swift` | `client/src/practice.ts`, and the Practice Ground's settings (`#practice`) in `client/index.html` and `main.ts` |
 | `MicroERacer/AppModel.swift` | `client/src/main.ts` |
+| `Shared/About.swift`, `MicroERacer/UI/AboutView.swift`, the watch's `WatchAboutView` | `client/src/about.ts`, and the About dialog (`#about`) in `client/index.html` |
 
 The threads: the game runs on SceneKit's render thread (`renderer(_:updateAtTime:)`), which also pumps the Colyseus SDK
 (`Colyseus.autoPump = false`), so every room callback arrives there between frames. The HUD goes to SwiftUI on the main

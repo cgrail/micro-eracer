@@ -5,6 +5,7 @@ import { type BodyKind, BODY_KINDS } from '../../shared/src/car.ts';
 import type { RunningRace } from '../../shared/src/snapshot.ts';
 import { TRACKS, type TrackDef } from '../../shared/src/track.ts';
 import { APP_STORE, OUTDATED, PROTOCOL, type VersionInfo } from '../../shared/src/version.ts';
+import { setUpAbout } from './about.ts';
 import { Sound } from './audio.ts';
 import { startGame } from './game.ts';
 import { createGarage } from './garage.ts';
@@ -181,6 +182,8 @@ $('practice-done').addEventListener('click', () => {
   course.run(true);
   askRace();
 });
+// the i on the start form: who made the game, how and why, and which build this is
+setUpAbout($('info'), $<HTMLDialogElement>('about'));
 // The game is an app for iPhone and iPad too, so there the first thing each visit offers it, over the start form, or play on
 // in the browser (and Safari's banner at the top offers it too: `apple-itunes-app` in index.html). The App Store only has it for Apple's devices, so this asks for those, not for touch (`isTouch`); an iPad
 // says it is a Mac, but one with a touch screen
