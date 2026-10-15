@@ -135,8 +135,8 @@ dialog .go:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--
 /* who made the game, how and why, and this build with a link to its commit; on a phone lying down it may need to scroll */
 #about, #about * { touch-action: pan-y; }
 #about p { font-size: 15px; }
-#about #build { font-size: 13px; opacity: 0.8; }
-#about #build a { color: inherit; font-family: ui-monospace, Menlo, monospace; }
+#about p a { color: inherit; font-weight: 600; text-decoration-thickness: 2px; }
+#about #build { font-size: 13px; font-weight: 400; opacity: 0.8; }
 
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 2; color: var(--hud-ink); font-family: var(--comic); letter-spacing: 1px; }
 #hud #pos, #hud #lap, #hud #msg, .popup { -webkit-text-stroke: 2px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #111; }

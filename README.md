@@ -38,7 +38,7 @@ Controls: on desktop, arrows or WASD drive, and Space, E or Shift uses your Item
 
 Shooting is a goodie, not built in: the Zap (five Shots) comes from Item Boxes like the Missile, Mine and Shield, and Item Boxes are only for Racers from fourth place back: one appears once third place has passed its spot and goes once the last Racer has, so the top three never see one.
 
-The i beside the title on the start screen (on the Apple Watch, in its top right corner) opens About the game: who made it, how and why, a link to the code on GitHub, and which build this is, with when it was built and a link to the commit it was built from (the apps add their version). The browsers get the commit and the date from `client/vite.config.ts` at build time (`COMMIT`, passed by `update.sh` and `install.sh`, as the deployed copy has no `.git`), the apps from their Build Info phase, which writes `BuildInfo.json` into each app.
+The i beside the title on the start screen (on the Apple Watch, in its top right corner) opens About the game: who made it (with a link to LinkedIn), how and why, the code's address on GitHub, and which build this is: when it was built and its commit (the apps add their version), the whole line a link to that commit. The browsers get the commit and the date from `client/vite.config.ts` at build time (`COMMIT`, passed by `update.sh` and `install.sh`, as the deployed copy has no `.git`), the apps from their Build Info phase, which writes `BuildInfo.json` into each app.
 
 `DRAIN_SCALE=10 npm run dev` makes batteries run dry ten times faster, so you can try out being Stranded and the drone's Recharge.
 

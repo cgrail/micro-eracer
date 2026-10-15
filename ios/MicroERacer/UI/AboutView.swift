@@ -14,7 +14,7 @@ struct AboutView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Comic(text: "About the game", size: 30, fill: Color(hex: 0xffd60a))
                 ForEach(ABOUT, id: \.self) { Text($0).font(.system(size: 16)).fixedSize(horizontal: false, vertical: true) }
-                Text(BuildInfo.current.line).font(.system(size: 13)).opacity(0.8)
+                buildLine
                 HStack(spacing: 10) {
                     Spacer()
                     Link(destination: REPO) { label("GitHub", go: false) }
@@ -29,6 +29,12 @@ struct AboutView: View {
         }
         .background(paper.ignoresSafeArea())
         .presentationDetents([.medium, .large])
+    }
+
+    /// This build, all of it a link to its commit on GitHub (underlined, as in the browsers) where the build knows it.
+    @ViewBuilder private var buildLine: some View {
+        let build = BuildInfo.current, line = Text(build.line).font(.system(size: 13))
+        if let url = build.commitURL { Link(destination: url) { line.underline() } } else { line.opacity(0.8) }
     }
 
     /// A button in the browsers' dialog style: comic lettering in an inked frame; the one that closes it (`go`) yellow, with

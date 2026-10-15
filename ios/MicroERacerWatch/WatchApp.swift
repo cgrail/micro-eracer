@@ -132,9 +132,10 @@ private struct WatchAboutView: View {
         List {
             ForEach(ABOUT, id: \.self) { Text($0).listRowBackground(Color.clear) }
             Link("GitHub", destination: REPO)
-            if let commit = build.commit, let url = build.commitURL { Link("Commit " + String(commit.prefix(7)), destination: url) }
-            Text(build.builtAt.map { "Version \(build.version)\nBuilt \($0)" } ?? "Version \(build.version)")
-                .font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
+            // this build, all of it a link to its commit where the build knows it
+            if let url = build.commitURL { Link(destination: url) { Text(build.line).font(.footnote) } } else {
+                Text(build.line).font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
+            }
         }
         .navigationTitle("About")
     }

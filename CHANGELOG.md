@@ -71,10 +71,11 @@ happens. Everything before 1.0 is in the git history.
 - Nickname is now Name, and a new Player starts with a name to race under, made up like Joe Ram or Max Volt.
 - Controls is filled in light blue with a shadow like Play's, only quieter, and Play's shadow no longer runs into the
   form's edge on the right.
-- An i beside the title (on the watch, in the top right corner) opens About the game: who made it, how and why (built
-  with Claude Opus to play around with AI, with no in-app purchases, tracking or ads), a link to the code on GitHub, and
-  which build this is: when it was built and the commit it was built from, linked on GitHub, and in the apps their
-  version.
+- An i beside the title (on the watch, in the top right corner) opens About the game: who made it (Christian Grail, who
+  works at SAP on Joule, with a link to LinkedIn), how and why (built with Claude Opus to play around with AI, with no
+  in-app purchases, tracking or ads), the code's address on GitHub (github.com/cgrail/micro-eracer) and a GitHub button,
+  and which build this is: when it was built and its commit (in the apps their version too), the whole line a link to
+  that commit on GitHub.
 - The wire: Races are joined in the `race2` room, which takes the picked Track as `track`, for a Race the join starts. The `race` room is left to apps
   from before the picker and only races the first four Tracks, which they know.
 

@@ -67,12 +67,15 @@
   <!-- behind the i on the start form: who made the game, how and why, and which build this is (ABOUT in ios/Shared/About.swift) -->
   <dialog id="about" aria-labelledby="about-title">
     <h2 id="about-title">About the game</h2>
-    <p>Christian Grail built Micro E-Racer with Claude Opus, Anthropic's AI, as a way to play around with AI. The two made
-      all of it in code: every E-Car, every Track, every song.</p>
+    <p>Made by <a href="https://www.linkedin.com/in/cgrail" target="_blank" rel="noopener">Christian Grail</a>, who works at SAP
+      in Germany on Joule, SAP's AI assistant for business.</p>
+    <p>Micro E-Racer was built with Claude Opus, Anthropic's AI, as a way to play around with AI. Every E-Car, every Track and
+      every song in it is made in code.</p>
     <p>The goal: a game with no in-app purchases, no tracking and no ads. Just a free game that is a lot of fun.</p>
-    <p>All of its code is on GitHub.</p>
-    <p id="build"></p>
-    <div class="buttons"><a id="repo" target="_blank" rel="noopener">GitHub</a><button type="button" id="about-done" class="go">OK</button></div>
+    <p>All of its code is on GitHub: <a class="repo" target="_blank" rel="noopener"></a></p>
+    <!-- this build: when it was built and its commit, a link to that commit on GitHub -->
+    <p><a id="build" target="_blank" rel="noopener"></a></p>
+    <div class="buttons"><a class="repo" target="_blank" rel="noopener">GitHub</a><button type="button" id="about-done" class="go">OK</button></div>
   </dialog>
 
   <!-- touch only: the Practice Ground, where the controls are set and tried out -->

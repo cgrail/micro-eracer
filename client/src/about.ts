@@ -13,13 +13,15 @@ export const builtAt = (when: Date) =>
 
 export const setUpAbout = (open: HTMLElement, about: HTMLDialogElement) => {
   const $ = (id: string) => about.querySelector<HTMLElement>(`#${id}`)!;
-  $('repo').setAttribute('href', REPO);
-  const build = $('build');
-  build.textContent = `Built ${builtAt(new Date(__BUILT__))}`;
-  if (__COMMIT__) {
-    const link = Object.assign(document.createElement('a'), { href: `${REPO}/commit/${__COMMIT__}`, target: '_blank', rel: 'noopener', textContent: __COMMIT__.slice(0, 7) });
-    build.append(' · Commit ', link);
+  // the code on GitHub: its address written out in the text (github.com/…), and the button
+  for (const link of about.querySelectorAll<HTMLAnchorElement>('a.repo')) {
+    link.href = REPO;
+    if (!link.textContent) link.textContent = REPO.replace(/^https:\/\//, '');
   }
+  // the whole line leads to the commit, where the build knows it
+  const build = $('build') as HTMLAnchorElement;
+  build.textContent = `Built ${builtAt(new Date(__BUILT__))}${__COMMIT__ ? ` · Commit ${__COMMIT__.slice(0, 7)}` : ''}`;
+  if (__COMMIT__) build.href = `${REPO}/commit/${__COMMIT__}`;
   open.addEventListener('click', () => about.showModal());
   $('about-done').addEventListener('click', () => about.close());
   // a tap beside it closes it too
