@@ -15,6 +15,7 @@ final class VersionTests: XCTestCase {
         XCTAssertEqual(constant("PROTOCOL"), PROTOCOL, "PROTOCOL changed in shared/src/version.ts: change it in ios/Core/Version.swift too")
         XCTAssertEqual(constant("OUTDATED"), OUTDATED)
         XCTAssertTrue(text.contains("export const APP_STORE = '\(APP_STORE.absoluteString)';"), "APP_STORE changed in shared/src/version.ts: change it in ios/Core/Version.swift too")
+        XCTAssertTrue(text.contains("export const REPO = '\(REPO.absoluteString)';"), "REPO changed in shared/src/version.ts: change it in ios/Core/Version.swift too")
     }
 
     /// An Offline Race reports its Track as the room does, so the game builds the one being raced.

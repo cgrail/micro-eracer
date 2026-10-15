@@ -112,7 +112,31 @@ struct WatchStartView: View {
             .navigationDestination(isPresented: $racing) {
                 if let game = model.game { WatchRaceView(model: model, game: game) }
             }
+            // the i for the About page, in the corner where watch apps keep their buttons
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink { WatchAboutView() } label: { Text("i").font(.system(size: 20, weight: .bold, design: .serif)) }
+                        .accessibilityLabel("About the game")
+                }
+            }
         }
+    }
+}
+
+/// The About page behind the i, as on the phone: who made the game, how and why, the code on GitHub, and which build this is
+/// (`ABOUT` and `BuildInfo` in Shared/About.swift).
+private struct WatchAboutView: View {
+    private let build = BuildInfo.current
+
+    var body: some View {
+        List {
+            ForEach(ABOUT, id: \.self) { Text($0).listRowBackground(Color.clear) }
+            Link("GitHub", destination: REPO)
+            if let commit = build.commit, let url = build.commitURL { Link("Commit " + String(commit.prefix(7)), destination: url) }
+            Text(build.builtAt.map { "Version \(build.version)\nBuilt \($0)" } ?? "Version \(build.version)")
+                .font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
+        }
+        .navigationTitle("About")
     }
 }
 

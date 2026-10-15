@@ -18,6 +18,8 @@ struct StartView: View {
     @Environment(\.colorScheme) private var scheme
     @StateObject private var garage = Garage()
     @StateObject private var course = Course()
+    /// The About page, behind the i by the title.
+    @State private var about = false
 
     private var paper: Color { scheme == .dark ? Color(hex: 0x2f2620) : Color(hex: 0xfffdf6) }
     private var ink: Color { scheme == .dark ? Color(hex: 0xfff6e6) : Color(hex: 0x1b1410) }
@@ -51,6 +53,7 @@ struct StartView: View {
         #endif
         .onChange(of: model.body) { garage.show($0, whirl: true) }
         .onChange(of: picked) { course.show($0) }
+        .sheet(isPresented: $about) { AboutView() }
     }
 
     private func card(wide: Bool, pic: CGFloat) -> some View {
@@ -74,7 +77,11 @@ struct StartView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Comic(text: "Micro E-Racer", size: 40, fill: Color(hex: 0xffd60a))
+            HStack(spacing: 8) {
+                Comic(text: "Micro E-Racer", size: 40, fill: Color(hex: 0xffd60a))
+                Spacer(minLength: 0)
+                infoButton
+            }
             HStack(spacing: 10) {
                 label("Name")
                 TextField("", text: $model.name)
@@ -168,6 +175,18 @@ struct StartView: View {
     /// (`racers` in main.ts).
     private func racers(_ names: [String]) -> String {
         names.isEmpty ? "A Race is on" : "\(names.count) \(names.count == 1 ? "Player" : "Players") racing: \(names.joined(separator: ", "))"
+    }
+
+    /// The i for the About page: who made the game, how and why, and which build this is.
+    private var infoButton: some View {
+        Button { about = true } label: {
+            Text("i").font(.system(size: 26, weight: .bold, design: .serif)).foregroundColor(Color(hex: 0x1b1410)).frame(width: 44, height: 44)
+                .background(SwiftUI.Circle().fill(Color(hex: 0x8ecbff)))
+                .overlay(SwiftUI.Circle().strokeBorder(ink, lineWidth: 3))
+                .background(SwiftUI.Circle().fill(ink).offset(x: 3, y: 3))
+                .padding(.trailing, 3)
+        }
+        .accessibilityLabel("About the game")
     }
 
     /// Opens the Practice Ground, where the touch controls are set and tried out, and says how they are set. Shaped like

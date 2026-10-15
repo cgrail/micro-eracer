@@ -20,6 +20,10 @@ export const OUTDATED = 426;
  * race online gets the new one. The apps keep their own copy in ios/Core/Version.swift, which `swift test` compares. */
 export const APP_STORE = 'https://apps.apple.com/app/micro-e-racer/id6821823103';
 
+/** Where the game's code is, which the About dialog links to, with each build's own commit. The apps keep their own copy
+ * in ios/Core/Version.swift, which `swift test` compares. */
+export const REPO = 'https://github.com/cgrail/micro-eracer';
+
 /** The version a client sent: a whole number from 1, or 1 for a client that sent none (an app from before this check). */
 export const protocolOf = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 ? v : typeof v === 'string' && /^[1-9]\d{0,5}$/.test(v) ? Number(v) : 1);
 

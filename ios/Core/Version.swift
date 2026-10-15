@@ -10,5 +10,9 @@ let PROTOCOL = 2
 /// which the update dialog opens when the server names none.
 let APP_STORE = URL(string: "https://apps.apple.com/app/micro-e-racer/id6821823103")!
 
+/// The same as `REPO` in version.ts (`testProtocolMatchesTheTypeScript` compares them): where the game's code is, which the
+/// About page links to, with each build's own commit.
+let REPO = URL(string: "https://github.com/cgrail/micro-eracer")!
+
 /// The status (and the error's code) of a join the server refused because the app is too old: Upgrade Required.
 let OUTDATED = 426
