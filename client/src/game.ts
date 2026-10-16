@@ -244,6 +244,8 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     syncSpots(s.batteries, batteries, makeBattery, 1.1, (m) => {
       for (let k = 0; k < 18; k++) sparks.emit(m.position.x, m.position.y, m.position.z, (Math.random() - 0.5) * 8, Math.random() * 7, (Math.random() - 0.5) * 8, 0.5, 0.6);
     });
+    // nor does the Leader see a Battery: none are for them
+    for (const b of batteries.values()) b.visible = me?.position !== 1;
     syncSpots(s.mines, mines, makeMine, 0);
     syncBolts(s.bolts);
     // the top three never see an Item Box: goodies are for those behind

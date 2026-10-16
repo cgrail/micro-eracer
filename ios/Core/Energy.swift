@@ -4,8 +4,9 @@ import Foundation
 
 let BATTERY_CHARGE = 30.0
 private let BATTERY_EVERY = 1.4, MAX_BATTERIES = 7, BATTERY_LIFE = 25.0, PICKUP_RADIUS = 2.4
-/// For each Position (1st first), how likely the next Battery is to appear just ahead of that Racer.
-private let BATTERY_ODDS = [0.03, 0.06, 0.1, 0.12, 0.17, 0.17, 0.17, 0.18]
+/// For each Position from 2nd, how likely the next Battery is to appear just ahead of that Racer. The Leader gets none:
+/// out in front, the Charging Station is the only way to keep going.
+private let BATTERY_ODDS = [0.06, 0.1, 0.12, 0.17, 0.17, 0.17, 0.18]
 /// The shortest Recharge, and the longest.
 let RECHARGE_TIME = 1.6
 private let RECHARGE_MAX = 9.0
@@ -16,12 +17,13 @@ private let PACK: [(free: Double, full: Double, slowest: Double)] = [(2, 20, 0.7
 /// Second and third get a tow, up to TOW of top speed, once the E-Car ahead is more than TOW_FROM metres away.
 private let TOW = 1.06, TOW_FROM = 6.0, TOW_FULL = 25.0
 
-/// Which Racer, by Position from 0, a Battery appears ahead of: by BATTERY_ODDS, each share spread over as many Racers in a
-/// field bigger than theirs (energy.ts `batteryRank`).
+/// Which Racer, by Position from 0, a Battery appears ahead of: never the Leader, and behind them by BATTERY_ODDS, each share
+/// spread over as many Racers in a field bigger than theirs (energy.ts `batteryRank`).
 func batteryRank(_ field: Int) -> Int {
     var roll = Double.random(in: 0..<1), k = 0
     while k < BATTERY_ODDS.count - 1 { roll -= BATTERY_ODDS[k]; if roll > 0 { k += 1 } else { break } }
-    return field > BATTERY_ODDS.count ? Int(floor((Double(k) + Double.random(in: 0..<1)) * Double(field) / Double(BATTERY_ODDS.count))) : k
+    let behind = field - 1
+    return 1 + (behind > BATTERY_ODDS.count ? Int(floor((Double(k) + Double.random(in: 0..<1)) * Double(behind) / Double(BATTERY_ODDS.count))) : k)
 }
 
 func updateBatteries(_ sim: RaceSim, _ ranked: [Seat]) {
@@ -31,7 +33,7 @@ func updateBatteries(_ sim: RaceSim, _ ranked: [Seat]) {
         let k = batteryRank(ranked.count), s = ranked[k]
         if !s.finished {
             // between that Racer and the one in front: further ahead, someone in front would get to it first
-            let gap = k > 0 ? Double(ranked[k - 1].progress.u - s.progress.u) : .infinity, reach = max(6, min(30, gap - 4))
+            let gap = Double(ranked[k - 1].progress.u - s.progress.u), reach = max(6, min(30, gap - 4))
             let idx = (s.progress.idx + 6 + Int(floor(Double.random(in: 0..<1) * (reach - 5)))) % sim.track.n
             let pose = poseAt(sim.track, idx, Double.random(in: -1..<1) * (HALF_WIDTH - 1.2))
             // never inside an Item Box; the next spawn tries elsewhere
@@ -42,7 +44,8 @@ func updateBatteries(_ sim: RaceSim, _ ranked: [Seat]) {
         }
         sim.nextBatteryAt = sim.time + BATTERY_EVERY
     }
-    for s in sim.seats where !sim.isRecharging(s) {
+    // the Leader drives through one, as from Item Boxes the front gets nothing
+    for s in sim.seats where !sim.isRecharging(s) && s.position != 1 {
         let t = s.car.rb.translation
         guard let hit = sim.batteries.firstIndex(where: { sq($0.x - t.x) + sq($0.z - t.z) < sq(PICKUP_RADIUS) && sameLevel($0.y, t.y) }) else { continue }
         s.energy = min(MAX_ENERGY, s.energy + BATTERY_CHARGE)

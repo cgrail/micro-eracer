@@ -20,7 +20,7 @@ export function botInput(sim: RaceSim, s: Seat): Input {
   let lane = ((s.index % 3) - 1) * 1.6;
   // seen early enough to get across from the far lane before the bay opens
   const charging = Math.max(bay, bayAhead) > 1 && (s.energy < 35 || (inStation(track, s.progress.idx, t) && s.energy < 90));
-  const battery = sim.batteries.filter((b) => ahead(b.idx) > 4 && ahead(b.idx) < 30).sort((a, b) => ahead(a.idx) - ahead(b.idx))[0];
+  const battery = s.position === 1 ? undefined : sim.batteries.filter((b) => ahead(b.idx) > 4 && ahead(b.idx) < 30).sort((a, b) => ahead(a.idx) - ahead(b.idx))[0];
   const prey = !sim.botsAttack() ? undefined : sim.seats
     .filter((o) => o !== s && o.progress.u - s.progress.u > 3 && o.progress.u - s.progress.u < 14)
     .sort((a, b) => Number(!!b.owner) - Number(!!a.owner))[0];

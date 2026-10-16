@@ -125,6 +125,7 @@ test('Batteries are plentiful at the back and scarce at the front', () => {
   // counted in the Races on every Track above
   const front = byPosition[0] + byPosition[1], back = byPosition.slice(4).reduce((a, b) => a + b);
   assert.ok(back > 2 * front, `Batteries by Position: ${byPosition}`);
+  assert.equal(byPosition[0], 0, 'the Leader never picks up a Battery');
 });
 
 test('a Race goes on to another Track from its pool, or after a picked one to the next in the list', () => {
@@ -273,8 +274,10 @@ test('Batteries reach the back of a field of MAX_SEATS as of SEATS', () => {
   const big = Array<number>(MAX_SEATS).fill(0), field = Array<number>(SEATS).fill(0);
   for (let i = 0; i < 20000; i++) { big[batteryRank(MAX_SEATS)]++; field[batteryRank(SEATS)]++; }
   const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
-  assert.ok(big.every((n) => n > 0), `by Position: ${big}`);
-  assert.ok(sum(big.slice(MAX_SEATS / 2)) > 2 * sum(big.slice(0, MAX_SEATS / 2)), `by Position: ${big}`);
+  assert.ok(big[0] === 0 && field[0] === 0, 'none for the Leader');
+  assert.ok(big.slice(1).every((n) => n > 0), `by Position: ${big}`);
+  // about twice as many, the Leader's share having gone to those behind them
+  assert.ok(sum(big.slice(MAX_SEATS / 2)) > 1.8 * sum(big.slice(0, MAX_SEATS / 2)), `by Position: ${big}`);
   assert.equal(field.length, SEATS, 'a field of SEATS only picks from it');
 });
 

@@ -36,6 +36,8 @@ extension Game {
         // a smaller field on a new grid: the Seats past it are gone
         for i in min(s.cars.count, MAX_SEATS)..<MAX_SEATS { if let v = views[i] { v.model.node.removeFromParentNode(); v.drone.removeFromParentNode(); world?.remove(v.car.rb); views[i] = nil } }
         syncSpots(s.batteries)
+        // nor does the Leader see a Battery: none are for them
+        for b in batteries.values { b.node.isHidden = me?.position == 1 }
         syncMines(s.mines)
         syncBolts(s.bolts)
         // the top three never see an Item Box: goodies are for those behind

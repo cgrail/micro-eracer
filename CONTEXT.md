@@ -91,7 +91,7 @@ The reduced top speed of an E-Car whose Energy is low.
 _Avoid_: Low battery, slowdown
 
 **Battery**:
-A pickup that instantly adds Energy; Batteries keep appearing just ahead of Racers, plenty at the back of the field and hardly any at the front.
+A pickup that instantly adds Energy; Batteries keep appearing just ahead of Racers, plenty at the back of the field, hardly any near the front and none for the Leader.
 _Avoid_: Power-up, coin, item
 
 **Charging Station**:

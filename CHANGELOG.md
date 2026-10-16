@@ -49,6 +49,11 @@ happens. Everything before 1.0 is in the git history.
 - The new places are written as data (`client/src/themes/`), which the browsers build and the apps read from
   `ios/Shared/Resources/Themes.json` (`npx tsx ios/themes.ts`), so both draw the same props.
 
+### Racing
+
+- The Leader gets no Batteries: none appear ahead of them, and they drive through any on the road without seeing it, so
+  out in front the Charging Station is the only way to keep going. The Leader now runs dry about once a Race.
+
 ### Start screen
 
 - Pick the Track as you pick the Body: ◀ and ▶ step through every Track (held, they keep going, faster and faster), the

@@ -16,7 +16,7 @@ func botInput(_ sim: RaceSim, _ s: Seat) -> Input {
     var lane = Double(s.index % 3 - 1) * 1.6
     // seen early enough to get across from the far lane before the bay opens
     let charging = max(bay, bayAhead) > 1 && (s.energy < 35 || (inStation(track, s.progress.idx, t.x, t.z) && s.energy < 90))
-    let battery = sim.batteries.filter { ahead($0.idx) > 4 && ahead($0.idx) < 30 }.min { ahead($0.idx) < ahead($1.idx) }
+    let battery = s.position == 1 ? nil : sim.batteries.filter { ahead($0.idx) > 4 && ahead($0.idx) < 30 }.min { ahead($0.idx) < ahead($1.idx) }
     let near = !sim.botsAttack() ? [] : sim.seats.filter { $0 !== s && $0.progress.u - s.progress.u > 3 && $0.progress.u - s.progress.u < 14 }
     // Players first
     let prey = near.first { !$0.owner.isEmpty } ?? near.first

@@ -83,9 +83,11 @@ final class RaceTests: XCTestCase {
     func testBatteriesReachTheBackOfAFullField() {
         var big = [Int](repeating: 0, count: MAX_SEATS)
         for _ in 0..<20000 { big[batteryRank(MAX_SEATS)] += 1 }
-        XCTAssertTrue(big.allSatisfy { $0 > 0 }, "by Position: \(big)")
-        XCTAssertGreaterThan(big[(MAX_SEATS / 2)...].reduce(0, +), 2 * big[..<(MAX_SEATS / 2)].reduce(0, +))
-        for _ in 0..<1000 { XCTAssertLessThan(batteryRank(SEATS), SEATS) }
+        XCTAssertEqual(big[0], 0, "none for the Leader")
+        XCTAssertTrue(big.dropFirst().allSatisfy { $0 > 0 }, "by Position: \(big)")
+        // about twice as many, the Leader's share having gone to those behind them
+        XCTAssertGreaterThan(Double(big[(MAX_SEATS / 2)...].reduce(0, +)), 1.8 * Double(big[..<(MAX_SEATS / 2)].reduce(0, +)))
+        for _ in 0..<1000 { let k = batteryRank(SEATS); XCTAssertTrue(k > 0 && k < SEATS) }
     }
 
     func testAnEmptyECarIsStrandedThenRecharged() {

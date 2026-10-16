@@ -4,8 +4,9 @@ import { HALF_WIDTH, poseAt, sameLevel } from './track.ts';
 
 export const BATTERY_CHARGE = 30;
 const BATTERY_EVERY = 1.4, MAX_BATTERIES = 7, BATTERY_LIFE = 25, PICKUP_RADIUS = 2.4;
-/** For each Position (1st first), how likely the next Battery is to appear just ahead of that Racer. */
-const BATTERY_ODDS = [0.03, 0.06, 0.1, 0.12, 0.17, 0.17, 0.17, 0.18];
+/** For each Position from 2nd, how likely the next Battery is to appear just ahead of that Racer. The Leader gets none: */
+// out in front, the Charging Station is the only way to keep going
+const BATTERY_ODDS = [0.06, 0.1, 0.12, 0.17, 0.17, 0.17, 0.18];
 /** The shortest Recharge, and the longest. */
 export const RECHARGE_TIME = 1.6;
 const RECHARGE_MAX = 9;
@@ -21,12 +22,13 @@ const TOW = 1.06, TOW_FROM = 6, TOW_FULL = 25;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Which Racer, by Position from 0, a Battery appears ahead of: by BATTERY_ODDS, each share spread over as many Racers in a
- * field bigger than theirs. */
+/** Which Racer, by Position from 0, a Battery appears ahead of: never the Leader, and behind them by BATTERY_ODDS, each share
+ * spread over as many Racers in a field bigger than theirs. */
 export function batteryRank(field: number) {
   let roll = Math.random(), k = 0;
   while (k < BATTERY_ODDS.length - 1 && (roll -= BATTERY_ODDS[k]) > 0) k++;
-  return field > BATTERY_ODDS.length ? Math.floor(((k + Math.random()) * field) / BATTERY_ODDS.length) : k;
+  const behind = field - 1;
+  return 1 + (behind > BATTERY_ODDS.length ? Math.floor(((k + Math.random()) * behind) / BATTERY_ODDS.length) : k);
 }
 
 export function updateBatteries(sim: RaceSim, ranked: Seat[]) {
@@ -37,7 +39,7 @@ export function updateBatteries(sim: RaceSim, ranked: Seat[]) {
     const k = batteryRank(ranked.length), s = ranked[k];
     if (!s.finished) {
       // between that Racer and the one in front: further ahead, someone in front would get to it first
-      const gap = k ? ranked[k - 1].progress.u - s.progress.u : Infinity, reach = Math.max(6, Math.min(30, gap - 4));
+      const gap = ranked[k - 1].progress.u - s.progress.u, reach = Math.max(6, Math.min(30, gap - 4));
       const idx = (s.progress.idx + 6 + Math.floor(Math.random() * (reach - 5))) % sim.track.n;
       const pose = poseAt(sim.track, idx, (Math.random() * 2 - 1) * (HALF_WIDTH - 1.2));
       // never inside an Item Box; the next spawn tries elsewhere
@@ -46,7 +48,8 @@ export function updateBatteries(sim: RaceSim, ranked: Seat[]) {
     sim.nextBatteryAt = sim.time + BATTERY_EVERY;
   }
   for (const s of sim.seats) {
-    if (sim.isRecharging(s)) continue;
+    // the Leader drives through one, as from Item Boxes the front gets nothing
+    if (sim.isRecharging(s) || s.position === 1) continue;
     const t = s.car.rb.translation();
     const hit = sim.batteries.find((b) => (b.x - t.x) ** 2 + (b.z - t.z) ** 2 < PICKUP_RADIUS ** 2 && sameLevel(b.y, t.y));
     if (!hit) continue;
