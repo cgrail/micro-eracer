@@ -1,7 +1,5 @@
 # Todo
 
-[x] first position should not get any more batteries to make it a little bit more exciting
-[x] busses should be really hard to push away. the roadster should not be able to push a truck. 
-[x] jumps should fly a little bit more. it's like the car isn't really jumping
-[x] the next level should be selected more randomly and not sequential. the last 10 maps should not be played again in a row.
-[x] the bots attack themselves too much. they should attack the player. sometimes they come close and then they screw it up my bumping into each other
+[ ] name should be the initially selected element on start screen
+[ ] if you don't finish the race, you should be listed as not finished
+[ ] there should be a total highscore for the last 20 minutes which is displayed next to or below the current score with chris 3 races won, sparky 2 races won etc.
