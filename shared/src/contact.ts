@@ -1,4 +1,4 @@
-import { BODIES, type Car, MAX_ENERGY, teleport } from './car.ts';
+import { BODIES, type BodyKind, type Car, MAX_ENERGY, teleport } from './car.ts';
 import type { RaceSim } from './race.ts';
 import { freeSpot, right } from './track.ts';
 
@@ -10,27 +10,36 @@ const RAM_ENERGY_PER_MS = 3, RAM_MAX = 25, RAM_COOLDOWN = 1;
 const RAM_BOUNCE = 0.3, RAM_SWING = 0.12, RAM_SKID = 0.6;
 
 /**
+ * How much of a Ram's shove, swing and skid the victim takes: all of it from an E-Car as heavy or heavier, and from a lighter
+ * one only the square of their weights' ratio, so a Roadster barely moves a Semi (9%) and a Microbus (21%).
+ */
+export const give = (rammer: BodyKind, victim: BodyKind) => Math.min(1, BODIES[rammer].mass / BODIES[victim].mass) ** 2;
+
+/**
  * What a Ram does, as a collision of the two weights: the speed along the contact the victim gets (`kick`, away from the
  * rammer) and the rammer keeps (`keep`), and the victim's swing. `n` points from rammer to victim, `closing` along it.
  */
 export function ramResponse(rammer: Car, victim: Car, n: { x: number; z: number }, closing: number) {
-  const mr = BODIES[rammer.kind].mass, mv = BODIES[victim.kind].mass;
+  const mr = BODIES[rammer.kind].mass, mv = BODIES[victim.kind].mass, g = give(rammer.kind, victim.kind);
   const yaw = victim.rb.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
   const rp = rammer.rb.translation(), vp = victim.rb.translation();
   // hit at the nose or tail rather than the middle, the victim swings round
   const along = (rp.x - vp.x) * fx + (rp.z - vp.z) * fz, side = n.x * r.x + n.z * r.z;
   return {
-    kick: (closing * (1 + RAM_BOUNCE) * mr) / (mr + mv),
+    kick: (g * closing * (1 + RAM_BOUNCE) * mr) / (mr + mv),
     keep: (closing * (mr - RAM_BOUNCE * mv)) / (mr + mv),
-    spin: -Math.sign(along) * side * closing * RAM_SWING,
+    spin: -g * Math.sign(along) * side * closing * RAM_SWING,
   };
 }
 
-/** The victim's side of a Ram: shoved (`ix`, `iz`), skidding, maybe swinging round. Each side applies it to its own E-Cars. */
-export function shove(car: Car, ix: number, iz: number, spin: number) {
+/**
+ * The victim's side of a Ram: shoved (`ix`, `iz`), skidding for as much of RAM_SKID as it `give`s, maybe swinging round. Each
+ * side applies it to its own E-Cars.
+ */
+export function shove(car: Car, ix: number, iz: number, spin: number, give: number) {
   const v = car.rb.linvel();
   car.rb.setLinvel({ x: v.x + ix, y: v.y, z: v.z + iz });
-  car.slide = RAM_SKID;
+  car.slide = Math.max(car.slide, RAM_SKID * give);
   if (Math.abs(spin) > Math.abs(car.spin)) car.spin = spin;
 }
 /** Resting on another E-Car this long (not just flying over it), an E-Car is put down beside it. */
@@ -60,7 +69,7 @@ export function judgeRams(sim: RaceSim) {
     const { kick, spin } = ramResponse(rammer.car, victim.car, dir, sa + sb), ix = dir.x * kick, iz = dir.z * kick;
     // between two Bots the physics has shared the momentum already; a Player's E-Car is moved by its poses here and
     // barely pushes, so a Bot it rams gets the shove from us
-    if (!victim.owner) shove(victim.car, rammer.owner ? ix : 0, rammer.owner ? iz : 0, spin);
+    if (!victim.owner) shove(victim.car, rammer.owner ? ix : 0, rammer.owner ? iz : 0, spin, give(rammer.car.kind, victim.car.kind));
     sim.stats.rams++;
     // a Player's browser drives their E-Car, so it applies the shove when it gets this, as for a Hit
     sim.emit({ t: 'ram', a: rammer.index, b: victim.index, n: Math.round(amount), ix, iz, spin });

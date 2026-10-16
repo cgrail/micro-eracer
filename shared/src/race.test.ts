@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, teleport } from './car.ts';
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
-import { ramResponse, shove } from './contact.ts';
+import { give, ramResponse, shove } from './contact.ts';
 import { batteryRank } from './energy.ts';
 import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, STRANDED_TIME } from './race.ts';
 import {
@@ -76,16 +76,22 @@ test('an E-Car that ends up on another is put down beside it', () => {
   assert.ok(Math.hypot(pa.x - pb.x, pa.z - pb.z) > 2.5 && Math.abs(pa.y - pb.y) < 0.5, `still stacked: ${pb.y - pa.y} m apart in height`);
 });
 
-test('a side Ram shoves the victim away, harder from a heavier rammer, and makes it skid', () => {
+test('a side Ram shoves the victim away, harder from a heavier rammer, and makes it skid; a lighter one barely moves it', () => {
   const track = buildTrack(TRACKS[0]), world = createTrackWorld(track), at = poseAt(track, 40);
-  const car = (kind: 'roadster' | 'semi', lateral: number) => createCar(world, kind, poseAt(track, 40, lateral), true);
+  const car = (kind: 'roadster' | 'microbus' | 'semi', lateral: number) => createCar(world, kind, poseAt(track, 40, lateral), true);
   const victim = car('roadster', 0), n = { x: -Math.cos(at.yaw), z: Math.sin(at.yaw) }; // from the rammer on its left, across it
   const even = ramResponse(car('roadster', 3), victim, n, 10), heavy = ramResponse(car('semi', 3), victim, n, 10);
   assert.ok(Math.abs(even.kick - 6.5) < 0.01 && Math.abs(even.keep - 3.5) < 0.01, 'equal weights share the speed, with a bounce');
   assert.ok(heavy.kick > 9 && heavy.keep > even.keep);
-  shove(victim, n.x * even.kick, n.z * even.kick, 0);
+  shove(victim, n.x * even.kick, n.z * even.kick, 0, give('roadster', 'roadster'));
   const v = victim.rb.linvel();
   assert.ok(Math.hypot(v.x, v.z) > 6 && victim.slide > 0);
+  // a Roadster flat out into a Semi or a Microbus hardly shoves it, nor sets it skidding
+  for (const kind of ['semi', 'microbus'] as const) {
+    const big = car(kind, 0), { kick } = ramResponse(car('roadster', 3), big, n, 22);
+    shove(big, n.x * kick, n.z * kick, 0, give('roadster', kind));
+    assert.ok(kick < 2 && big.slide < 0.15, `${kind}: shoved ${kick.toFixed(1)} m/s, skidding ${big.slide.toFixed(2)} s`);
+  }
 });
 
 test('Laps count only when driven in order', () => {

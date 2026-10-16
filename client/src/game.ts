@@ -14,7 +14,7 @@ import {
 import type { Sound } from './audio.ts';
 import { makeCar } from './cars.ts';
 import { type CarView, angleDiff, chase, dronePose, glide, ourRams, place } from './motion.ts';
-import { shove } from '../../shared/src/contact.ts';
+import { give, shove } from '../../shared/src/contact.ts';
 import { Particles } from './effects.ts';
 import { type Hud, ITEM_ICONS, createHud, itemLabel } from './hud.ts';
 import type { Controls } from './input.ts';
@@ -180,7 +180,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       const victim = views[e.b];
       if (e.b === mySeat && own) {
         // we drive our own E-Car, so we apply the shove the server worked out
-        shove(own.view.car, e.ix, e.iz, e.spin);
+        shove(own.view.car, e.ix, e.iz, e.spin, give(views[e.a]?.kind ?? own.view.kind, own.view.kind));
         shake = 0.35;
       } else if (victim && performance.now() - victim.kickedAt > 500) {
         // the shoved E-Car starts sliding at once, before the server's next update shows it (unless we shoved it already)

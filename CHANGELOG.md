@@ -53,6 +53,8 @@ happens. Everything before 1.0 is in the git history.
 
 - The Leader gets no Batteries: none appear ahead of them, and they drive through any on the road without seeing it, so
   out in front the Charging Station is the only way to keep going. The Leader now runs dry about once a Race.
+- A lighter E-Car barely moves a heavier one when it Rams it: a Roadster shoves a Semi about a tenth as hard as before
+  and a Microbus a fifth, and neither skids or swings round from it. Heavier into lighter is as hard as ever.
 
 ### Start screen
 

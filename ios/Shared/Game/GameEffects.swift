@@ -22,7 +22,8 @@ extension Game {
             for _ in 0..<12 { sparks.emit(Double(p.x), 0.8, Double(p.z), rnd(10), .random(in: 0..<6), rnd(10), 0.35, 0.4) }
             if b == mySeat, let own {
                 // we drive our own E-Car, so we apply the shove the server worked out
-                shove(own.view.car, ix, iz, spin)
+                let rammer = a >= 0 && a < views.count ? views[a]?.kind : nil
+                shove(own.view.car, ix, iz, spin, give(rammer ?? own.view.kind, own.view.kind))
                 shake = 0.35
             } else if b >= 0 && b < views.count, let victim = views[b], now - victim.kickedAt > 0.5 {
                 // the shoved E-Car starts sliding at once, before the server's next update shows it (unless we shoved it already)

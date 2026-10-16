@@ -9,22 +9,27 @@ private let RAM_BOUNCE = 0.3, RAM_SWING = 0.12, RAM_SKID = 0.6
 /// Resting on another E-Car this long (not just flying over it), an E-Car is put down beside it.
 private let STACKED_FOR = 0.5
 
+/// How much of a Ram's shove, swing and skid the victim takes: all of it from an E-Car as heavy or heavier, and from a lighter
+/// one only the square of their weights' ratio, so a Roadster barely moves a Semi (9%) and a Microbus (21%).
+func give(_ rammer: BodyKind, _ victim: BodyKind) -> Double { pow(min(1, rammer.spec.mass / victim.spec.mass), 2) }
+
 /// What a Ram does, as a collision of the two weights: the speed along the contact the victim gets (`kick`) and the rammer
 /// keeps (`keep`), and the victim's swing. `n` points from rammer to victim, `closing` along it.
 func ramResponse(_ rammer: Car, _ victim: Car, _ n: (x: Double, z: Double), _ closing: Double) -> (kick: Double, keep: Double, spin: Double) {
-    let mr = rammer.kind.spec.mass, mv = victim.kind.spec.mass
+    let mr = rammer.kind.spec.mass, mv = victim.kind.spec.mass, g = give(rammer.kind, victim.kind)
     let fx = sin(victim.rb.yaw), fz = cos(victim.rb.yaw), r = right(fx, fz)
     // hit at the nose or tail rather than the middle, the victim swings round
     let along = (rammer.rb.x - victim.rb.x) * fx + (rammer.rb.z - victim.rb.z) * fz, side = n.x * r.x + n.z * r.z
     let sign = along > 0 ? 1.0 : along < 0 ? -1 : 0
-    return (closing * (1 + RAM_BOUNCE) * mr / (mr + mv), closing * (mr - RAM_BOUNCE * mv) / (mr + mv), -sign * side * closing * RAM_SWING)
+    return (g * closing * (1 + RAM_BOUNCE) * mr / (mr + mv), closing * (mr - RAM_BOUNCE * mv) / (mr + mv), -g * sign * side * closing * RAM_SWING)
 }
 
-/// The victim's side of a Ram: shoved (`ix`, `iz`), skidding, maybe swinging round. Each side applies it to its own E-Cars.
-func shove(_ car: Car, _ ix: Double, _ iz: Double, _ spin: Double) {
+/// The victim's side of a Ram: shoved (`ix`, `iz`), skidding for as much of RAM_SKID as it `give`s, maybe swinging round. Each
+/// side applies it to its own E-Cars.
+func shove(_ car: Car, _ ix: Double, _ iz: Double, _ spin: Double, _ give: Double) {
     let v = car.rb.linvel
     car.rb.linvel = Vec3(x: v.x + ix, y: v.y, z: v.z + iz)
-    car.slide = RAM_SKID
+    car.slide = max(car.slide, RAM_SKID * give)
     if abs(spin) > abs(car.spin) { car.spin = spin }
 }
 
@@ -48,7 +53,7 @@ func judgeRams(_ sim: RaceSim) {
         let away = rammer === a ? 1.0 : -1, dir = (x: nx * away, z: nz * away)
         let response = ramResponse(rammer.car, victim.car, dir, sa + sb), ix = dir.x * response.kick, iz = dir.z * response.kick
         // between two Bots the physics has shared the momentum already; a Player's E-Car barely pushes, so a Bot it rams gets the shove from us
-        if victim.owner.isEmpty { shove(victim.car, rammer.owner.isEmpty ? 0 : ix, rammer.owner.isEmpty ? 0 : iz, response.spin) }
+        if victim.owner.isEmpty { shove(victim.car, rammer.owner.isEmpty ? 0 : ix, rammer.owner.isEmpty ? 0 : iz, response.spin, give(rammer.car.kind, victim.car.kind)) }
         sim.stats.rams += 1
         // a Player's own device drives their E-Car, so it applies the shove when it gets this, as for a Hit
         sim.emit(.ram(a: rammer.index, b: victim.index, n: Int(amount.rounded()), ix: ix, iz: iz, spin: response.spin))

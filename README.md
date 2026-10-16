@@ -30,7 +30,7 @@ Low on Energy and no Battery in sight? The Charging Station is a bay beside the 
 
 Bots have names that start with 🤖 and grey name tags; Players' tags are gold. When you join, you take over a Bot's E-Car where it is, and everyone sees who took over whom. Bots make up a field of eight; once every Bot has been taken over, the next Players join behind the last Racer with E-Cars of their own, up to 20 in one Race, and each new Race is everyone racing plus Bots to make eight.
 
-Ram someone from the side and they slide away, swinging round if you catch their nose or tail; a heavier Body shoves harder and gets shoved less.
+Ram someone from the side and they slide away, swinging round if you catch their nose or tail; a heavier Body shoves harder and gets shoved less, and a Roadster hardly moves a Microbus or a Semi at all.
 
 Leading is meant to be hard: the Leader is slowed as soon as they pull away and second and third get a tow, so the front three keep fighting; Batteries are plentiful at the back of the field, scarce at the front and gone for the Leader, who doesn't even see them, so the Leader runs dry the most, and every Bot behind a Player in first place shoots at them, about once a second between them. A Shield, a dodge and the Charging Station are how you hold on.
 
