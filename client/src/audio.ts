@@ -199,15 +199,19 @@ export class Sound {
     src.start(this.t + delay);
   }
 
-  /** Loops a song of the soundtrack; asking for the one already playing changes nothing. */
-  music(i: number) {
-    const song = SONGS_COMPILED[i % SONGS_COMPILED.length];
-    if (!this.ctx || song === this.song) return;
-    this.stopMusic();
-    this.song = song;
-    this.songStep = 0;
+  /** Plays the soundtrack shuffled: now a song other than the one playing, then each twice through and on to another at random. */
+  music() {
+    if (!this.ctx) return;
+    clearInterval(this.songTimer);
+    this.nextSong();
     this.songAt = this.t + 0.1;
     this.songTimer = setInterval(() => this.schedule(), 25);
+  }
+
+  private nextSong() {
+    const others = SONGS_COMPILED.filter((s) => s !== this.song);
+    this.song = others[Math.floor(Math.random() * others.length)];
+    this.songStep = 0;
   }
 
   stopMusic() {
@@ -216,13 +220,13 @@ export class Sound {
   }
 
   private schedule() {
-    const s = this.song!, step = 60 / s.bpm / 4;
     // timers stall in a background tab: skip the missed notes instead of playing them all at once
     if (this.songAt < this.t) this.songAt = this.t + 0.05;
     while (this.songAt < this.t + 0.15) {
-      if (!this.muted) this.playStep(s, this.songStep, this.songAt);
-      this.songAt += step;
-      this.songStep = (this.songStep + 1) % s.steps;
+      const s = this.song!;
+      if (!this.muted) this.playStep(s, this.songStep % s.steps, this.songAt);
+      this.songAt += 60 / s.bpm / 4;
+      if (++this.songStep === 2 * s.steps) this.nextSong();
     }
   }
 

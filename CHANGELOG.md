@@ -70,6 +70,8 @@ happens. Everything before 1.0 is in the git history.
 - The Charging Station is glue: an E-Car that drives into its bay is held to a crawl at once (harder than braking) and
   crawls through it at a quarter of its top speed instead of nearly half, so a stop there costs about 2.5 s instead of
   half a second, and fills the battery about full. Clients now speak protocol 5.
+- The music shuffles: every Race starts on a different song from the last, and each song plays twice through and then
+  another comes on at random, instead of one song looping all Race long.
 
 ### Start screen
 

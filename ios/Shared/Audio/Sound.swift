@@ -107,27 +107,29 @@ final class Sound {
         synth.play(Voice(gain: Ramp([(0, vol)]), length: Int(Double(pick.clip.count) / speed) + 1, clip: pick.clip, speed: speed), delay: delay)
     }
 
-    /// Loops a song of the soundtrack; asking for the one already playing changes nothing.
-    func music(_ i: Int) {
-        let next = SONGS_COMPILED[i % SONGS_COMPILED.count]
-        if song?.song.name == next.song.name { return }
-        song = next
-        songStep = 0
+    /// Plays the soundtrack shuffled: now a song other than the one playing, then each twice through and on to another at random.
+    func music() {
+        nextSong()
         songAt = t + 0.1
+    }
+
+    private func nextSong() {
+        song = SONGS_COMPILED.filter { $0.song.name != song?.song.name }.randomElement()
+        songStep = 0
     }
 
     func stopMusic() { song = nil }
 
     /// Called every frame: schedules the notes of the next 0.15 s.
     func schedule() {
-        guard let s = song else { return }
-        let step = 60 / s.song.bpm / 4
+        guard song != nil else { return }
         // the game stalled (in the background): skip the missed notes instead of playing them all at once
         if songAt < t { songAt = t + 0.05 }
-        while songAt < t + 0.15 {
-            if !muted { playStep(s, songStep, songAt) }
-            songAt += step
-            songStep = (songStep + 1) % s.steps
+        while songAt < t + 0.15, let s = song {
+            if !muted { playStep(s, songStep % s.steps, songAt) }
+            songAt += 60 / s.song.bpm / 4
+            songStep += 1
+            if songStep == 2 * s.steps { nextSong() }
         }
     }
 

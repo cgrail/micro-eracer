@@ -72,7 +72,7 @@ One `package.json`, no workspaces. There are three folders, and `client/` and `s
 - **Sound:** all WebAudio, started by the Play button (a user gesture, which mobile browsers need).
   - effects, and the airflow (filtered noise rising with speed; no motor hum) and skid of the Player's own E-Car
   - voices (`cry(mood, seat)`): CC0 recordings per mood (`CLIPS` in `audio.ts`, files `public/voices/<mood>-<name>.mp3`), played at a per-Seat rate so each Racer sounds different. Cries about other E-Cars are rationed, and ones about your own always play. A new clip must be CC0, trimmed, loudness-matched (about −18 dB mean, peaks under −1 dB) and listed in `CREDITS.md`
-  - the chiptune songs of Electro Car Racer (github.com/cgrail/e-racer), taking turns across the Tracks in `TRACKS` order
+  - the chiptune songs of Electro Car Racer (github.com/cgrail/e-racer), shuffled: another with every Race, each twice through and then another at random
   - one mute switch for everything
 
 ## Web and iOS stay in lockstep

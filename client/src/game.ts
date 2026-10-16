@@ -8,7 +8,7 @@ import { GOODIES_FROM } from '../../shared/src/combat.ts';
 import type { World } from '../../shared/src/physics.ts';
 import type { RaceEvent } from '../../shared/src/race.ts';
 import {
-  type Progress, type Track, type TrackDef, FALL_Y, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
+  type Progress, type Track, type TrackDef, FALL_Y, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
@@ -69,8 +69,8 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     own = undefined;
     if (look) { scene.remove(look.group); dispose(look.group); look.background.dispose(); }
     track = buildTrack(def);
-    // every Track has its own song (a Track only the server knows gets the first), and its name goes up while the grid counts down
-    sound.music(Math.max(0, TRACKS.findIndex((t) => t.id === def.id)));
+    // every Race brings another song, and its Track's name goes up while the grid counts down
+    sound.music();
     ui.announce(`${track.def.name}, ${themeOf(track.def.theme).title}`);
     world = createTrackWorld(track);
     look = buildTrackScene(track);

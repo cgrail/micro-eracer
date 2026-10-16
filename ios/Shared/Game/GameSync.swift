@@ -11,8 +11,8 @@ extension Game {
         look?.node.removeFromParentNode()
         let track = buildTrack(def)
         self.track = track
-        // every Track has its own song (a Track only the server knows gets the first), and its name goes up while the grid counts down
-        sound.music(TRACKS.firstIndex { $0.id == def.id } ?? 0)
+        // every Race brings another song, and its Track's name goes up while the grid counts down
+        sound.music()
         feed.announce("\(def.name), \(themeLook(def.theme).title)", now)
         world = createTrackWorld(track)
         let look = buildTrackScene(track)
