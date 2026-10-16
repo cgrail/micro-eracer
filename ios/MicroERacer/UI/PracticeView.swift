@@ -68,7 +68,7 @@ struct PracticeView: View {
 
     private var done: some View {
         Button { model.closePractice() } label: {
-            Text("Done").font(.custom("Bangers-Regular", size: 22)).foregroundColor(Color(hex: 0x1b1410))
+            Text(bangers: "Done", size: 22).foregroundColor(Color(hex: 0x1b1410))
                 .padding(.horizontal, 20).frame(minHeight: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
@@ -78,7 +78,7 @@ struct PracticeView: View {
 
     private func choice<Buttons: View>(_ title: String, @ViewBuilder _ buttons: () -> Buttons) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.custom("Bangers-Regular", size: 18)).kerning(0.5)
+            Text(bangers: title, size: 18).kerning(0.5)
             HStack(spacing: 6) { buttons() }
         }
     }
@@ -86,7 +86,7 @@ struct PracticeView: View {
     /// One of two choices; the hint is for VoiceOver, as the browsers keep it in a tooltip.
     private func pick(_ on: Bool, _ title: String, _ hint: String, _ choose: @escaping () -> Void) -> some View {
         Button(action: choose) {
-            Text(title).font(.custom("Bangers-Regular", size: 18))
+            Text(bangers: title, size: 18)
                 .foregroundColor(on ? .white : ink).frame(maxWidth: .infinity, minHeight: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(on ? Color(hex: 0x2f9bff) : .clear))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))

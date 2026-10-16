@@ -102,7 +102,7 @@ struct StartView: View {
                 TurntableView(garage: garage).frame(height: pic).frame(maxWidth: .infinity)
                 stepper("▶\u{FE0E}", label: "Next Body") { step(1) }
             }
-            Text(BODY_NAMES[model.body]!).font(.custom("Bangers-Regular", size: 24))
+            Text(bangers: BODY_NAMES[model.body]!, size: 24)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible())], spacing: 4) {
                 ForEach(STATS, id: \.0) { stat in
                     HStack(spacing: 6) {
@@ -126,13 +126,13 @@ struct StartView: View {
                 RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink) { stepTrack(-1) }.locked(running != nil)
                 CourseView(course: course).frame(height: pic).frame(maxWidth: .infinity)
                     // any Track: a question mark in the picture's place
-                    .overlay { if def == nil { Color(hex: 0x2f9bff).overlay(Text("?").font(.custom("Bangers-Regular", size: pic * 0.8)).foregroundColor(Color(hex: 0xffd60a)).offset(y: pic * 0.06)) } }
+                    .overlay { if def == nil { Color(hex: 0x2f9bff).overlay(Text(bangers: "?", size: pic * 0.8).foregroundColor(Color(hex: 0xffd60a)).offset(y: pic * 0.06)) } }
                     .clipShape(RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
                     .accessibilityHidden(true)
                 RepeatStepper(arrow: "▶\u{FE0E}", label: "Next Track", ink: ink) { stepTrack(1) }.locked(running != nil)
             }
             if let running, let def {
-                Text(def.name).font(.custom("Bangers-Regular", size: 24)).lineLimit(1).minimumScaleFactor(0.6)
+                Text(bangers: def.name, size: 24).lineLimit(1).minimumScaleFactor(0.6)
                     .frame(maxWidth: .infinity).padding(.vertical, 4).padding(.horizontal, 56)
                     .accessibilityLabel("Track, \(def.name)")
                 VStack(spacing: 1) {
@@ -156,7 +156,7 @@ struct StartView: View {
                 }
             }
         } label: {
-            Text(def?.name ?? "Any Track").font(.custom("Bangers-Regular", size: 24)).lineLimit(1).minimumScaleFactor(0.6)
+            Text(bangers: def?.name ?? "Any Track", size: 24).lineLimit(1).minimumScaleFactor(0.6)
                 .foregroundColor(ink).frame(maxWidth: .infinity).padding(.vertical, 4)
                 .overlay(alignment: .bottom) { Rectangle().fill(ink.opacity(0.5)).frame(height: 2) }
         }
@@ -194,7 +194,7 @@ struct StartView: View {
     private var controlsButton: some View {
         Button { model.openPractice() } label: {
             HStack(spacing: 8) {
-                Text("Controls").font(.custom("Bangers-Regular", size: 22)).kerning(0.5)
+                Text(bangers: "Controls", size: 22).kerning(0.5)
                 Text("\(model.steering == .buttons ? "Buttons" : "Slider"), pad \(model.side.rawValue)").font(.system(size: 14))
                     .lineLimit(1).frame(maxWidth: .infinity, alignment: .trailing)
                 Text("▶\u{FE0E}").font(.system(size: 18)).accessibilityHidden(true)
@@ -212,7 +212,7 @@ struct StartView: View {
     private var playButton: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { Task { await model.play() } } label: {
-                Text(model.outdated ? "Play offline" : model.running != nil ? "Join the Race" : "Play").font(.custom("Bangers-Regular", size: 30)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                Text(bangers: model.outdated ? "Play offline" : model.running != nil ? "Join the Race" : "Play", size: 30).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
                     .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))
@@ -234,7 +234,7 @@ struct StartView: View {
         model.track = ids[(i + by + ids.count) % ids.count]
     }
 
-    private func label(_ text: String) -> some View { Text(text).font(.custom("Bangers-Regular", size: 18)).kerning(0.5) }
+    private func label(_ text: String) -> some View { Text(bangers: text, size: 18).kerning(0.5) }
 
     private func stepper(_ arrow: String, label: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) { Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44).overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3)) }

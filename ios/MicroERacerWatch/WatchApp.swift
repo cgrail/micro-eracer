@@ -104,7 +104,7 @@ struct WatchStartView: View {
                 }
                 Toggle("Sound", isOn: Binding(get: { !model.muted }, set: { model.muted = !$0 }))
                 Button { model.play(); racing = true } label: {
-                    Text("Play").font(.custom("Bangers-Regular", size: 24)).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity)
+                    Text(bangers: "Play", size: 24).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent).tint(Color(hex: 0xffd60a)).listRowBackground(Color.clear)
                 Text("Steer with the Crown, or touch the left or right of the screen. The button top right uses your Item. Offline: you and the Bots.").font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
@@ -235,9 +235,9 @@ struct WatchHUD: View {
             Comic(text: hud.msg, size: 30, fill: Color(hex: 0xffd60a)).multilineTextAlignment(.center)
             if hud.boardMode == .over {
                 VStack(alignment: .leading, spacing: 0) {
-                    if !hud.title.isEmpty { Text(hud.title).font(.custom("Bangers-Regular", size: 15)) }
+                    if !hud.title.isEmpty { Text(bangers: hud.title, size: 15) }
                     ForEach(Array(hud.board.prefix(4).enumerated()), id: \.offset) { i, name in
-                        Text("\(i + 1). \(name)").font(.custom("Bangers-Regular", size: 13)).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
+                        Text(bangers: "\(i + 1). \(name)", size: 13).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
                     }
                 }
                 .foregroundColor(Color(hex: 0x1b1410)).padding(6)

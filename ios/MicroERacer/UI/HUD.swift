@@ -37,7 +37,7 @@ struct HUDView: View {
                 .frame(maxWidth: .infinity).padding(.top, box.size.height * 0.2)
                 if hud.boardMode == .live { board(size: 18).frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 16).padding(.top, 124) }
                 if hud.offline {
-                    Text(outdated ? "Offline Race: update to race online" : "Offline Race: no server, just you and the Bots").font(.custom("Bangers-Regular", size: 16)).foregroundColor(Color(hex: 0x1b1410))
+                    Text(bangers: outdated ? "Offline Race: update to race online" : "Offline Race: no server, just you and the Bots", size: 16).foregroundColor(Color(hex: 0x1b1410))
                         .padding(.horizontal, 12).padding(.vertical, 4)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(hex: 0xfffdf6)))
                         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color(hex: 0x111111), lineWidth: 2))
@@ -83,9 +83,9 @@ struct HUDView: View {
 
     private func board(size: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            if !hud.title.isEmpty { Text(hud.title).font(.custom("Bangers-Regular", size: size + 6)) }
+            if !hud.title.isEmpty { Text(bangers: hud.title, size: size + 6) }
             ForEach(Array(hud.board.enumerated()), id: \.offset) { i, name in
-                Text("\(i + 1). \(name)").font(.custom("Bangers-Regular", size: size)).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
+                Text(bangers: "\(i + 1). \(name)", size: size).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
             }
         }
         .foregroundColor(Color(hex: 0x1b1410))

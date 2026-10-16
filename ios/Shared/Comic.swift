@@ -7,17 +7,27 @@ extension Color {
     }
 }
 
+extension Text {
+    /// Lettering in Bangers. Its slanted letters reach up to 0.14 em past their advance, and iOS clips a Text's glyphs to its
+    /// frame, so the last letter gets that much room after it.
+    init(bangers text: String, size: CGFloat) {
+        var s = AttributedString(text)
+        s.font = .custom("Bangers-Regular", size: size)
+        if let last = s.characters.indices.last { s[last...].tracking = size * 0.15 }
+        self.init(s)
+    }
+}
+
 /// Comic lettering: Bangers, outlined in ink with a hard shadow.
 struct Comic: View {
     let text: String, size: CGFloat
     var fill = Color.white
     var body: some View {
-        let font = Font.custom("Bangers-Regular", size: size)
         ZStack {
             ForEach(Array([(-2, -2), (2, -2), (-2, 2), (2, 2), (3, 3), (0, -2), (0, 2), (-2, 0), (2, 0)].enumerated()), id: \.offset) { _, o in
-                Text(text).font(font).foregroundColor(Color(hex: 0x111111)).offset(x: CGFloat(o.0), y: CGFloat(o.1))
+                Text(bangers: text, size: size).foregroundColor(Color(hex: 0x111111)).offset(x: CGFloat(o.0), y: CGFloat(o.1))
             }
-            Text(text).font(font).foregroundColor(fill)
+            Text(bangers: text, size: size).foregroundColor(fill)
         }
         .kerning(1)
     }

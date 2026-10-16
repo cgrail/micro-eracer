@@ -128,6 +128,8 @@ happens. Everything before 1.0 is in the git history.
 - The app icon, like the browser tab's and the home screen's, is a picture: a purple E-Car racing past Batteries under
   MICRO E-RACER and lightning, with a Missile and a Mine, in a blue frame.
 - The browsers' faint halftone dot screen lies over the game, under the HUD, on iPhone, iPad and the watch.
+- The comic lettering shows its last letter whole on iPhone, iPad and the watch (MICRO E-RACER, PLAY, the Body's and the
+  Track's names, the HUD's standings), as the browsers do, rather than cut off at its slanted edge.
 - Not on iOS: the desktop map (a phone's browser doesn't show it either).
 
 ### Touch controls

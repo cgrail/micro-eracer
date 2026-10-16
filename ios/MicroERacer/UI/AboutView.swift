@@ -40,7 +40,7 @@ struct AboutView: View {
     /// A button in the browsers' dialog style: comic lettering in an inked frame; the one that closes it (`go`) yellow, with
     /// a hard shadow.
     private func label(_ title: String, go: Bool) -> some View {
-        Text(title).font(.custom("Bangers-Regular", size: 22)).kerning(0.5).foregroundColor(go ? Color(hex: 0x1b1410) : ink)
+        Text(bangers: title, size: 22).kerning(0.5).foregroundColor(go ? Color(hex: 0x1b1410) : ink)
             .padding(.horizontal, 16).frame(minHeight: 44)
             .background(RoundedRectangle(cornerRadius: 12).fill(go ? Color(hex: 0xffd60a) : .clear))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))

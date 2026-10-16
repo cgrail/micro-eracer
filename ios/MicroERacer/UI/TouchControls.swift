@@ -90,7 +90,7 @@ struct HoldButton: View {
     @State private var down = false
 
     var body: some View {
-        Text(label).font(.custom("Bangers-Regular", size: size.height > 100 ? 30 : 20)).foregroundColor(ink)
+        Text(bangers: label, size: size.height > 100 ? 30 : 20).foregroundColor(ink)
             .frame(width: size.width, height: size.height)
             .background(RoundedRectangle(cornerRadius: radius).fill(fill))
             .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(Color(hex: 0x111111), lineWidth: 3))
