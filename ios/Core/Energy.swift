@@ -16,13 +16,19 @@ private let PACK: [(free: Double, full: Double, slowest: Double)] = [(2, 20, 0.7
 /// Second and third get a tow, up to TOW of top speed, once the E-Car ahead is more than TOW_FROM metres away.
 private let TOW = 1.06, TOW_FROM = 6.0, TOW_FULL = 25.0
 
+/// Which Racer, by Position from 0, a Battery appears ahead of: by BATTERY_ODDS, each share spread over as many Racers in a
+/// field bigger than theirs (energy.ts `batteryRank`).
+func batteryRank(_ field: Int) -> Int {
+    var roll = Double.random(in: 0..<1), k = 0
+    while k < BATTERY_ODDS.count - 1 { roll -= BATTERY_ODDS[k]; if roll > 0 { k += 1 } else { break } }
+    return field > BATTERY_ODDS.count ? Int(floor((Double(k) + Double.random(in: 0..<1)) * Double(field) / Double(BATTERY_ODDS.count))) : k
+}
+
 func updateBatteries(_ sim: RaceSim, _ ranked: [Seat]) {
     sim.batteries = sim.batteries.filter { $0.until > sim.time }
     if sim.time >= sim.nextBatteryAt && sim.batteries.count < MAX_BATTERIES {
         // a Battery appears just ahead of one Racer, picked by Position: plenty at the back, scarce at the front
-        var roll = Double.random(in: 0..<1), k = 0
-        while k < ranked.count - 1 { roll -= BATTERY_ODDS[k]; if roll > 0 { k += 1 } else { break } }
-        let s = ranked[k]
+        let k = batteryRank(ranked.count), s = ranked[k]
         if !s.finished {
             // between that Racer and the one in front: further ahead, someone in front would get to it first
             let gap = k > 0 ? Double(ranked[k - 1].progress.u - s.progress.u) : .infinity, reach = max(6, min(30, gap - 4))

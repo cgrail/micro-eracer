@@ -100,6 +100,14 @@ happens. Everything before 1.0 is in the git history.
 
 ### Online
 
+- Up to 20 Players race in one Race. Bots still make up a field of eight; once every Bot has been taken over, the next
+  Players join behind the last Racer with E-Cars of their own (in 12 more colours), and each new Race is everyone
+  racing plus Bots to make eight. The grid gets longer, a row that would stand on a ramp moves back to level road,
+  Batteries reach the back of a big field as of eight, and the HUD counts the Position out of everyone in the Race.
+- The wire: protocol 3. The room's `cars` grow and shrink with the field, and a `join` with an empty `was` is a Player
+  with a Seat of their own. The server only races clients of protocol 3 (`MIN_PROTOCOL`): the app from before draws
+  only eight E-Cars, so it races offline until it is updated.
+
 - The game and the server check that they still race together. Every browser and app tells the server which version of
   the online game it speaks, when it starts (`GET /version?protocol=2`) and when it joins (`protocol`), and the server
   says whether it still races with that one. If not (an app that hasn't been updated, or a browser tab left open across

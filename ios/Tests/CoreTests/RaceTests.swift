@@ -43,6 +43,51 @@ final class RaceTests: XCTestCase {
         for want in [ids[ids.count - 1], ids[0], ids[1]] { sim.newRace(FIRST_GRID_TIME); XCTAssertEqual(sim.track.def.id, want) }
     }
 
+    func testPlayersPastTheFieldBringSeatsOfTheirOwnUpToMaxSeats() {
+        let sim = RaceSim(trackId: "kitchen")
+        for i in 0..<MAX_SEATS { XCTAssertNotNil(sim.join("p\(i)", "P\(i)", .roadster), "Player \(i + 1) gets a Seat") }
+        XCTAssertEqual(sim.seats.count, MAX_SEATS)
+        XCTAssertNil(sim.join("one-more", "Late", .roadster))
+        sim.newRace(FIRST_GRID_TIME)
+        XCTAssertEqual(sim.seats.count, MAX_SEATS)
+        for i in 0..<15 { sim.leave("p\(i)") }
+        sim.newRace(FIRST_GRID_TIME)
+        XCTAssertEqual(sim.seats.count, SEATS)
+        XCTAssertEqual(sim.seats.filter { !$0.owner.isEmpty }.count, 5)
+        XCTAssertEqual(sim.seats.map(\.index), Array(0..<SEATS))
+    }
+
+    func testAPlayerWhoJoinsWithNoBotLeftStartsBehindTheLastRacer() {
+        let sim = RaceSim(trackId: "garden")
+        for i in 0..<SEATS { sim.join("p\(i)", "P\(i)", .roadster) }
+        while sim.phase == .grid { sim.step(DT) }
+        let late = sim.join("late", "Late", .semi)!
+        sim.step(DT)
+        XCTAssertEqual(late.position, SEATS + 1)
+        let t = late.car.rb.translation
+        for s in sim.seats where s !== late { let o = s.car.rb.translation; XCTAssertGreaterThan(hypot(o.x - t.x, o.z - t.z), 3, "clear of \(s.name)") }
+    }
+
+    func testEveryGridSlotOfAFullFieldIsLevelRoad() {
+        for def in TRACKS {
+            let track = buildTrack(def), world = createTrackWorld(track)
+            let cars = (0..<MAX_SEATS).map { (slot: $0, at: gridPose(track, $0), car: createCar(world, .semi, gridPose(track, $0), true)) }
+            for _ in 0..<180 { for c in cars { driveCar(world, c.car, NO_INPUT) }; world.step() }
+            for c in cars {
+                let t = c.car.rb.translation
+                XCTAssertTrue(hypot(t.x - c.at.x, t.z - c.at.z) < 1 && t.y > c.at.y - 1.5, "\(def.id): slot \(c.slot) rolled away")
+            }
+        }
+    }
+
+    func testBatteriesReachTheBackOfAFullField() {
+        var big = [Int](repeating: 0, count: MAX_SEATS)
+        for _ in 0..<20000 { big[batteryRank(MAX_SEATS)] += 1 }
+        XCTAssertTrue(big.allSatisfy { $0 > 0 }, "by Position: \(big)")
+        XCTAssertGreaterThan(big[(MAX_SEATS / 2)...].reduce(0, +), 2 * big[..<(MAX_SEATS / 2)].reduce(0, +))
+        for _ in 0..<1000 { XCTAssertLessThan(batteryRank(SEATS), SEATS) }
+    }
+
     func testAnEmptyECarIsStrandedThenRecharged() {
         let sim = RaceSim(trackId: "kitchen")
         while sim.phase == .grid { sim.step(DT) }

@@ -26,7 +26,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
 
     var track: Track?, world: World?, look: TrackScene?
     var state: RaceState?, me: CarState?, own: Own?
-    var views = [CarView?](repeating: nil, count: SEATS)
+    var views = [CarView?](repeating: nil, count: MAX_SEATS)
     var batteries: [Int: (node: SCNNode, baseY: Double)] = [:], mines: [Int: (node: SCNNode, light: SCNMaterial)] = [:]
     var bolts: [Int: (node: SCNNode, s: BoltState, at: Double)] = [:], boxes: [SCNNode] = []
     var clock = 0.0, ticks = 0, status = "", shake = 0.0, nextShot = 0.0, nextBeep = 0.0, inPit = false, stuckFor = 0.0

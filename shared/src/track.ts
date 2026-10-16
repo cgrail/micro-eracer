@@ -218,10 +218,16 @@ export function poseAt(track: Track, i: number, lateral = 0): Pose {
   return { x: s.x + r.x * lateral, y: s.y + 0.6, z: s.z + r.z * lateral, yaw: yawOf(s.dx, s.dz) };
 }
 
-/** Start grid: two columns, rows 5 m apart, all behind the finish line. */
+/** Start grid: two columns, rows 5 m apart, all behind the finish line, and only on level road: in a big field the back rows
+ * would reach the piece before the last straights, and a row on a ramp moves on back past it. */
 export function gridPose(track: Track, slot: number): Pose {
-  const row = Math.floor(slot / 2), col = slot % 2;
-  return poseAt(track, track.n - (3 + row * 5 + col * 2), col ? 2.2 : -2.2);
+  const row = Math.floor(slot / 2), col = slot % 2, y = (i: number) => track.samples[(i + track.n) % track.n].y;
+  let back = 3;
+  for (let r = 0; back < track.n; back += 5) {
+    const i = track.n - back;
+    if ([-6, -3, 3].every((k) => Math.abs(y(i + k) - y(i)) < 0.05) && r++ === row) break;
+  }
+  return poseAt(track, track.n - (back + col * 2), col ? 2.2 : -2.2);
 }
 
 /**

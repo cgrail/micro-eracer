@@ -273,10 +273,17 @@ func poseAt(_ track: Track, _ i: Int, _ lateral: Double = 0) -> Pose {
     return Pose(x: s.x + r.x * lateral, y: s.y + 0.6, z: s.z + r.z * lateral, yaw: yawOf(s.dx, s.dz))
 }
 
-/// Start grid: two columns, rows 5 m apart, all behind the finish line.
+/// Start grid: two columns, rows 5 m apart, all behind the finish line, and only on level road: in a big field the back rows
+/// would reach the piece before the last straights, and a row on a ramp moves on back past it.
 func gridPose(_ track: Track, _ slot: Int) -> Pose {
-    let row = slot / 2, col = slot % 2
-    return poseAt(track, track.n - (3 + row * 5 + col * 2), col == 1 ? 2.2 : -2.2)
+    let row = slot / 2, col = slot % 2, y = { (i: Int) in track.samples[(i + track.n) % track.n].y }
+    var back = 3, r = 0
+    while back < track.n {
+        let i = track.n - back
+        if [-6, -3, 3].allSatisfy({ abs(y(i + $0) - y(i)) < 0.05 }) { if r == row { break }; r += 1 }
+        back += 5
+    }
+    return poseAt(track, track.n - (back + col * 2), col == 1 ? 2.2 : -2.2)
 }
 
 /// How far an E-Car has come along the Track: `u` counts samples since the finish line and only moves by local steps.

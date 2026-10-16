@@ -21,14 +21,20 @@ const TOW = 1.06, TOW_FROM = 6, TOW_FULL = 25;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** Which Racer, by Position from 0, a Battery appears ahead of: by BATTERY_ODDS, each share spread over as many Racers in a
+ * field bigger than theirs. */
+export function batteryRank(field: number) {
+  let roll = Math.random(), k = 0;
+  while (k < BATTERY_ODDS.length - 1 && (roll -= BATTERY_ODDS[k]) > 0) k++;
+  return field > BATTERY_ODDS.length ? Math.floor(((k + Math.random()) * field) / BATTERY_ODDS.length) : k;
+}
+
 export function updateBatteries(sim: RaceSim, ranked: Seat[]) {
   sim.batteries = sim.batteries.filter((b) => b.until > sim.time);
   if (sim.time >= sim.nextBatteryAt && sim.batteries.length < MAX_BATTERIES) {
     // a Battery appears just ahead of one Racer, picked by Position: plenty at the back, fought over in the middle,
     // scarce at the front, where the Charging Station is the way to keep going
-    let roll = Math.random(), k = 0;
-    while (k < ranked.length - 1 && (roll -= BATTERY_ODDS[k]) > 0) k++;
-    const s = ranked[k];
+    const k = batteryRank(ranked.length), s = ranked[k];
     if (!s.finished) {
       // between that Racer and the one in front: further ahead, someone in front would get to it first
       const gap = k ? ranked[k - 1].progress.u - s.progress.u : Infinity, reach = Math.max(6, Math.min(30, gap - 4));

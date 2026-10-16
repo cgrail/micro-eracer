@@ -1,7 +1,7 @@
 import { Room, ServerError, type Client } from '@colyseus/core';
 import { schema, t, type SchemaType } from '@colyseus/schema';
 import { BODY_KINDS, DT, type BodyKind } from '../../shared/src/car.ts';
-import { type PoseReport, RaceSim, SEATS } from '../../shared/src/race.ts';
+import { MAX_SEATS, type PoseReport, RaceSim } from '../../shared/src/race.ts';
 import { seatState } from '../../shared/src/snapshot.ts';
 import { CLASSIC_TRACKS, TRACKS } from '../../shared/src/track.ts';
 import { OUTDATED, compatible, protocolOf } from '../../shared/src/version.ts';
@@ -38,7 +38,7 @@ const isPose = (m: any): m is PoseReport =>
   m != null && ['x', 'y', 'z', 'yaw', 'vx', 'vz', 'spawn'].every((k) => typeof m[k] === 'number' && Number.isFinite(m[k]) && Math.abs(m[k]) < LIMIT);
 
 export class RaceRoom extends Room<{ state: RaceState }> {
-  maxClients = SEATS;
+  maxClients = MAX_SEATS;
   maxMessagesPerSecond = 80;
   private sim!: RaceSim;
 
@@ -60,7 +60,6 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     // 30 updates a second (the default is 20), so the other E-Cars need less guessing between them
     this.setPatchRate(1000 / 30);
     const state = new RaceState();
-    for (let i = 0; i < SEATS; i++) state.cars.push(new CarState());
     this.setState(state);
     // fill the state before the first tick: the creating client receives it on join
     this.sync();
@@ -125,6 +124,9 @@ export class RaceRoom extends Room<{ state: RaceState }> {
       state.mines.push(...combat.mines.map(({ id, x, y, z }) => Object.assign(new MineState(), { id, x, y, z })));
     }
     if (state.boxes.join() !== combat.out.join()) { state.boxes.clear(); state.boxes.push(...combat.out); }
+    // the field grows as Players join past its Bots, and is back to SEATS or the Players on the next grid
+    while (state.cars.length < sim.seats.length) state.cars.push(new CarState());
+    while (state.cars.length > sim.seats.length) state.cars.pop();
     sim.seats.forEach((s, i) => Object.assign(state.cars[i], seatState(sim, s)));
   }
 }

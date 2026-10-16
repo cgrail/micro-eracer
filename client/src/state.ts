@@ -9,7 +9,7 @@ export interface CarState {
 }
 export interface Spot { id: number; x: number; y: number; z: number }
 export interface BoltState extends Spot { kind: string; vx: number; vz: number }
-export interface List<T> { forEach(cb: (item: T, i: number) => void): void }
+export interface List<T> { length: number; forEach(cb: (item: T, i: number) => void): void }
 /** The Race's Track as the room sends it (`TrackDef`); empty from a server from before it sent one. */
 export interface TrackState { id: string; name: string; theme: string; pieces: string; puddles: List<number>; items: List<number> }
 export interface RaceState {

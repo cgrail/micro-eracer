@@ -42,7 +42,7 @@ final class HudFeed {
         h.msg = !status.isEmpty ? status : state.phase == .grid ? "\(left)" : me?.mode == STRANDED ? "Battery empty!" : me?.mode == RECHARGE ? "Recharging…"
             : me?.finished == true ? "Finished P\(me!.position)!" : state.phase == .finishing ? "Race ends in \(left)" : now < goUntil ? "GO!" : ""
         if let me {
-            h.pos = "P\(me.position)/\(SEATS)"
+            h.pos = "P\(me.position)/\(state.cars.count)"
             h.lap = "Lap \(me.lap)/\(LAPS)"
             h.action = itemLabel(me)
             h.me = me.name

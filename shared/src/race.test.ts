@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DT, MAX_ENERGY, createCar, createTrackWorld, driveCar, teleport } from './car.ts';
+import { DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, teleport } from './car.ts';
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
 import { ramResponse, shove } from './contact.ts';
-import { FIRST_GRID_TIME, RECHARGE_TIME, RaceSim, STRANDED_TIME } from './race.ts';
-import { RISE, TRACKS, buildTrack, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress } from './track.ts';
+import { batteryRank } from './energy.ts';
+import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, STRANDED_TIME } from './race.ts';
+import {
+  RISE, TRACKS, buildTrack, gridPose, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress,
+} from './track.ts';
 
 /** Runs `f` with the Race's dice (`Math.random`: the grid, the Bodies, Batteries, Items) seeded, so it rolls the same every time. */
 function seeded<T>(seed: number, f: () => T): T {
@@ -226,6 +229,53 @@ test('a Player taking over a Bot is announced, and only Bots wear the robot', ()
   sim.leave('p');
   assert.ok(!seat.owner && seat.name.startsWith('🤖'));
   assert.ok(sim.events.some((e) => e.t === 'leave' && e.was === 'Sneaky'));
+});
+
+test('Players past the field bring Seats of their own, up to MAX_SEATS, and the next grid is back to SEATS without them', () => {
+  const sim = new RaceSim('kitchen');
+  for (let i = 0; i < MAX_SEATS; i++) assert.ok(sim.join(`p${i}`, `P${i}`, 'roadster'), `Player ${i + 1} gets a Seat`);
+  assert.equal(sim.seats.length, MAX_SEATS);
+  assert.equal(sim.join('one-more', 'Late', 'roadster'), null);
+  assert.ok(sim.events.some((e) => e.t === 'join' && e.s === SEATS && e.was === ''), 'a Seat of their own is nobody\'s');
+  sim.newRace(FIRST_GRID_TIME);
+  assert.equal(sim.seats.length, MAX_SEATS);
+  for (let i = 0; i < 15; i++) sim.leave(`p${i}`);
+  sim.newRace(FIRST_GRID_TIME);
+  assert.equal(sim.seats.length, SEATS);
+  assert.equal(sim.seats.filter((s) => s.owner).length, 5);
+  assert.deepEqual(sim.seats.map((s) => s.index), [...Array(SEATS).keys()]);
+});
+
+test('a Player who joins a running Race with no Bot left starts behind the last Racer', () => {
+  const sim = new RaceSim('garden');
+  for (let i = 0; i < SEATS; i++) sim.join(`p${i}`, `P${i}`, 'roadster');
+  while (sim.phase === 'grid') sim.step(DT);
+  const late = sim.join('late', 'Late', 'semi')!;
+  sim.step(DT);
+  assert.equal(late.position, SEATS + 1);
+  const t = late.car.rb.translation();
+  for (const s of sim.seats) if (s !== late) { const o = s.car.rb.translation(); assert.ok(Math.hypot(o.x - t.x, o.z - t.z) > 3, `clear of ${s.name}`); }
+});
+
+test('every grid slot of a full field is level road where an E-Car stands still', () => {
+  for (const def of TRACKS) {
+    const track = buildTrack(def), world = createTrackWorld(track);
+    const cars = [...Array(MAX_SEATS).keys()].map((slot) => ({ slot, at: gridPose(track, slot), car: createCar(world, 'semi', gridPose(track, slot), true) }));
+    for (let k = 0; k < 180; k++) { for (const c of cars) driveCar(world, c.car, NO_INPUT, 1, false); world.step(); }
+    for (const { slot, at, car } of cars) {
+      const t = car.rb.translation();
+      assert.ok(Math.hypot(t.x - at.x, t.z - at.z) < 1 && t.y > at.y - 1.5, `${def.id}: slot ${slot} rolled away`);
+    }
+  }
+});
+
+test('Batteries reach the back of a field of MAX_SEATS as of SEATS', () => {
+  const big = Array<number>(MAX_SEATS).fill(0), field = Array<number>(SEATS).fill(0);
+  for (let i = 0; i < 20000; i++) { big[batteryRank(MAX_SEATS)]++; field[batteryRank(SEATS)]++; }
+  const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
+  assert.ok(big.every((n) => n > 0), `by Position: ${big}`);
+  assert.ok(sum(big.slice(MAX_SEATS / 2)) > 2 * sum(big.slice(0, MAX_SEATS / 2)), `by Position: ${big}`);
+  assert.equal(field.length, SEATS, 'a field of SEATS only picks from it');
 });
 
 test('Item Boxes come out behind third place, go after the last Racer, only give from fourth back; a Zap holds five Shots', () => {

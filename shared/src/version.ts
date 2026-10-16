@@ -7,11 +7,12 @@
  * renamed), and raise `MIN_PROTOCOL` with it when those clients must stop racing online. The apps keep their own copy in
  * ios/Core/Version.swift, which `swift test` compares with this one.
  * 1: the apps from before this check, which send none. 2: clients that ask first and race the Track the room sends.
+ * 3: clients that draw a field of any size, up to MAX_SEATS (race.ts); a 2 only draws 8 E-Cars.
  */
-export const PROTOCOL = 2;
+export const PROTOCOL = 3;
 
 /** The oldest client the server still races with; an older one is asked to update and may only race offline. */
-export const MIN_PROTOCOL = 1;
+export const MIN_PROTOCOL = 3;
 
 /** The HTTP status (and the error's code) of a join refused because the client is too old: Upgrade Required. */
 export const OUTDATED = 426;

@@ -231,7 +231,7 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       if (e.s === mySeat) sound.powerDown();
       sound.cry('despair', e.s, e.s === mySeat ? 1 : near(p.x, p.z), 0.3);
     } else if (e.t === 'recharge' && e.s === mySeat) sound.battery();
-    else if (e.t === 'join') ui.announce(`${e.name} took over ${e.was}!`);
+    else if (e.t === 'join') ui.announce(e.was ? `${e.name} took over ${e.was}!` : `${e.name} joins the Race!`);
     else if (e.t === 'leave') ui.announce(`${e.was} left, ${e.name} takes over`);
   }
 
@@ -239,6 +239,8 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     state = s;
     if (s.trackId !== track?.def.id) loadTrack(trackDefOf(s));
     s.cars.forEach(syncCar);
+    // a smaller field on a new grid: the Seats past it are gone
+    for (const v of views.splice(s.cars.length)) { scene.remove(v.mesh, v.drone); dispose(v.mesh); dispose(v.drone); world!.remove(v.car.rb); }
     syncSpots(s.batteries, batteries, makeBattery, 1.1, (m) => {
       for (let k = 0; k < 18; k++) sparks.emit(m.position.x, m.position.y, m.position.z, (Math.random() - 0.5) * 8, Math.random() * 7, (Math.random() - 0.5) * 8, 0.5, 0.6);
     });

@@ -11,10 +11,12 @@ export { BATTERY_CHARGE, RECHARGE_TIME } from './energy.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
 import {
   type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, PIT_SPEED, TRACKS, buildTrack, gridPose, inPuddle, inStation, lapOf, nearestSample,
-  sameLevel, poseAt, resetToCheckpoint, startProgress, updateProgress,
+  sameLevel, poseAt, resetToCheckpoint, startProgress, updateProgress, freeSpot,
 } from './track.ts';
 
+/** The field: Bots make it up to SEATS, and each Player past that brings a Seat of their own, up to MAX_SEATS. */
 export const SEATS = 8;
+export const MAX_SEATS = 20;
 export const LAPS = 3;
 export const FIRST_GRID_TIME = 3;
 /** Once a Race is over it goes fast: FINISH_TIME after the first Racer finishes, then this long on the next grid. */
@@ -75,7 +77,8 @@ export type RaceEvent =
   | { t: 'boom'; x: number; z: number }
   | { t: 'block' | 'battery' | 'shot' | 'stranded' | 'recharge'; s: number }
   | { t: 'box' | 'item'; s: number; item: ItemKind }
-  /** A Player took over a Bot's Seat (`join`), or a Bot took over from a Player who left (`leave`); `was` is who had it. */
+  /** A Player took over a Bot's Seat (`join`), or a Bot took over from a Player who left (`leave`); `was` is who had it, empty
+   * for a Player who brought a Seat of their own. */
   | { t: 'join' | 'leave'; s: number; name: string; was: string };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -125,37 +128,55 @@ export class RaceSim {
     this.world = createTrackWorld(this.track);
     this.combat = new Combat(this);
     this.batteries = [];
-    const slots = [...Array(SEATS).keys()].sort(() => Math.random() - 0.5);
-    this.seats = slots.map((slot, i) => {
-      const prev = this.seats[i];
-      const kind = prev?.kind ?? BODY_KINDS[Math.floor(Math.random() * BODY_KINDS.length)];
-      const owner = prev?.owner ?? '';
-      const pose = gridPose(this.track, slot);
-      return {
-        index: i, name: prev?.name ?? botName(i), kind, owner,
-        car: createCar(this.world, kind, pose, !owner),
-        progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
-        position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, ammo: 0, shield: false, nextShotAt: 0,
-        lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0, rechargeLength: RECHARGE_TIME, pace: 1, stackedFor: 0,
-        spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
-      };
-    });
+    // the Players, and Bots to make the field up to SEATS: the Bots of the last Race past that drop out
+    let bots = Math.max(0, SEATS - this.seats.filter((s) => s.owner).length);
+    const prevs = this.seats.filter((s) => s.owner || bots-- > 0);
+    const slots = [...Array(Math.max(SEATS, prevs.length)).keys()].sort(() => Math.random() - 0.5);
+    this.seats = slots.map((slot, i) => this.seat(i, gridPose(this.track, slot), prevs[i]));
     this.phase = 'grid';
     this.timer = gridTime;
     this.startedAt = Infinity;
   }
 
-  /** A joining Player takes over the last-Position Bot's E-Car where it is. Returns null when every Seat has a Player. */
+  /** Seat `i`, its E-Car at `pose`: who had it in the last Race (`prev`), or a new Bot. */
+  private seat(i: number, pose: Pose, prev?: Pick<Seat, 'name' | 'kind' | 'owner' | 'spawn'>): Seat {
+    const kind = prev?.kind ?? BODY_KINDS[Math.floor(Math.random() * BODY_KINDS.length)];
+    const owner = prev?.owner ?? '';
+    return {
+      index: i, name: prev?.name ?? botName(i), kind, owner,
+      car: createCar(this.world, kind, pose, !owner),
+      progress: startProgress(this.track, nearestSample(this.track, pose.x, pose.y, pose.z)),
+      position: i + 1, finished: false, finishTime: 0, energy: MAX_ENERGY, item: '' as const, ammo: 0, shield: false, nextShotAt: 0,
+      lockedUntil: 0, strandedUntil: 0, rechargeUntil: 0, rechargeLength: RECHARGE_TIME, pace: 1, stackedFor: 0,
+      spawn: (prev?.spawn ?? 0) + 1, vx: 0, vz: 0, lastX: pose.x, lastZ: pose.z,
+    };
+  }
+
+  /** A joining Player takes over the last-Position Bot's E-Car where it is, or with no Bot left brings a Seat of their own.
+   * Returns null when MAX_SEATS Players race already. */
   join(owner: string, name: string, kind: BodyKind): Seat | null {
-    const bots = this.seats.filter((s) => !s.owner);
-    if (!bots.length) return null;
-    const seat = bots.reduce((a, b) => (b.position > a.position ? b : a));
-    const v = seat.car.rb.linvel();
     // only Bots wear the robot
     name = name.replaceAll(BOT, '').trim() || 'Player';
+    const bots = this.seats.filter((s) => !s.owner);
+    if (!bots.length) return this.seats.length < MAX_SEATS ? this.addSeat(owner, name, kind) : null;
+    const seat = bots.reduce((a, b) => (b.position > a.position ? b : a));
+    const v = seat.car.rb.linvel();
     this.emit({ t: 'join', s: seat.index, name, was: seat.name });
     Object.assign(seat, { owner, name, kind, vx: v.x, vz: v.z });
     this.replaceCar(seat, false);
+    return seat;
+  }
+
+  /** A Seat past the field of SEATS: on the grid's next slot, or once the Race is on, at a free spot behind the last Racer. */
+  private addSeat(owner: string, name: string, kind: BodyKind): Seat {
+    const i = this.seats.length, n = this.track.n, last = this.seats.reduce((a, b) => (b.position > a.position ? b : a));
+    const behind = Array.from({ length: 12 }, (_, k) => (last.progress.idx - 6 - 3 * k + 2 * n) % n);
+    const spot = this.phase === 'grid' ? undefined : freeSpot(this.track, behind, this.seats.map((s) => s.car.rb.translation()));
+    const seat = this.seat(i, spot?.pose ?? gridPose(this.track, i), { name, kind, owner, spawn: 0 });
+    if (spot) seat.progress = { idx: spot.idx, u: last.progress.u - ((last.progress.idx - spot.idx + n) % n) };
+    seat.position = this.seats.length + 1;
+    this.seats.push(seat);
+    this.emit({ t: 'join', s: i, name, was: '' });
     return seat;
   }
 

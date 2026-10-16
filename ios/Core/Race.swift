@@ -2,7 +2,9 @@ import Foundation
 
 // shared/src/race.ts: one Race and everything the server owns in it. The app runs it for an Offline Race.
 
+/// The field: Bots make it up to SEATS, and each Player past that brings a Seat of their own, up to MAX_SEATS.
 let SEATS = 8
+let MAX_SEATS = 20
 let LAPS = 3
 let FIRST_GRID_TIME = 3.0
 let GRID_TIME = 3.0
@@ -109,30 +111,55 @@ final class RaceSim {
         world = createTrackWorld(track)
         combat = Combat(self)
         batteries = []
-        let prevSeats = seats
-        seats = Array(0..<SEATS).shuffled().enumerated().map { i, slot in
-            let prev = i < prevSeats.count ? prevSeats[i] : nil
-            let kind = prev?.kind ?? BODY_KINDS.randomElement()!, owner = prev?.owner ?? ""
-            let pose = gridPose(track, slot)
-            return Seat(index: i, name: prev?.name ?? botName(i), kind: kind, owner: owner, car: createCar(world, kind, pose, owner.isEmpty),
-                        progress: startProgress(track, nearestSample(track, pose.x, pose.y, pose.z)), position: i + 1, spawn: (prev?.spawn ?? 0) + 1, at: pose)
+        // the Players, and Bots to make the field up to SEATS: the Bots of the last Race past that drop out
+        var bots = max(0, SEATS - seats.filter { !$0.owner.isEmpty }.count)
+        let prevs = seats.filter { s in
+            if !s.owner.isEmpty { return true }
+            bots -= 1
+            return bots >= 0
+        }
+        seats = Array(0..<max(SEATS, prevs.count)).shuffled().enumerated().map { i, slot in
+            seat(i, gridPose(track, slot), i < prevs.count ? (prevs[i].name, prevs[i].kind, prevs[i].owner, prevs[i].spawn) : nil)
         }
         phase = .grid
         timer = gridTime
         startedAt = .infinity
     }
 
-    /// A joining Player takes over the last-Position Bot's E-Car where it is. Returns nil when every Seat has a Player.
+    /// Seat `i`, its E-Car at `pose`: who had it in the last Race (`prev`), or a new Bot.
+    private func seat(_ i: Int, _ pose: Pose, _ prev: (name: String, kind: BodyKind, owner: String, spawn: Int)?) -> Seat {
+        let kind = prev?.kind ?? BODY_KINDS.randomElement()!, owner = prev?.owner ?? ""
+        return Seat(index: i, name: prev?.name ?? botName(i), kind: kind, owner: owner, car: createCar(world, kind, pose, owner.isEmpty),
+                    progress: startProgress(track, nearestSample(track, pose.x, pose.y, pose.z)), position: i + 1, spawn: (prev?.spawn ?? 0) + 1, at: pose)
+    }
+
+    /// A joining Player takes over the last-Position Bot's E-Car where it is, or with no Bot left brings a Seat of their own.
+    /// Returns nil when MAX_SEATS Players race already.
     @discardableResult
     func join(_ owner: String, _ name: String, _ kind: BodyKind) -> Seat? {
-        guard let seat = seats.filter({ $0.owner.isEmpty }).max(by: { $0.position < $1.position }) else { return nil }
-        let v = seat.car.rb.linvel
         // only Bots wear the robot
         let clean = name.replacingOccurrences(of: BOT, with: "").trimmingCharacters(in: .whitespaces)
         let shown = clean.isEmpty ? "Player" : clean
+        guard let seat = seats.filter({ $0.owner.isEmpty }).max(by: { $0.position < $1.position }) else {
+            return seats.count < MAX_SEATS ? addSeat(owner, shown, kind) : nil
+        }
+        let v = seat.car.rb.linvel
         emit(.join(s: seat.index, name: shown, was: seat.name))
         seat.owner = owner; seat.name = shown; seat.kind = kind; seat.vx = v.x; seat.vz = v.z
         replaceCar(seat, dynamic: false)
+        return seat
+    }
+
+    /// A Seat past the field of SEATS: on the grid's next slot, or once the Race is on, at a free spot behind the last Racer.
+    private func addSeat(_ owner: String, _ name: String, _ kind: BodyKind) -> Seat {
+        let i = seats.count, n = track.n, last = seats.max { $0.position < $1.position }!
+        let behind = (0..<12).map { k in (last.progress.idx - 6 - 3 * k + 2 * n) % n }
+        let spot = phase == .grid ? nil : freeSpot(track, behind, seats.map { $0.car.rb.translation })
+        let seat = self.seat(i, spot?.pose ?? gridPose(track, i), (name, kind, owner, 0))
+        if let spot { seat.progress = Progress(idx: spot.idx, u: last.progress.u - (last.progress.idx - spot.idx + n) % n) }
+        seat.position = seats.count + 1
+        seats.append(seat)
+        emit(.join(s: i, name: name, was: ""))
         return seat
     }
 

@@ -1,4 +1,4 @@
-import { LAPS, type Phase, SEATS } from '../../shared/src/race.ts';
+import { LAPS, type Phase } from '../../shared/src/race.ts';
 import { MAX_ENERGY } from '../../shared/src/car.ts';
 import type { Track } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
@@ -48,7 +48,7 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
       else if (!msg && me?.finished) msg = `Finished P${me.position}!`;
       else if (!msg && state.phase === 'finishing') msg = `Race ends in ${left}`;
       else if (!msg && now < goUntil) msg = 'GO!';
-      hud.pos.textContent = me ? `P${me.position}/${SEATS}` : '';
+      hud.pos.textContent = me ? `P${me.position}/${state.cars.length}` : '';
       hud.lap.textContent = me ? `Lap ${me.lap}/${LAPS}` : '';
       const action = me ? itemLabel(me) : '';
       if (hud.action.textContent !== action) hud.action.textContent = action;

@@ -4,7 +4,7 @@ import SceneKit
 extension Game {
     func loadTrack(_ def: TrackDef) {
         for v in views.compactMap({ $0 }) { v.model.node.removeFromParentNode(); v.drone.removeFromParentNode() }
-        views = [CarView?](repeating: nil, count: SEATS)
+        views = [CarView?](repeating: nil, count: MAX_SEATS)
         for n in batteries.values.map(\.node) + mines.values.map(\.node) + bolts.values.map(\.node) + boxes { n.removeFromParentNode() }
         batteries = [:]; mines = [:]; bolts = [:]
         own = nil
@@ -32,7 +32,9 @@ extension Game {
         state = s
         // the Track the room sent, so it is the server's even where this app has none like it
         if s.trackId != track?.def.id { loadTrack(s.track ?? TRACKS.first { $0.id == s.trackId } ?? TRACKS[0]) }
-        for (i, c) in s.cars.enumerated() where i < SEATS { syncCar(c, i) }
+        for (i, c) in s.cars.enumerated() where i < MAX_SEATS { syncCar(c, i) }
+        // a smaller field on a new grid: the Seats past it are gone
+        for i in min(s.cars.count, MAX_SEATS)..<MAX_SEATS { if let v = views[i] { v.model.node.removeFromParentNode(); v.drone.removeFromParentNode(); world?.remove(v.car.rb); views[i] = nil } }
         syncSpots(s.batteries)
         syncMines(s.mines)
         syncBolts(s.bolts)

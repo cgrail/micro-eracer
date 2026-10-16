@@ -57,7 +57,7 @@ extension Game {
             if s == mySeat { sound.powerDown() }
             sound.cry(.despair, s, vol(s), delay: 0.3)
         case let .recharge(s): if s == mySeat { sound.battery() }
-        case let .join(_, name, was): feed.announce("\(name) took over \(was)!", now)
+        case let .join(_, name, was): feed.announce(was.isEmpty ? "\(name) joins the Race!" : "\(name) took over \(was)!", now)
         case let .leave(_, name, was): feed.announce("\(was) left, \(name) takes over", now)
         }
     }

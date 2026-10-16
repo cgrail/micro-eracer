@@ -7,7 +7,11 @@ import { stagingOf } from './themes/index.ts';
 import { GRADIENT, canvasTexture, cyl, group, mesh, rbox, rng, sph, toon } from './toon.ts';
 
 
-export const SEAT_COLORS = [0xff4d4d, 0x2f9bff, 0xffa62b, 0x1fd1b2, 0xa66cff, 0xffd60a, 0x5ad45a, 0xff6fb5];
+/** One colour per Seat, up to MAX_SEATS: the first eight for the field Bots make up, the rest for Players who join past it. */
+export const SEAT_COLORS = [
+  0xff4d4d, 0x2f9bff, 0xffa62b, 0x1fd1b2, 0xa66cff, 0xffd60a, 0x5ad45a, 0xff6fb5,
+  0xc0392b, 0x1b4fd6, 0xff8a5c, 0x0f9d58, 0x7a3cff, 0xe0e0e0, 0x8d6e63, 0x00c2e0, 0xc6ff3d, 0xff3dd6, 0x3b3b46, 0x9e2a5e,
+];
 
 type Sample = Track['samples'][number];
 /**

@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import type { RunningRace } from '../../shared/src/snapshot.ts';
-import { SEATS } from '../../shared/src/race.ts';
+import { MAX_SEATS } from '../../shared/src/race.ts';
 import { TRACKS } from '../../shared/src/track.ts';
 import { PROTOCOL, compatible, protocolOf } from '../../shared/src/version.ts';
 
@@ -108,8 +108,8 @@ test('once everyone has left, the next Player picks the Track again', async () =
 
 test('a full Race leaves the next Player to start another, on their own pick', async () => {
   const full: Room[] = [];
-  for (let i = 0; i < SEATS; i++) full.push(await join(`P${i}`, { track: 'garden' }));
-  assert.equal(new Set(full.map((r) => r.roomId)).size, 1, `${SEATS} Players fill one Race`);
+  for (let i = 0; i < MAX_SEATS; i++) full.push(await join(`P${i}`, { track: 'garden' }));
+  assert.equal(new Set(full.map((r) => r.roomId)).size, 1, `${MAX_SEATS} Players fill one Race`);
   const next = await join('Next', { track: 'kitchen' });
   assert.notEqual(next.roomId, full[0].roomId);
   // the full one has no Seat to offer, so the start screen shows the new one
