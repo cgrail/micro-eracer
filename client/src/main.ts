@@ -117,24 +117,24 @@ for (const [id, by] of [['prev-track', -1], ['next-track', 1]] as const) {
 trackSelect.addEventListener('change', () => { track = trackSelect.value; showTrack(); trackSelect.blur(); });
 showTrack();
 course.run(true);
-// the keyboard: Tab goes from picker to picker, ← → step the one it is on (the Track's when it is on none), and Enter plays.
-// On a desktop it starts on the Track, so where it is shows from the start
-const bodyPick = $('body-pick'), trackPick = $('track-pick');
-const focusPick = (pick: HTMLElement) => pick.focus({ preventScroll: true, focusVisible: true });
+// the keyboard: ↓ and ↑ (or Tab) go from the Name to the Body, the Track and Play and back, ← → step the picker it is on (the
+// Track's when it is on nothing), and Enter plays. On a desktop it starts on the Track, so where it is shows from the start
+const bodyPick = $('body-pick'), trackPick = $('track-pick'), stops = [nameInput, bodyPick, trackPick, play];
+const focusOn = (el: HTMLElement) => el.focus({ preventScroll: true, focusVisible: true });
 addEventListener('keydown', (e) => {
-  const at = document.activeElement;
+  const el = document.activeElement;
   // the list of Tracks steps itself; a dialog over the form keeps its keys
-  if (form.hidden || at === trackSelect || e.altKey || e.ctrlKey || e.metaKey || document.querySelector('dialog[open]')) return;
-  const pick = (at === document.body || !at ? trackPick : at.closest<HTMLElement>('#body-pick, #track-pick'));
-  if (!pick) return;
-  const by = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
-  if (by) { if (pick === bodyPick) stepBody(by); else if (!running) stepTrack(by); }
-  else if (e.key === 'Enter') { if (!play.disabled) form.requestSubmit(); }
+  if (form.hidden || el === trackSelect || e.altKey || e.ctrlKey || e.metaKey || document.querySelector('dialog[open]')) return;
+  const at = !el || el === document.body ? trackPick : el.closest<HTMLElement>('#body-pick, #track-pick') ?? (el as HTMLElement), i = stops.indexOf(at);
+  const move = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0, step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  const picker = at === bodyPick || at === trackPick;
+  if (move && i >= 0) focusOn(stops[Math.min(stops.length - 1, Math.max(0, i + move))]);
+  else if (step && picker) { if (at === bodyPick) stepBody(step); else if (!running) stepTrack(step); focusOn(at); }
+  else if (e.key === 'Enter' && picker) { if (!play.disabled) form.requestSubmit(); }
   else return;
   e.preventDefault();
-  focusPick(pick);
 });
-if (!isTouch) focusPick(trackPick);
+if (!isTouch) focusOn(trackPick);
 
 const controls = createInput({ touch, steer: $('steer'), action: $('fire'), back: $('back') });
 // touch only, set on the Practice Ground behind the Controls button, which says how they are set
@@ -311,7 +311,7 @@ form.addEventListener('submit', async (e) => {
       garage.run(true);
       course.run(true);
       hudEl.hidden = touch.hidden = mute.hidden = true;
-      if (!isTouch) focusPick(trackPick);
+      if (!isTouch) focusOn(trackPick);
       error.textContent = 'Connection lost.';
       askRace();
     });

@@ -57,9 +57,9 @@ happens. Everything before 1.0 is in the git history.
   Track is raced again and again. Online, only the first Player in a Race picks (see Online). An Offline Race
   (and the watch, which picks it from a list) does the same. Each start shows a Track picked at random, with its name,
   and Play races it (the watch remembers its pick as `track`).
-- The start form works from the keyboard in the browser: ← and → step through the Tracks (or the Bodies, after Tab),
-  Enter plays, and the picker the keys work on is outlined, with its arrows lit. On a desktop the Track's picker has
-  the keys from the start.
+- The start form works from the keyboard in the browser: ↓ and ↑ (or Tab) go from the Name to the Body, the Track and
+  Play and back, ← and → step through the Bodies or the Tracks, Enter plays, and the picker the keys work on is
+  outlined, with its arrows lit. On a desktop the Track's picker has the keys from the start.
 - After a Race on a picked Track the next Race goes on to the next Track in the list (after the last, the first again),
   instead of racing the same Track once more; online, in an Offline Race and on the watch alike. Any Track still picks
   each next one at random.
