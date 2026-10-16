@@ -118,9 +118,13 @@ trackSelect.addEventListener('change', () => { track = trackSelect.value; showTr
 showTrack();
 course.run(true);
 // the keyboard: ↓ and ↑ (or Tab) go from the Name to the Body, the Track and Play and back, ← → step the picker it is on (the
-// Track's when it is on nothing), and Enter plays. On a desktop it starts on the Track, so where it is shows from the start
+// Track's when it is on nothing), and Enter plays. On a desktop it starts on the Name, so a Player can type theirs at once
 const bodyPick = $('body-pick'), trackPick = $('track-pick'), stops = [nameInput, bodyPick, trackPick, play];
-const focusOn = (el: HTMLElement) => el.focus({ preventScroll: true, focusVisible: true });
+const focusOn = (el: HTMLElement) => {
+  el.focus({ preventScroll: true, focusVisible: true });
+  // landing on the Name, the keyboard keeps a made-up name (which the focus just cleared) and selects it, so typing replaces it
+  if (el === nameInput) { nameInput.value ||= madeUp; nameInput.select(); }
+};
 addEventListener('keydown', (e) => {
   const el = document.activeElement;
   // the list of Tracks steps itself; a dialog over the form keeps its keys
@@ -134,7 +138,7 @@ addEventListener('keydown', (e) => {
   else return;
   e.preventDefault();
 });
-if (!isTouch) focusOn(trackPick);
+if (!isTouch) focusOn(nameInput);
 
 const controls = createInput({ touch, steer: $('steer'), action: $('fire'), back: $('back') });
 // touch only, set on the Practice Ground behind the Controls button, which says how they are set
@@ -166,7 +170,7 @@ const safeArea = document.body.appendChild(document.createElement('div'));
 safeArea.style.cssText = 'position: fixed; visibility: hidden; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom)';
 const fit = () => {
   // not while typing: a phone's keyboard shrinks the window
-  if (form.hidden || document.activeElement === nameInput) return;
+  if (form.hidden || (isTouch && document.activeElement === nameInput)) return;
   const insets = getComputedStyle(safeArea), safe = parseFloat(insets.paddingTop) + parseFloat(insets.paddingBottom) || 0;
   form.style.setProperty('--fit', '1');
   const scale = Math.min(1, (innerHeight - safe - 20) / form.offsetHeight, (innerWidth - 20) / form.offsetWidth);
@@ -311,7 +315,7 @@ form.addEventListener('submit', async (e) => {
       garage.run(true);
       course.run(true);
       hudEl.hidden = touch.hidden = mute.hidden = true;
-      if (!isTouch) focusOn(trackPick);
+      if (!isTouch) focusOn(nameInput);
       error.textContent = 'Connection lost.';
       askRace();
     });

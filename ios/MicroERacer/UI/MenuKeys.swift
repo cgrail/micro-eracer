@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The start screen from an iPad's hardware keyboard, as main.ts works the browsers' start form: ↓ and ↑ go from the Name to
 /// the Body, the Track and Play and back, ← → step the picker it is on, and Return plays (in the Name, its own Return does).
-/// `at` is where the keyboard is, outlined on the screen; nil until a keyboard is there, and then it starts on the Track.
+/// `at` is where the keyboard is, outlined on the screen; nil until a keyboard is there, and then it starts on the Name.
 final class MenuKeys: ObservableObject {
     enum Stop: Int, CaseIterable { case name, body, track, play }
     @Published var at: Stop?
@@ -26,7 +26,7 @@ final class MenuKeys: ObservableObject {
 
     private func attach() {
         guard let keys = GCKeyboard.coalesced?.keyboardInput else { return }
-        if at == nil { at = .track }
+        if at == nil { at = .name }
         keys.keyChangedHandler = { [weak self] _, _, code, pressed in
             if pressed { DispatchQueue.main.async { self?.press(code) } }
         }

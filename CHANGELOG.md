@@ -74,7 +74,7 @@ happens. Everything before 1.0 is in the git history.
 - The start form works from the keyboard in the browser: ↓ and ↑ (or Tab) go from the Name to the Body, the Track and
   Play and back, ← and → step through the Bodies or the Tracks, Enter plays, and where the keys are shows like a game
   menu's cursor: a picker glows yellow, its arrows lit, and the Name field or Play flashes in a thicker edge. On a
-  desktop the Track's picker has the keys from the start.
+  desktop the Name has the keys from the start, its name selected, so typing replaces it and Enter plays under it.
 - After a Race the next one is on a Track picked at random, and never on one of the last 10 raced; after a picked Track
   too, rather than the same Track once more or the next one in the list. Online, in an Offline Race and on the watch
   alike.
@@ -150,7 +150,7 @@ happens. Everything before 1.0 is in the git history.
 
 - With a hardware keyboard, the start screen works as the browsers' does: ↓ and ↑ go from the Name to the Body, the
   Track and Play and back, ← and → step through the Bodies or the Tracks, Return plays, and where the keys are shows as
-  there. It starts on the Track once a keyboard is there; without one nothing changes.
+  there. It starts on the Name, its name selected, once a keyboard is there; without one nothing changes.
 - **A native app for iPhone and iPad** ([ios/](ios/)), in Swift with SceneKit. It joins the same Races on the same server
   as the browsers (`wss://micro.grails.de`, the same rooms), so phones and browsers race each other, and falls back
   to an Offline Race against the Bots when the server can't be reached within 5 seconds, as the browser does.

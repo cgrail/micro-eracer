@@ -120,12 +120,16 @@ struct StartView: View {
                 // Return plays, as Enter submits the browsers' start form
                 .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
                 .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
-                // the made-up name clears as the Player goes to type their own, and comes back if they type none
+                // the made-up name clears as the Player taps in to type their own, and comes back if they type none; landing on
+                // the Name, the keyboard keeps it and selects it, so typing replaces it, as in the browsers
                 .focused($naming)
                 .onChange(of: naming) { now in
                     guard let madeUp = model.madeUp else { return }
-                    if now && model.name == madeUp { model.name = "" }
+                    if now && model.name == madeUp && keys.at != .name { model.name = "" }
                     if !now && model.name.trimmingCharacters(in: .whitespaces).isEmpty { model.name = madeUp }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UITextField.textDidBeginEditingNotification)) { note in
+                    if keys.at == .name { DispatchQueue.main.async { (note.object as? UITextField)?.selectAll(nil) } }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 // where the keyboard is, the field flashes from pale yellow to yellow in a thicker edge, as in the browsers
