@@ -118,6 +118,9 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 /* Play and Controls leave room for their shadows, so they don't stick out past the rows above */
 #play { margin-right: 5px; background: var(--yellow); font-size: 30px; padding: 8px 16px; box-shadow: 5px 5px 0 var(--ink); }
 #play:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+/* where the keyboard is on the start form: Tab moves it, and ← → step the outlined picker, whose arrows light up */
+#start .pick:focus-visible, #play:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; border-radius: 12px; }
+#start .pick:focus-visible .stage button { background: var(--accent); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
 #play:disabled { opacity: 0.6; }
 #error { margin: 0; color: #e5383b; font-weight: 600; }
 #error:empty { display: none; }

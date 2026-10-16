@@ -21,17 +21,17 @@
     <div class="title"><h1>Micro E-Racer</h1><button type="button" id="info" aria-label="About the game" aria-haspopup="dialog">i</button></div>
     <div id="who"><label for="name">Name</label><input id="name" maxlength="16" autocomplete="nickname" required></div>
     <div class="col">
-      <fieldset class="pick">
+      <fieldset class="pick" id="body-pick" tabindex="0" aria-keyshortcuts="ArrowLeft ArrowRight">
         <legend class="sr">Body</legend>
-        <div class="stage"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><canvas id="turntable" aria-hidden="true"></canvas><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
+        <div class="stage"><button type="button" id="prev-body" tabindex="-1" aria-label="Previous Body">◀</button><canvas id="turntable" aria-hidden="true"></canvas><button type="button" id="next-body" tabindex="-1" aria-label="Next Body">▶</button></div>
         <output id="body-name" aria-live="polite"></output>
         <dl id="stats"></dl>
       </fieldset>
     </div>
     <div class="col">
-      <fieldset class="pick">
+      <fieldset class="pick" id="track-pick" tabindex="0" aria-keyshortcuts="ArrowLeft ArrowRight">
         <legend class="sr">Track</legend>
-        <div class="stage" id="course"><button type="button" id="prev-track" aria-label="Previous Track">◀</button><canvas id="track-map" aria-hidden="true"></canvas><button type="button" id="next-track" aria-label="Next Track">▶</button></div>
+        <div class="stage" id="course"><button type="button" id="prev-track" tabindex="-1" aria-label="Previous Track">◀</button><canvas id="track-map" aria-hidden="true"></canvas><button type="button" id="next-track" tabindex="-1" aria-label="Next Track">▶</button></div>
         <select id="track" aria-label="Track"></select>
         <div id="facts" aria-live="polite"></div>
       </fieldset>
