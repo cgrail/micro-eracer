@@ -2,7 +2,7 @@ import {
   BODIES, BODY_KINDS, type Car, type BodyKind, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
   teleport,
 } from './car.ts';
-import { botInput } from './bots.ts';
+import { botInput, catchUp } from './bots.ts';
 import { judgeRams, unstack } from './contact.ts';
 import type { World } from './physics.ts';
 import { RECHARGE_TIME, leadPace, rechargeLength, updateBatteries } from './energy.ts';
@@ -22,6 +22,8 @@ export const FIRST_GRID_TIME = 3;
 /** Once a Race is over it goes fast: FINISH_TIME after the first Racer finishes, then this long on the next grid. */
 export const GRID_TIME = 3;
 export const FINISH_TIME = 5;
+/** How long a Race's win stays on the board's tally. */
+export const WINS_TIME = 20 * 60;
 /** A Race's next Track is never one of the last this many raced (in a small pool, never one of its last half). */
 const FRESH = 10;
 /** Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands. */
@@ -102,6 +104,8 @@ export class RaceSim {
   startedAt = Infinity;
   results: string[] = [];
   finishers = 0; // how many of the `results` finished; the rest were still racing when it ended
+  /** Who won each Race of the last `WINS_TIME`, the last one last; trimmed as each is won, which is when the board shows them. */
+  wins: { name: string; at: number }[] = [];
   combat!: Combat;
   events: RaceEvent[] = [];
   /** Counters for tests and tuning. */
@@ -217,7 +221,7 @@ export class RaceSim {
       const locked = !live || this.time < s.lockedUntil || this.isRecharging(s);
       const input = this.isStranded(s) || this.isRecharging(s) ? HALT : locked ? NO_INPUT : botInput(this, s);
       const pit = inStation(this.track, s.progress.idx, t) ? PIT_SPEED : 1;
-      driveCar(this.world, s.car, input, live ? this.catchUp(s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(this.track, t));
+      driveCar(this.world, s.car, input, live ? catchUp(this, s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(this.track, t));
       if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
     this.world.step();
@@ -246,7 +250,10 @@ export class RaceSim {
       if (live && !s.finished && s.progress.u >= LAPS * this.track.n) {
         s.finished = true;
         s.finishTime = this.time;
-        if (this.phase === 'racing') { this.phase = 'finishing'; this.timer = FINISH_TIME; }
+        if (this.phase === 'racing') {
+          this.phase = 'finishing'; this.timer = FINISH_TIME;
+          this.wins = [...this.wins.filter((w) => w.at > this.time - WINS_TIME), { name: s.name, at: this.time }];
+        }
       }
     }
 
@@ -282,13 +289,6 @@ export class RaceSim {
   }
 
   lap = (s: Seat) => clamp(lapOf(this.track, s.progress), 1, LAPS);
-
-  /** Bots stay close to the Players: faster when far behind the nearest one, slower when far ahead. */
-  private catchUp(bot: Seat) {
-    let gap = Infinity;
-    for (const p of this.seats) if (p.owner && Math.abs(bot.progress.u - p.progress.u) < Math.abs(gap)) gap = bot.progress.u - p.progress.u;
-    return gap === Infinity ? 1 : clamp(1 - gap / 80, 0.7, 1.3);
-  }
 
   private replaceCar(seat: Seat, dynamic: boolean) {
     const t = seat.car.rb.translation();

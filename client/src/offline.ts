@@ -21,7 +21,7 @@ export function offlineRace(name: string, body: BodyKind, track?: string): RaceL
     for (; acc >= DT; acc -= DT) sim.step(DT);
     if (sim.events.length) { onEvents(sim.events); sim.events = []; }
     onState({
-      phase: sim.phase, timer: Math.max(0, sim.timer), trackId: sim.track.def.id, results: sim.results, finishers: sim.finishers,
+      phase: sim.phase, timer: Math.max(0, sim.timer), trackId: sim.track.def.id, results: sim.results, finishers: sim.finishers, winners: sim.wins.map((w) => w.name),
       cars: sim.seats.map((s) => seatState(sim, s)), batteries: sim.batteries, bolts: sim.combat.bolts, mines: sim.combat.mines,
       boxes: sim.combat.out, track: sim.track.def,
     });

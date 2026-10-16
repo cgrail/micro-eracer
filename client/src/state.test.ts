@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { TRACKS } from '../../shared/src/track.ts';
-import { type RaceState, trackDefOf } from './state.ts';
+import { type RaceState, trackDefOf, winTally } from './state.ts';
 
 const race = (trackId: string, track?: RaceState['track']) => ({ trackId, track }) as RaceState;
 
@@ -14,4 +14,9 @@ test('the game races the Track the room sends, even one it never came with', () 
   // a server from before it sent the Track: this game's own by its id
   assert.equal(trackDefOf(race('garden', { id: '', name: '', theme: '', pieces: '', puddles: [], items: [] })), garden);
   assert.equal(trackDefOf(race('garden')), garden);
+});
+
+test('the board tallies the wins of the last 20 minutes, most first, a tie in the order they were won', () => {
+  const winners = ['Chris', '🤖 Sparky', 'Ada', '🤖 Sparky', 'Chris', 'Chris', 'Zoe', 'Max', 'Rex'];
+  assert.deepEqual(winTally(winners), ['Chris 3', '🤖 Sparky 2', 'Ada 1', 'Zoe 1', 'Max 1']);
 });

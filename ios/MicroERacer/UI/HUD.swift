@@ -32,7 +32,13 @@ struct HUDView: View {
                 VStack(spacing: 8) {
                     Comic(text: hud.msg, size: 64, fill: Color(hex: 0xffd60a))
                     Comic(text: hud.news, size: 24).multilineTextAlignment(.center).padding(.horizontal, 16)
-                    if hud.boardMode == .over { board(size: 26) }
+                    // the wins of the last 20 minutes on a card of their own beside the board, or under it on a screen standing up
+                    if hud.boardMode == .over {
+                        (box.size.width > box.size.height ? AnyLayout(HStackLayout(alignment: .top, spacing: 18)) : AnyLayout(VStackLayout(spacing: 18))) {
+                            board(size: 26)
+                            if !hud.wins.isEmpty { tally }
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity).padding(.top, box.size.height * 0.2)
                 if hud.boardMode == .live { board(size: 18).frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 16).padding(.top, 124) }
@@ -88,12 +94,27 @@ struct HUDView: View {
                 hud.standing(i, name, size: size).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
             }
         }
-        .foregroundColor(Color(hex: 0x1b1410))
-        .padding(.horizontal, 18).padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xfffdf6)))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(hex: 0x111111), lineWidth: 3))
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0x111111)).offset(x: 5, y: 5))
-        .rotationEffect(.degrees(1))
+        .card()
+    }
+
+    private var tally: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(bangers: "🏆 Wins, last 20 min", size: 20)
+            ForEach(hud.wins, id: \.self) { Text(bangers: $0, size: 20) }
+        }
+        .card()
+    }
+}
+
+private extension View {
+    /// A card of paper with an ink edge and a hard shadow, a little askew, as the browsers' board.
+    func card() -> some View {
+        foregroundColor(Color(hex: 0x1b1410))
+            .padding(.horizontal, 18).padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xfffdf6)))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(hex: 0x111111), lineWidth: 3))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0x111111)).offset(x: 5, y: 5))
+            .rotationEffect(.degrees(1))
     }
 }
 

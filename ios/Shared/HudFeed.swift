@@ -19,6 +19,8 @@ struct HudState: Equatable {
     var board: [String] = [], me = "", boardMode = Board.hidden, title = ""
     /// How many on the board finished; after a Race, the rest are listed as not finished.
     var finishers = 0
+    /// Beside the board at the end, who won the most Races of the last 20 minutes (`winTally`).
+    var wins: [String] = []
     var popups: [Popup] = []
     /// How far the view is greyed out: all the way while Stranded, colour coming back as the drone Recharges.
     var grey = 0.0
@@ -62,6 +64,7 @@ final class HudFeed {
         // finished (or on the grid after a Race) it's the end: the board moves to the middle under a title
         let over = state.phase == .grid ? !state.results.isEmpty : state.phase == .finishing && me?.finished == true
         h.title = !over ? "" : state.phase == .grid ? "🏁 Race over" : "🏁 Next race in \(left)"
+        h.wins = over ? winTally(state.winners) : []
         h.boardMode = h.board.isEmpty ? .hidden : over ? .over : .live
         h.news = now < newsUntil ? news : ""
         popups.removeAll { now - $0.born > 1.2 }

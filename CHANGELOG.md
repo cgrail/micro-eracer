@@ -64,6 +64,9 @@ happens. Everything before 1.0 is in the git history.
   Over 40 Races Bots now Hit each other half as often and the Player about half as often again.
 - The board after a Race lists those still racing when it ended as not finished, without a place, below the ones who
   finished; until now everyone got a place as if they had finished. The room sends how many finished (`finishers`).
+- Beside the board at the end of a Race (under it on a screen standing up), a card tallies who won the most Races in
+  the last 20 minutes, Bots included: "Chris 3", "🤖 Sparky 2", the top five. The room keeps the wins while it runs and
+  sends their winners (`winners`); an Offline Race keeps its own. The watch's small board leaves it out.
 
 ### Start screen
 

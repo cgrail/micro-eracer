@@ -3,7 +3,7 @@ import { MAX_ENERGY } from '../../shared/src/car.ts';
 import type { Track } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
 import { createMap } from './minimap.ts';
-import { RECHARGE, type CarState, type RaceState, STRANDED } from './state.ts';
+import { RECHARGE, type CarState, type RaceState, STRANDED, winTally } from './state.ts';
 
 export interface Hud {
   pos: HTMLElement; lap: HTMLElement; msg: HTMLElement; results: HTMLOListElement; energy: HTMLElement; energyFill: HTMLElement;
@@ -78,6 +78,10 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
       // finished, the title counts down to the next Race
       const title = !over ? '' : state.phase === 'grid' ? '🏁 Race over' : `🏁 Next race in ${left}`;
       if (hud.results.dataset.title !== title) hud.results.dataset.title = title;
+      // beside it, who won the most Races of the last 20 minutes
+      const tally = over ? winTally(state.winners) : [];
+      const wins = tally.length ? `🏆 Wins, last 20 min\n${tally.join('\n')}` : '';
+      if (hud.results.dataset.wins !== wins) hud.results.dataset.wins = wins;
       const shown = `${state.phase}:${over}:${finishers}:${board.join('\n')}`;
       if (shown !== lastResults) {
         lastResults = shown;

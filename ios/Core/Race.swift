@@ -9,6 +9,8 @@ let LAPS = 3
 let FIRST_GRID_TIME = 3.0
 let GRID_TIME = 3.0
 let FINISH_TIME = 5.0
+/// How long a Race's win stays on the board's tally.
+let WINS_TIME = 20.0 * 60
 /// A Race's next Track is never one of the last this many raced (in a small pool, never one of its last half).
 private let FRESH = 10
 /// Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands.
@@ -84,6 +86,8 @@ final class RaceSim {
     private(set) var startedAt = Double.infinity
     private(set) var results: [String] = []
     private(set) var finishers = 0 // how many of the `results` finished; the rest were still racing when it ended
+    /// Who won each Race of the last `WINS_TIME`, the last one last; trimmed as each is won, which is when the board shows them.
+    private(set) var wins: [(name: String, at: Double)] = []
     private(set) var combat: Combat!
     var events: [RaceEvent] = []
     /// Counters for tests and tuning.
@@ -195,7 +199,7 @@ final class RaceSim {
             let locked = !live || time < s.lockedUntil || isRecharging(s)
             let input = isStranded(s) || isRecharging(s) ? HALT : locked ? NO_INPUT : botInput(self, s)
             let pit = inStation(track, s.progress.idx, t.x, t.z) ? PIT_SPEED : 1
-            driveCar(world, s.car, input, live ? catchUp(s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(track, t.x, t.y, t.z))
+            driveCar(world, s.car, input, live ? catchUp(self, s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(track, t.x, t.y, t.z))
             if !locked && canAct(s) { combat.botTurn(s) }
         }
         world.step()
@@ -224,7 +228,10 @@ final class RaceSim {
             if live && !s.finished && s.progress.u >= LAPS * track.n {
                 s.finished = true
                 s.finishTime = time
-                if phase == .racing { phase = .finishing; timer = FINISH_TIME }
+                if phase == .racing {
+                    phase = .finishing; timer = FINISH_TIME
+                    wins = wins.filter { $0.at > time - WINS_TIME } + [(s.name, time)]
+                }
             }
         }
 
@@ -259,13 +266,6 @@ final class RaceSim {
     }
 
     func lap(_ s: Seat) -> Int { Int(clamp(Double(lapOf(track, s.progress)), 1, Double(LAPS))) }
-
-    /// Bots stay close to the Players: faster when far behind the nearest one, slower when far ahead.
-    private func catchUp(_ bot: Seat) -> Double {
-        var gap = Double.infinity
-        for p in seats where !p.owner.isEmpty && abs(Double(bot.progress.u - p.progress.u)) < abs(gap) { gap = Double(bot.progress.u - p.progress.u) }
-        return gap == .infinity ? 1 : clamp(1 - gap / 80, 0.7, 1.3)
-    }
 
     private func replaceCar(_ seat: Seat, dynamic: Bool) {
         let t = seat.car.rb.translation, pose = Pose(x: t.x, y: t.y, z: t.z, yaw: seat.car.rb.yaw)

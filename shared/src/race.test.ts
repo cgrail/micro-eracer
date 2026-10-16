@@ -4,7 +4,7 @@ import { DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, telepo
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
 import { give, ramResponse, shove } from './contact.ts';
 import { batteryRank } from './energy.ts';
-import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, type Seat, STRANDED_TIME } from './race.ts';
+import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, type Seat, STRANDED_TIME, WINS_TIME } from './race.ts';
 import {
   RISE, TRACKS, buildTrack, gridPose, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress,
 } from './track.ts';
@@ -155,6 +155,18 @@ test('a Race goes on to another Track from its pool at random, none of the last 
 });
 
 // the slowest Body against the quickest: if the Semi can beat Roadsters, the Bodies in between can too
+test('the winner of each Race goes on the tally, and comes off it 20 minutes later', () => {
+  const sim = new RaceSim(TRACKS[0].id);
+  const race = () => { sim.results = []; for (let t = 0; t < 240 && sim.results.length === 0; t += DT) sim.step(DT); return sim.results[0]; };
+  const first = race();
+  assert.deepEqual(sim.wins.map((w) => w.name), [first]);
+  const second = race();
+  assert.deepEqual(sim.wins.map((w) => w.name), [first, second]);
+  sim.wins[0].at -= WINS_TIME;
+  const third = race();
+  assert.deepEqual(sim.wins.map((w) => w.name), [second, third], 'the win from 20 minutes ago is off the tally');
+});
+
 test('every Body can win: half the field in Semis, half in Roadsters', () => {
   const wins: Record<string, number> = { semi: 0, roadster: 0 };
   // the Semi wins about 30% of these, so 20 Races leave it no win less than once in a thousand runs

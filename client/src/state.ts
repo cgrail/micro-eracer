@@ -13,8 +13,15 @@ export interface List<T> { length: number; forEach(cb: (item: T, i: number) => v
 /** The Race's Track as the room sends it (`TrackDef`); empty from a server from before it sent one. */
 export interface TrackState { id: string; name: string; theme: string; pieces: string; puddles: List<number>; items: List<number> }
 export interface RaceState {
-  phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>; finishers: number;
+  phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>; finishers: number; winners: List<string>;
   batteries: List<Spot>; bolts: List<BoltState>; mines: List<Spot>; boxes: List<boolean>; track?: TrackState;
+}
+
+/** The board's tally of Race wins, "Name 3": the top five, most wins first and, on a tie, who won first. */
+export function winTally(winners: List<string>) {
+  const wins = new Map<string, number>();
+  winners.forEach((n) => wins.set(n, (wins.get(n) ?? 0) + 1));
+  return [...wins].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, k]) => `${n} ${k}`);
 }
 
 const listOf = <T>(list: List<T>) => { const all: T[] = []; list.forEach((v) => all.push(v)); return all; };

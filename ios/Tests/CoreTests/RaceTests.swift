@@ -26,6 +26,14 @@ final class RaceTests: XCTestCase {
         }
     }
 
+    func testTheTallyCountsTheWinsOfTheLast20Minutes() {
+        let sim = RaceSim(trackId: TRACKS[0].id)
+        var t = 0.0
+        while t < 240 && sim.results.isEmpty { sim.step(DT); t += DT }
+        XCTAssertEqual(sim.wins.map(\.name), [sim.results[0]])
+        XCTAssertEqual(winTally(["Chris", "🤖 Sparky", "Ada", "🤖 Sparky", "Chris", "Chris", "Zoe", "Max", "Rex"]), ["Chris 3", "🤖 Sparky 2", "Ada 1", "Zoe 1", "Max 1"])
+    }
+
     func testBotsFinishARaceOnEveryTrack() {
         for def in TRACKS {
             let sim = RaceSim(trackId: def.id)

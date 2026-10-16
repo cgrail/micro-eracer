@@ -5,6 +5,13 @@ import Foundation
 /// Whom the Bots go for, with Rams, Shots, Missiles and Mines: the Players, or anyone in a Race of Bots alone.
 func isPrey(_ sim: RaceSim, _ o: Seat) -> Bool { !o.owner.isEmpty || !sim.seats.contains { !$0.owner.isEmpty } }
 
+/// Bots stay close to the Players: faster when far behind the nearest one, slower when far ahead.
+func catchUp(_ sim: RaceSim, _ bot: Seat) -> Double {
+    var gap = Double.infinity
+    for p in sim.seats where !p.owner.isEmpty && abs(Double(bot.progress.u - p.progress.u)) < abs(gap) { gap = Double(bot.progress.u - p.progress.u) }
+    return gap == .infinity ? 1 : clamp(1 - gap / 80, 0.7, 1.3)
+}
+
 /// Follow the centreline in a per-Seat lane; low on Energy, pull into the Charging Station and stay until charged;
 /// otherwise swerve for a Battery just ahead, else try to Ram the prey just ahead; and go round a Bot in the way.
 func botInput(_ sim: RaceSim, _ s: Seat) -> Input {

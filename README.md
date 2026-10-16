@@ -26,6 +26,8 @@ Tracks: 50 of them round 22 places, from the four at home (kitchen table, garden
 
 Run dry and you're Stranded: the world turns black and white until a drone arrives and Recharges you where you stand, and the colour comes back as the battery fills.
 
+The first across the line after 3 Laps wins, and the Race ends 5 seconds later: the board lists who finished in order and everyone still racing as not finished, and beside it (under it on a screen standing up) who won the most Races in the last 20 minutes, Bots included.
+
 Low on Energy and no Battery in sight? The Charging Station is a bay beside the last straights before the finish line: drive through it to charge fast, but it has a speed limit, so it's a detour.
 
 Bots have names that start with 🤖 and grey name tags; Players' tags are gold. When you join, you take over a Bot's E-Car where it is, and everyone sees who took over whom. Bots make up a field of eight; once every Bot has been taken over, the next Players join behind the last Racer with E-Cars of their own, up to 20 in one Race, and each new Race is everyone racing plus Bots to make eight. Bots go for the Players: they Ram, shoot and drop Mines at you, not at each other, and steer round each other on the way.

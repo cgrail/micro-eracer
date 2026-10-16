@@ -4,6 +4,13 @@ import { BAY_WIDTH, HALF_WIDTH, inStation, lateralOf, poseAt, right } from './tr
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** Bots stay close to the Players: faster when far behind the nearest one, slower when far ahead. */
+export function catchUp(sim: RaceSim, bot: Seat) {
+  let gap = Infinity;
+  for (const p of sim.seats) if (p.owner && Math.abs(bot.progress.u - p.progress.u) < Math.abs(gap)) gap = bot.progress.u - p.progress.u;
+  return gap === Infinity ? 1 : clamp(1 - gap / 80, 0.7, 1.3);
+}
+
 /** Whom the Bots go for, with Rams, Shots, Missiles and Mines: the Players, or anyone in a Race of Bots alone. */
 export const isPrey = (sim: RaceSim, o: Seat) => !!o.owner || !sim.seats.some((p) => p.owner);
 

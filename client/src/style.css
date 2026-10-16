@@ -177,6 +177,11 @@ dialog .go:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--
 #results .dnf::after { content: 'not finished'; margin-left: 0.4em; font-size: 0.6em; opacity: 0.6; }
 #results.over { font-size: 26px; box-shadow: 5px 5px 0 #111, 0 0 0 100vmax rgb(0 0 0 / 0.4); }
 #results.over::before { content: attr(data-title); display: block; margin: 0 0 6px -28px; font-size: 32px; }
+/* the wins of the last 20 minutes on a card of their own beside the board, or under it on a screen standing up */
+#results.over[data-wins]:not([data-wins=""])::after { content: attr(data-wins); position: absolute; top: 0; left: calc(100% + 18px);
+  white-space: pre; padding: 10px 16px; background: var(--paper); border: 3px solid #111; border-radius: 12px; box-shadow: 5px 5px 0 #111;
+  font-size: 20px; line-height: 1.35; }
+@media (orientation: portrait) { #results.over[data-wins]:not([data-wins=""])::after { top: calc(100% + 18px); left: 0; } }
 /* the big message and the news stay bright above the dimmed screen */
 #msg, #news { z-index: 1; }
 #news { position: absolute; top: calc(26% + 76px); width: 100%; padding: 0 16px; text-align: center; font-size: 24px; color: #fff;

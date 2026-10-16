@@ -20,7 +20,7 @@ struct BoltState { let id: Int; let kind: String; let x, y, z, vx, vz: Double }
 
 struct RaceState {
     var phase = Phase.grid, timer = 0.0, trackId = ""
-    var cars: [CarState] = [], results: [String] = [], finishers = 0, batteries: [Spot] = [], bolts: [BoltState] = [], mines: [Spot] = [], boxes: [Bool] = []
+    var cars: [CarState] = [], results: [String] = [], finishers = 0, winners: [String] = [], batteries: [Spot] = [], bolts: [BoltState] = [], mines: [Spot] = [], boxes: [Bool] = []
     /// The Race's Track as the room sends it, so it is the server's even where this app has none like it; nil from a server
     /// from before it sent one.
     var track: TrackDef? = nil
@@ -42,9 +42,16 @@ func seatState(_ sim: RaceSim, _ s: Seat) -> CarState {
                     shield: s.shield, pace: Int((s.pace * 100).rounded()))
 }
 
+/// The board's tally of Race wins, "Name 3": the top five, most wins first and, on a tie, who won first.
+func winTally(_ winners: [String]) -> [String] {
+    var wins: [(name: String, count: Int)] = []
+    for n in winners { if let i = wins.firstIndex(where: { $0.name == n }) { wins[i].count += 1 } else { wins.append((n, 1)) } }
+    return wins.enumerated().sorted { ($0.element.count, -$0.offset) > ($1.element.count, -$1.offset) }.prefix(5).map { "\($0.element.name) \($0.element.count)" }
+}
+
 /// The whole Race as the room would send it.
 func raceState(_ sim: RaceSim) -> RaceState {
-    RaceState(phase: sim.phase, timer: max(0, sim.timer), trackId: sim.track.def.id, cars: sim.seats.map { seatState(sim, $0) }, results: sim.results, finishers: sim.finishers,
+    RaceState(phase: sim.phase, timer: max(0, sim.timer), trackId: sim.track.def.id, cars: sim.seats.map { seatState(sim, $0) }, results: sim.results, finishers: sim.finishers, winners: sim.wins.map(\.name),
               batteries: sim.batteries.map { Spot(id: $0.id, x: $0.x, y: $0.y, z: $0.z) },
               bolts: sim.combat.bolts.map { BoltState(id: $0.id, kind: $0.kind.rawValue, x: $0.x, y: $0.y, z: $0.z, vx: $0.vx, vz: $0.vz) },
               mines: sim.combat.mines.map { Spot(id: $0.id, x: $0.x, y: $0.y, z: $0.z) }, boxes: sim.combat.out, track: sim.track.def)
