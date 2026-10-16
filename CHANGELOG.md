@@ -85,6 +85,7 @@ happens. Everything before 1.0 is in the git history.
   in-app purchases, tracking or ads), the code's address on GitHub (github.com/cgrail/micro-eracer) and a GitHub button,
   and which build this is: when it was built and its commit (in the apps their version too), the whole line a link to
   that commit on GitHub.
+- On About, Joule is a link to SAP's page on its AI.
 - After Play, the big message says Loading… until the Track is on screen, instead of a few seconds of an empty screen
   on a first start.
 - The wire: Races are joined in the `race2` room, which takes the picked Track as `track`, for a Race the join starts. The `race` room is left to apps

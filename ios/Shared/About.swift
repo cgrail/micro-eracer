@@ -4,9 +4,9 @@ import Foundation
 // and why, the code on GitHub, and which build this is, with a link to its commit.
 
 /// Who made the game, how and why: the same paragraphs as the browsers' About dialog in client/index.html, with the same
-/// links (the name to LinkedIn, the code's address written out to GitHub).
+/// links (the name to LinkedIn, Joule to SAP's page on it, the code's address written out to GitHub).
 let ABOUT = [
-    "Made by [Christian Grail](https://www.linkedin.com/in/cgrail), who works at SAP in Germany on Joule, SAP's AI assistant for business.",
+    "Made by [Christian Grail](https://www.linkedin.com/in/cgrail), who works at SAP in Germany on [Joule](https://www.sap.com/products/artificial-intelligence.html), SAP's AI assistant for business.",
     "Micro E-Racer was built with Claude Opus, Anthropic's AI, as a way to play around with AI. Every E-Car, every Track and every song in it is made in code.",
     "The goal: a game with no in-app purchases, no tracking and no ads. Just a free game that is a lot of fun.",
     "All of its code is on GitHub: [\(REPO.absoluteString.replacingOccurrences(of: "https://", with: ""))](\(REPO.absoluteString))",
