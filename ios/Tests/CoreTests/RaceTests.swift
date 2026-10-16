@@ -38,9 +38,16 @@ final class RaceTests: XCTestCase {
         }
     }
 
-    func testAPickedTrackGoesOnToTheNextInTheList() {
-        let ids = TRACKS.map(\.id), sim = RaceSim(trackId: ids[ids.count - 2], ordered: true)
-        for want in [ids[ids.count - 1], ids[0], ids[1]] { sim.newRace(FIRST_GRID_TIME); XCTAssertEqual(sim.track.def.id, want) }
+    func testTheNextTrackIsNoneOfTheLastTenRaced() {
+        let sim = RaceSim(trackId: TRACKS[0].id)
+        var raced = [sim.track.def.id]
+        for _ in 0..<200 {
+            sim.newRace(FIRST_GRID_TIME)
+            XCTAssertFalse(raced.suffix(10).contains(sim.track.def.id), "\(sim.track.def.id) again after \(raced.suffix(10))")
+            raced.append(sim.track.def.id)
+        }
+        let pair = RaceSim(pool: ["kitchen", "garden"])
+        for _ in 0..<4 { let was = pair.track.def.id; pair.newRace(FIRST_GRID_TIME); XCTAssertNotEqual(pair.track.def.id, was) }
     }
 
     func testPlayersPastTheFieldBringSeatsOfTheirOwnUpToMaxSeats() {

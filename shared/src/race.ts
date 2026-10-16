@@ -22,6 +22,8 @@ export const FIRST_GRID_TIME = 3;
 /** Once a Race is over it goes fast: FINISH_TIME after the first Racer finishes, then this long on the next grid. */
 export const GRID_TIME = 3;
 export const FINISH_TIME = 5;
+/** A Race's next Track is never one of the last this many raced (in a small pool, never one of its last half). */
+const FRESH = 10;
 /** Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands. */
 export const STRANDED_TIME = 1.6;
 const RESPAWN_LOCK = 1;
@@ -111,19 +113,20 @@ export class RaceSim {
   /** Per pair of Seats, when they can next Ram each other (`contact.ts`). */
   ramCooldown = new Map<number, number>();
 
-  /** The Tracks the next Races are picked from, a different one each time while there is more than one. */
+  /** The Tracks the next Races are picked from at random, none raced lately while there are others (`FRESH`). */
   pool: string[];
-  /** `ordered`: each next Race on the pool's next Track (a picked Track goes on through the list), else on one at random. */
-  constructor(trackId?: string, pool = TRACKS.map((t) => t.id), private ordered = false) {
+  /** The Tracks raced, the last one last. */
+  private raced: string[] = [];
+  constructor(trackId?: string, pool = TRACKS.map((t) => t.id)) {
     this.pool = pool;
     this.newRace(FIRST_GRID_TIME, trackId);
   }
 
   newRace(gridTime: number, trackId?: string) {
-    const pool = TRACKS.filter((t) => this.pool.includes(t.id)), at = pool.findIndex((t) => t.id === this.track?.def.id);
-    const others = pool.filter((_, i) => i !== at);
-    const def = TRACKS.find((t) => t.id === trackId)
-      ?? (this.ordered ? pool[(at + 1) % pool.length] : others[Math.floor(Math.random() * others.length)]) ?? pool[0] ?? TRACKS[0];
+    const pool = TRACKS.filter((t) => this.pool.includes(t.id)), skip = Math.min(FRESH, Math.floor(pool.length / 2));
+    const lately = skip ? this.raced.slice(-skip) : [], fresh = pool.filter((t) => !lately.includes(t.id));
+    const def = TRACKS.find((t) => t.id === trackId) ?? fresh[Math.floor(Math.random() * fresh.length)] ?? pool[0] ?? TRACKS[0];
+    this.raced = [...this.raced, def.id].slice(-FRESH);
     this.track = buildTrack(def);
     this.world = createTrackWorld(this.track);
     this.combat = new Combat(this);

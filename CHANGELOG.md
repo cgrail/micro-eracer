@@ -64,16 +64,16 @@ happens. Everything before 1.0 is in the git history.
 - Pick the Track as you pick the Body: ◀ and ▶ step through every Track (held, they keep going, faster and faster), the
   picture shows it from above on its ground, and below it are its place, length, turns, bridges, climbs and jumps.
   Tapping its name lists every Track by place. Any Track, first in the list, races a new Track every Race; a picked
-  Track is raced again and again. Online, only the first Player in a Race picks (see Online). An Offline Race
+  Track is raced first. Online, only the first Player in a Race picks (see Online). An Offline Race
   (and the watch, which picks it from a list) does the same. Each start shows a Track picked at random, with its name,
   and Play races it (the watch remembers its pick as `track`).
 - The start form works from the keyboard in the browser: ↓ and ↑ (or Tab) go from the Name to the Body, the Track and
   Play and back, ← and → step through the Bodies or the Tracks, Enter plays, and where the keys are shows like a game
   menu's cursor: a picker glows yellow, its arrows lit, and the Name field or Play flashes in a thicker edge. On a
   desktop the Track's picker has the keys from the start.
-- After a Race on a picked Track the next Race goes on to the next Track in the list (after the last, the first again),
-  instead of racing the same Track once more; online, in an Offline Race and on the watch alike. Any Track still picks
-  each next one at random.
+- After a Race the next one is on a Track picked at random, and never on one of the last 10 raced; after a picked Track
+  too, rather than the same Track once more or the next one in the list. Online, in an Offline Race and on the watch
+  alike.
 - The picked Track's picture is the Track itself in 3D, with its scenery, landmarks, rivers and bridges, seen from above
   and turning slowly like the Body on its turntable, starting from behind the start line with a whirl as each Track comes
   up. Any Track keeps its question mark.

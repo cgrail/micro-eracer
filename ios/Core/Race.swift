@@ -9,6 +9,8 @@ let LAPS = 3
 let FIRST_GRID_TIME = 3.0
 let GRID_TIME = 3.0
 let FINISH_TIME = 5.0
+/// A Race's next Track is never one of the last this many raced (in a small pool, never one of its last half).
+private let FRESH = 10
 /// Out of Energy: first Stranded on the spot while a drone flies in, then Recharged by it where it stands.
 let STRANDED_TIME = 1.6
 private let RESPAWN_LOCK = 1.0
@@ -92,21 +94,20 @@ final class RaceSim {
     /// Per pair of Seats, when they can next Ram each other (Contact.swift).
     var ramCooldown: [Int: Double] = [:]
 
-    /// The Tracks the next Races are picked from, a different one each time while there is more than one.
+    /// The Tracks the next Races are picked from at random, none raced lately while there are others (`FRESH`).
     let pool: [String]
-    /// Each next Race on the pool's next Track (a picked Track goes on through the list), else on one at random.
-    let ordered: Bool
+    /// The Tracks raced, the last one last.
+    private var raced: [String] = []
 
-    init(trackId: String? = nil, pool: [String] = TRACKS.map(\.id), ordered: Bool = false) {
+    init(trackId: String? = nil, pool: [String] = TRACKS.map(\.id)) {
         self.pool = pool
-        self.ordered = ordered
         newRace(FIRST_GRID_TIME, trackId)
     }
 
     func newRace(_ gridTime: Double, _ trackId: String? = nil) {
-        let pool = TRACKS.filter { self.pool.contains($0.id) }, at = pool.firstIndex { $0.id == track?.def.id } ?? -1
-        let next = pool.isEmpty ? nil : pool[(at + 1) % pool.count]
-        let def = TRACKS.first { $0.id == trackId } ?? (ordered ? next : pool.filter { $0.id != track?.def.id }.randomElement()) ?? pool.first ?? TRACKS[0]
+        let pool = TRACKS.filter { self.pool.contains($0.id) }, lately = raced.suffix(min(FRESH, pool.count / 2))
+        let def = TRACKS.first { $0.id == trackId } ?? pool.filter { !lately.contains($0.id) }.randomElement() ?? pool.first ?? TRACKS[0]
+        raced = Array((raced + [def.id]).suffix(FRESH))
         track = buildTrack(def)
         world = createTrackWorld(track)
         combat = Combat(self)

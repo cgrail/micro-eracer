@@ -7,9 +7,9 @@ final class OfflineRace: RaceLink {
     private let sim: RaceSim
     private var acc = 0.0
 
-    /// `track`: the first Track, followed by the next ones in the list, or nil for a different one at random each Race.
+    /// `track`: the first Track, or nil for one at random; each next Race is on one at random.
     init(name: String, body: BodyKind, track: String? = nil) {
-        sim = RaceSim(trackId: track, ordered: track != nil)
+        sim = RaceSim(trackId: track)
         sim.join(sessionId, String(name.prefix(16)).isEmpty ? "Player" : String(name.prefix(16)), body)
     }
 

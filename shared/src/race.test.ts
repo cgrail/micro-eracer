@@ -134,7 +134,7 @@ test('Batteries are plentiful at the back and scarce at the front', () => {
   assert.equal(byPosition[0], 0, 'the Leader never picks up a Battery');
 });
 
-test('a Race goes on to another Track from its pool, or after a picked one to the next in the list', () => {
+test('a Race goes on to another Track from its pool at random, none of the last 10 raced', () => {
   const sim = new RaceSim(undefined, ['kitchen', 'garden']);
   assert.ok(['kitchen', 'garden'].includes(sim.track.def.id));
   for (let i = 0; i < 4; i++) {
@@ -142,8 +142,15 @@ test('a Race goes on to another Track from its pool, or after a picked one to th
     sim.newRace(FIRST_GRID_TIME);
     assert.ok(['kitchen', 'garden'].includes(sim.track.def.id) && sim.track.def.id !== was, `${was} then ${sim.track.def.id}`);
   }
-  const ids = TRACKS.map((t) => t.id), picked = new RaceSim(ids.at(-2), undefined, true);
-  for (const want of [ids.at(-1), ids[0], ids[1]]) { picked.newRace(FIRST_GRID_TIME); assert.equal(picked.track.def.id, want); }
+  const picked = new RaceSim(TRACKS[0].id), raced = [picked.track.def.id];
+  for (let i = 0; i < 200; i++) {
+    picked.newRace(FIRST_GRID_TIME);
+    assert.ok(!raced.slice(-10).includes(picked.track.def.id), `${picked.track.def.id} again after ${raced.slice(-10)}`);
+    raced.push(picked.track.def.id);
+  }
+  // after a picked Track, not the next one in the list every time
+  const seconds = new Set(Array.from({ length: 10 }, () => { const s = new RaceSim(TRACKS[0].id); s.newRace(FIRST_GRID_TIME); return s.track.def.id; }));
+  assert.ok(seconds.size > 1, `always ${[...seconds]} after ${TRACKS[0].id}`);
 });
 
 // the slowest Body against the quickest: if the Semi can beat Roadsters, the Bodies in between can too
