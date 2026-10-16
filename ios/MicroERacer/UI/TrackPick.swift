@@ -103,7 +103,8 @@ final class Course: NSObject, ObservableObject, SCNSceneRendererDelegate {
         lens.zNear = dist / 4
         lens.zFar = dist * 3
         camera.position = SCNVector3(Double(centre.x) + sin(angle) * cos(TILT) * dist, sin(TILT) * dist, Double(centre.z) + cos(angle) * cos(TILT) * dist)
-        camera.look(at: centre)
+        // world up: the one-argument look(at:) keeps the camera's own up, so the picture would roll a little more each turn
+        camera.look(at: centre, up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
     }
 }
 
