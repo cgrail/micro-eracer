@@ -3,6 +3,22 @@
 The App Store's "What's New in This Version" text, one section per released version. Plain ASCII only: App Store Connect
 rejects bullets, emoji and typographic dashes or quotes in that field.
 
+## 1.0.2
+
+- Up to 20 Players in one Race. Bots still fill the field up to eight, and once every Bot is taken over, more Players join behind the last Racer in E-Cars of their own. Update to race online again.
+- Bots go for the Players, not each other: only the Bot right behind you attacks, and the rest keep their lanes and steer round each other, so there are far fewer pile-ups.
+- The Leader gets no Batteries, so out in front the Charging Station is the way to keep going. It now holds you to a crawl the moment you drive in, and a stop there fills your battery.
+- A light E-Car barely moves a heavy one when it Rams it: a Roadster hardly shoves a Semi any more.
+- Jumps fly higher and longer, the nose follows the flight, and the camera stays down at the road so you see the E-Car take off.
+- After every Race the next one is on a Track picked at random, never one of the last 10, even after a Track you picked.
+- The board after a Race lists those still racing as not finished, and beside it a card shows who won the most Races in the last 20 minutes.
+- The music shuffles: a different song every Race, and a new one after every two plays.
+- Headlights shine onto the road ahead, and the SUV, the Microbus and the Pickup have windows.
+- With a hardware keyboard the start screen works like a game menu: up and down move between Name, Body, Track and Play, left and right pick, and Return plays.
+- Lying down, the start screen sits under a centred title with the Body and the Track side by side, and Loading... shows until the Track is up instead of an empty screen.
+- Fixes: the last letter of the comic lettering is no longer cut off, and the Track on the start screen stays upright as it turns.
+- Apple Watch: runs on watchOS 10 and later (Series 4 or newer), and the start screen shows the Body and the Track as pictures, as on the phone.
+
 ## 1.0.1
 
 - Race each other, not just the Bots: Play now joins the Race that is already running, whatever Track you had up. The start screen shows that Race's Track and who is in it, and Join the Race takes you there. When none is running, you pick the Track and everyone after you races on it.
