@@ -61,14 +61,17 @@ happens. Everything before 1.0 is in the git history.
   and turning slowly like the Body on its turntable, starting from behind the start line with a whirl as each Track comes
   up. Any Track keeps its question mark.
 - The whole start screen fits on one screen, on phones and tablets in both orientations and on desktops, without
-  scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit.
+  scrolling: one column standing up, two side by side lying down, and smaller where even that doesn't fit. Lying down,
+  the title (in the middle) and the Name sit on top, the Body and the Track side by side below them at the same height
+  with a line between them, and Play, half as wide, in the middle at the bottom.
 - The Body and the Track each sit between their ◀ and ▶, with the name right below the picture and the stat bars (two
   to a row) or the place, length, turns, bridges, climbs and jumps under that. The Body turns closer up, so it fills its
   picture, and the Body and Track tags are gone.
 - More to look at behind the form: comic rays from the middle, a chequered flag across the top and the bottom, and
   stickers of a Zap, a Battery, a Missile, a Shield, a Mine and the flag, bobbing gently (they hold still with reduced
   motion on).
-- Nickname is now Name, and a new Player starts with a name to race under, made up like Joe Ram or Max Volt.
+- Nickname is now Name, and a new Player starts with a name to race under, made up like Joe Ram or Max Volt. The
+  made-up name clears as soon as they go to type their own, and comes back if they leave the field empty.
 - Controls is filled in light blue with a shadow like Play's, only quieter, and Play's shadow no longer runs into the
   form's edge on the right.
 - An i beside the title (on the watch, in the top right corner) opens About the game: who made it (Christian Grail, who

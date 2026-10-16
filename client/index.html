@@ -18,9 +18,9 @@
 </head>
 <body>
   <form id="start">
+    <div class="title"><h1>Micro E-Racer</h1><button type="button" id="info" aria-label="About the game" aria-haspopup="dialog">i</button></div>
+    <div id="who"><label for="name">Name</label><input id="name" maxlength="16" autocomplete="nickname" required></div>
     <div class="col">
-      <div class="title"><h1>Micro E-Racer</h1><button type="button" id="info" aria-label="About the game" aria-haspopup="dialog">i</button></div>
-      <div id="who"><label for="name">Name</label><input id="name" maxlength="16" autocomplete="nickname" required></div>
       <fieldset class="pick">
         <legend class="sr">Body</legend>
         <div class="stage"><button type="button" id="prev-body" aria-label="Previous Body">◀</button><canvas id="turntable" aria-hidden="true"></canvas><button type="button" id="next-body" aria-label="Next Body">▶</button></div>
@@ -36,9 +36,9 @@
         <div id="facts" aria-live="polite"></div>
       </fieldset>
       <button type="button" id="controls" hidden><span>Controls</span><small id="controls-now"></small><span aria-hidden="true">▶</span></button>
-      <button id="play" type="submit">Play</button>
-      <p id="error" role="alert"></p>
     </div>
+    <button id="play" type="submit">Play</button>
+    <p id="error" role="alert"></p>
   </form>
   <!-- behind the start form: comic rays, chequered flags and stickers of the game's things (ios/MicroERacer/UI/Backdrop.swift) -->
   <div id="backdrop" aria-hidden="true">

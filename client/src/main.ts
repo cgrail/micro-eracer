@@ -34,7 +34,11 @@ let body: BodyKind = BODY_KINDS.find((b) => b === load('body')) ?? 'roadster';
 const FIRST_NAMES = ['Joe', 'Max', 'Kim', 'Lou', 'Ada', 'Sam', 'Zoe', 'Ben', 'Mia', 'Rex', 'Ivy', 'Gus', 'Lena', 'Otto', 'Rita', 'Finn'];
 const LAST_NAMES = ['Ram', 'Volt', 'Watt', 'Amp', 'Spark', 'Drift', 'Zap', 'Skid', 'Turbo', 'Fuse', 'Bolt', 'Ohm', 'Plug', 'Dash', 'Coil', 'Charge'];
 const pick = <T>(all: readonly T[]) => all[Math.floor(Math.random() * all.length)];
-nameInput.value = load('name') || `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+const madeUp = load('name') ? '' : `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+nameInput.value = load('name') || madeUp;
+// the made-up name clears as the Player goes to type their own, and comes back if they type none
+nameInput.addEventListener('focus', () => { if (madeUp && nameInput.value === madeUp) nameInput.value = ''; });
+nameInput.addEventListener('blur', () => { if (madeUp && !nameInput.value.trim()) nameInput.value = madeUp; });
 const BODY_NAMES: Record<BodyKind, string> = { roadster: 'Roadster', suv: 'SUV', microbus: 'Microbus', pickup: 'Pickup', semi: 'Semi' };
 const garage = createGarage($('turntable'), $('stats'));
 const showBody = () => { $('body-name').textContent = BODY_NAMES[body]; garage.show(body); };

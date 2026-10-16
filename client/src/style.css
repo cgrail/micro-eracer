@@ -41,7 +41,8 @@ canvas { display: block; transition: filter 0.25s; }
 #backdrop span:nth-of-type(even) { animation-delay: -1.6s; }
 @keyframes bob { 50% { transform: translateY(-8px); } }
 
-/* the start form fits one screen on every device: one column standing up, two side by side lying down, and main.ts
+/* the start form fits one screen on every device: one column standing up, two side by side lying down (the Body and
+   the Track, under the title and the name and above Play, all centred over both), and main.ts
    scales it down (--fit) where even that is too big, so it never scrolls */
 #start {
   position: fixed; inset: 0; margin: auto; height: fit-content; z-index: 3; --pic: 88px;
@@ -52,6 +53,10 @@ canvas { display: block; transition: filter 0.25s; }
 #start .col { display: grid; gap: 8px; align-content: start; min-width: 0; }
 @media (orientation: landscape) and (min-width: 600px) {
   #start { width: min(780px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); grid-template-columns: 1fr 1fr; column-gap: 20px; --pic: 104px; }
+  #start > .title, #who, #play, #error { grid-column: 1 / -1; }
+  #who, #play { justify-self: center; width: 50%; }
+  /* a dashed line between the Body and the Track, like the one under the Track's name */
+  #start .col + .col { border-left: 2px dashed currentColor; padding-left: 20px; }
 }
 @media (min-height: 720px) { #start { --pic: 112px; } }
 /* the title, with the i for the About dialog at its end */
@@ -60,6 +65,12 @@ canvas { display: block; transition: filter 0.25s; }
 #info { flex: none; width: 44px; height: 44px; margin-right: 3px; padding: 0; border-radius: 50%; background: #8ecbff; color: #1b1410;
   font: 700 26px/1 Georgia, 'Times New Roman', serif; box-shadow: 3px 3px 0 var(--ink); }
 #info:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+/* lying down, the title in the middle and the i still at the end */
+@media (orientation: landscape) and (min-width: 600px) {
+  #start .title { display: grid; grid-template-columns: 1fr auto 1fr; }
+  #start h1 { grid-column: 2; }
+  #info { justify-self: end; }
+}
 #who { display: flex; align-items: center; gap: 10px; }
 #who label, .seg legend { font: 18px var(--comic); letter-spacing: 0.5px; }
 #who input { flex: 1; min-width: 0; font: inherit; font-size: 18px; padding: 8px 12px; border-radius: 10px; border: 3px solid var(--ink); background: transparent; color: inherit; }

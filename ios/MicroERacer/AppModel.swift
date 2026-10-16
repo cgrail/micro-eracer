@@ -7,6 +7,8 @@ import SwiftUI
 @MainActor
 final class AppModel: ObservableObject {
     @Published var name: String
+    /// The name made up for a new Player, until they have raced under a name.
+    let madeUp: String?
     @Published var body: BodyKind
     /// The picked Track's id, or "" for any Track.
     @Published var track: String
@@ -46,7 +48,9 @@ final class AppModel: ObservableObject {
         if let url = Bundle.main.url(forResource: "Bangers", withExtension: "woff") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }
         // the same keys as the browsers' localStorage
         let d = UserDefaults.standard
-        name = d.string(forKey: "name").flatMap { $0.isEmpty ? nil : $0 } ?? randomName()
+        let saved = d.string(forKey: "name").flatMap { $0.isEmpty ? nil : $0 }
+        madeUp = saved == nil ? randomName() : nil
+        name = saved ?? madeUp!
         body = BodyKind(rawValue: d.string(forKey: "body") ?? "") ?? .roadster
         // each start on a Track at random
         track = TRACKS.randomElement()!.id

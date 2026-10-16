@@ -20,6 +20,7 @@ struct StartView: View {
     @StateObject private var course = Course()
     /// The About page, behind the i by the title.
     @State private var about = false
+    @FocusState private var naming: Bool
 
     private var paper: Color { scheme == .dark ? Color(hex: 0x2f2620) : Color(hex: 0xfffdf6) }
     private var ink: Color { scheme == .dark ? Color(hex: 0xfff6e6) : Color(hex: 0x1b1410) }
@@ -31,11 +32,11 @@ struct StartView: View {
     private var picked: TrackDef? { model.running?.track ?? model.tracks.first { $0.id == model.track } }
 
     var body: some View {
-        // the whole form on one screen, never scrolled (as in the browser): two columns side by side lying down, one standing
-        // up, and the pictures take the height that is left
+        // the whole form on one screen, never scrolled (as in the browser): two columns side by side lying down (under the
+        // title and above Play, which span both), one standing up, and the pictures take the height that is left
         GeometryReader { geo in
             let wide = geo.size.width > geo.size.height && geo.size.width >= 600
-            let pic = CGFloat(clamp(Double(wide ? geo.size.height - 320 : (geo.size.height - 530) / 2), 64, 150))
+            let pic = CGFloat(wide ? clamp(Double(geo.size.height - 330), 48, 150) : clamp(Double((geo.size.height - 530) / 2), 64, 150))
             card(wide: wide, pic: pic)
                 .frame(maxWidth: wide ? 800 : 420)
                 .padding(.horizontal, 16)
@@ -59,12 +60,19 @@ struct StartView: View {
     private func card(wide: Bool, pic: CGFloat) -> some View {
         Group {
             if wide {
-                HStack(alignment: .top, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic) }
-                    VStack(alignment: .leading, spacing: 8) { trackPick(pic); controlsButton; playButton }
+                VStack(spacing: 8) {
+                    title(centred: true)
+                    nameField.frame(maxWidth: 380)
+                    HStack(alignment: .top, spacing: 20) {
+                        bodyPick(pic)
+                        // a line between the Body and the Track, like the one under the Track's name
+                        VStack(alignment: .leading, spacing: 8) { trackPick(pic); controlsButton }
+                            .padding(.leading, 20).overlay(alignment: .leading) { Rectangle().fill(ink.opacity(0.5)).frame(width: 2) }
+                    }
+                    playButton.frame(maxWidth: 380)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 8) { header; bodyPick(pic); trackPick(pic); controlsButton; playButton }
+                VStack(alignment: .leading, spacing: 8) { title(centred: false); nameField; bodyPick(pic); trackPick(pic); controlsButton; playButton }
             }
         }
         .foregroundColor(ink)
@@ -75,22 +83,30 @@ struct StartView: View {
         .rotationEffect(.degrees(-1))
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Comic(text: "Micro E-Racer", size: 40, fill: Color(hex: 0xffd60a))
-                Spacer(minLength: 0)
-                infoButton
-            }
-            HStack(spacing: 10) {
-                label("Name")
-                TextField("", text: $model.name)
-                    .font(.system(size: 18)).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
-                    // Return plays, as Enter submits the browsers' start form
-                    .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
-                    .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
-                    .padding(.horizontal, 12).padding(.vertical, 8).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
-            }
+    /// The title, in the middle lying down, with the i at the end of its row.
+    private func title(centred: Bool) -> some View {
+        ZStack(alignment: .trailing) {
+            Comic(text: "Micro E-Racer", size: 40, fill: Color(hex: 0xffd60a)).frame(maxWidth: .infinity, alignment: centred ? .center : .leading)
+            infoButton
+        }
+    }
+
+    private var nameField: some View {
+        HStack(spacing: 10) {
+            label("Name")
+            TextField("", text: $model.name)
+                .font(.system(size: 18)).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
+                // Return plays, as Enter submits the browsers' start form
+                .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
+                .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
+                // the made-up name clears as the Player goes to type their own, and comes back if they type none
+                .focused($naming)
+                .onChange(of: naming) { now in
+                    guard let madeUp = model.madeUp else { return }
+                    if now && model.name == madeUp { model.name = "" }
+                    if !now && model.name.trimmingCharacters(in: .whitespaces).isEmpty { model.name = madeUp }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
         }
     }
 
