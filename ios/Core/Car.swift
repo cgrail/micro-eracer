@@ -20,6 +20,8 @@ extension BodyKind { var spec: BodySpec { BODIES[self]! } }
 /// Half width and height of every body; the length is per Body.
 let HALF = (x: 0.9, y: 0.45)
 private let BRAKE = 30.0, REVERSE_MAX = 6.0, DRIFT_IN = 4.0, DRIFT_OUT = 2.5
+/// How hard the Charging Station holds an E-Car over its limit back to it, harder than the brakes: it is glue.
+private let GLUE = 40.0
 
 /// `hold`: brake to a halt and then stay put, even on a ramp (Stranded or being Recharged).
 struct Input { var throttle: Double; var steer: Double; var hold = false }
@@ -62,16 +64,16 @@ func limpScale(_ energy: Double) -> Double { energy >= LIMP_BELOW ? 1 : 0.5 + 0.
 private func sign(_ v: Double) -> Double { v > 0 ? 1 : v < 0 ? -1 : 0 }
 
 /// Arcade driving: we own the velocity in the car's plane; the physics does gravity and collisions. `wet` = in a Puddle.
-func driveCar(_ world: World, _ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool = false) {
+func driveCar(_ world: World, _ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool = false, _ pit: Bool = false) {
     // only the road counts as ground: on another E-Car's roof it can't drive, and gets put down beside it (`unstack`)
     if !world.onRoad(car.rb, HALF.y + 0.9) { return }
-    handleCar(car, input, speedScale, wet)
+    handleCar(car, input, speedScale, wet, pit)
 }
 
 /// How the E-Car handles on the ground: speed, grip, Drifts and spins. The Practice Ground, flat everywhere, needs only this.
-func handleCar(_ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool = false) {
+func handleCar(_ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool = false, _ pit: Bool = false) {
     let rb = car.rb
-    let p = car.kind.spec, maxSpeed = p.maxSpeed * speedScale
+    let p = car.kind.spec, maxSpeed = p.maxSpeed * speedScale * (pit ? PIT_SPEED : 1)
     let fx = sin(rb.yaw), fz = cos(rb.yaw), r = right(fx, fz)
     let v = rb.linvel
     var fs = v.x * fx + v.z * fz, ls = v.x * r.x + v.z * r.z
@@ -79,7 +81,8 @@ func handleCar(_ car: Car, _ input: Input, _ speedScale: Double = 1, _ wet: Bool
     // held: brake either way until nearly stopped, then stand still (gravity would roll it off a slope)
     if input.hold { fs = abs(fs) < 1 ? 0 : fs - sign(fs) * BRAKE * DT; ls = abs(ls) < 1 ? 0 : ls } else if input.throttle > 0 { if fs < maxSpeed { fs += p.accel * input.throttle * DT } } else if input.throttle < 0 { fs += (fs > 0.5 ? BRAKE : p.accel * 0.5) * input.throttle * DT } else { fs *= 1 - 0.8 * DT }
     if wet { fs *= 1 - 1.2 * DT }
-    fs = clamp(fs, -REVERSE_MAX, max(maxSpeed, fs - 10 * DT))
+    // over its limit an E-Car coasts down to it; in the Charging Station it is stuck to it at once
+    fs = clamp(fs, -REVERSE_MAX, max(maxSpeed, fs - (pit ? GLUE : 10) * DT))
 
     car.drifting = abs(ls) > (car.drifting ? DRIFT_OUT : DRIFT_IN)
     let spinning = abs(car.spin) > 0.3

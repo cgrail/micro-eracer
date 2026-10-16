@@ -121,7 +121,7 @@ const CLEAR = 5;
 /** The Charging Station: a bay this wide on the right of the last straights, from BAY_FROM to BAY_TO samples before the finish line. */
 export const BAY_WIDTH = 5;
 /** Speed limit in the Charging Station, times the top speed: charging there costs time, so it's a detour. */
-export const PIT_SPEED = 0.45;
+export const PIT_SPEED = 0.25;
 const BAY_FROM = 30, BAY_TO = 5, BAY_TAPER = 4;
 /** Whether two heights are on the same part of a Track that crosses itself. */
 export const sameLevel = (a: number, b: number) => Math.abs(a - b) < RISE * 0.7;

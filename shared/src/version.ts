@@ -9,8 +9,9 @@
  * 1: the apps from before this check, which send none. 2: clients that ask first and race the Track the room sends.
  * 3: clients that draw a field of any size, up to MAX_SEATS (race.ts); a 2 only draws 8 E-Cars.
  * 4: jumps from a taller kicker (`KICK` in track.ts); a 3 flies lower off its own and draws the others' kicker lower.
+ * 5: the Charging Station is glue (`PIT_SPEED` in track.ts, `GLUE` in car.ts); a 4 drives through its own faster, and charges less.
  */
-export const PROTOCOL = 4;
+export const PROTOCOL = 5;
 
 /** The oldest client the server still races with; an older one is asked to update and may only race offline. */
 export const MIN_PROTOCOL = 3;

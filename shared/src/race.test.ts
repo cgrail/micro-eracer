@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, teleport } from './car.ts';
+import { BODIES, DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, teleport } from './car.ts';
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
 import { give, ramResponse, shove } from './contact.ts';
 import { batteryRank } from './energy.ts';
 import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, type Seat, STRANDED_TIME, WINS_TIME } from './race.ts';
 import {
-  RISE, TRACKS, buildTrack, gridPose, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress,
+  PIT_SPEED, RISE, TRACKS, buildTrack, gridPose, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress,
 } from './track.ts';
 
 /** Runs `f` with the Race's dice (`Math.random`: the grid, the Bodies, Batteries, Items) seeded, so it rolls the same every time. */
@@ -204,7 +204,7 @@ test('an empty E-Car is Stranded, then Recharged where it stands to full Energy'
   assert.ok(moved >= 0 && moved < 12, `moved ${moved} samples`);
 });
 
-test('a Bot low on Energy pulls into the Charging Station and leaves charged', () => {
+test('a Bot low on Energy pulls into the Charging Station, is stuck to its speed limit there and leaves charged', () => {
   const sim = new RaceSim('desk');
   sim.phase = 'racing';
   const { n } = sim.track, [bot, ...others] = sim.seats;
@@ -214,14 +214,18 @@ test('a Bot low on Energy pulls into the Charging Station and leaves charged', (
   teleport(bot.car, pose, Math.sin(pose.yaw) * 15, Math.cos(pose.yaw) * 15);
   bot.progress = startProgress(sim.track, n - 50);
   bot.energy = 20;
-  let charged = false;
-  for (let t = 0; t < 6 && bot.progress.u < 0; t += DT) {
+  let inBay = 0, fastest = 0;
+  for (let t = 0; t < 10 && bot.progress.u < 0; t += DT) {
     sim.step(DT);
     // a Battery on the way would charge it enough to skip the station
     sim.batteries = [];
-    charged ||= inStation(sim.track, bot.progress.idx, bot.car.rb.translation());
+    inBay = inStation(sim.track, bot.progress.idx, bot.car.rb.translation()) ? inBay + DT : inBay;
+    const v = bot.car.rb.linvel();
+    // glue: half a second in, it has lost all its speed above the limit
+    if (inBay > 0.5 && inStation(sim.track, bot.progress.idx, bot.car.rb.translation())) fastest = Math.max(fastest, Math.hypot(v.x, v.z));
   }
-  assert.ok(charged, 'went through the bay');
+  assert.ok(inBay > 0, 'went through the bay');
+  assert.ok(fastest <= BODIES[bot.kind].maxSpeed * PIT_SPEED + 0.1, `${fastest.toFixed(1)} m/s in the bay`);
   // how full depends on where along the bay it got in; it always gains a lot more than a Battery's worth of driving
   assert.ok(bot.energy > 45, `left with ${bot.energy.toFixed(0)} Energy`);
 });

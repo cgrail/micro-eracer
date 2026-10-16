@@ -107,12 +107,12 @@ final class Game: NSObject, SCNSceneRendererDelegate {
             let locked = state.phase == .grid || clock < own.lockedUntil || me.mode != DRIVING
             let road = track.samples[own.progress.idx]
             let input = me.mode != DRIVING ? HALT : locked ? NO_INPUT : controls.drive(yaw: own.view.car.rb.yaw, road: yawOf(road.dx, road.dz))
-            // the Charging Station has a speed limit; a chime says it's charging
+            // the Charging Station holds the E-Car to its speed limit like glue; a chime says it's charging
             let pit = inStation(track, own.progress.idx, t.x, t.z)
             if pit && !inPit { sound.battery() }
             inPit = pit
             // the server slows a Leader who is far ahead (`pace`, in percent)
-            driveCar(world, own.view.car, input, limpScale(Double(me.energy)) * (pit ? PIT_SPEED : 1) * Double(me.pace == 0 ? 100 : me.pace) / 100, inPuddle(track, t.x, t.y, t.z))
+            driveCar(world, own.view.car, input, limpScale(Double(me.energy)) * Double(me.pace == 0 ? 100 : me.pace) / 100, inPuddle(track, t.x, t.y, t.z), pit)
             // pushing on but hardly moving for a moment means stuck (nose on a wall, after a spin): touch gets its Back button
             let v = own.view.car.rb.linvel, yaw = own.view.car.rb.yaw, forward = v.x * sin(yaw) + v.z * cos(yaw)
             stuckFor = !locked && forward < 1 ? stuckFor + DT : 0

@@ -163,7 +163,7 @@ private let KICK = 1.8, KICK_LEN = 10, WINDOW = 25
 private let CLEAR = 5.0
 let BAY_WIDTH = 5.0
 /// Speed limit in the Charging Station, times the top speed.
-let PIT_SPEED = 0.45
+let PIT_SPEED = 0.25
 private let BAY_FROM = 30, BAY_TO = 5, BAY_TAPER = 4.0
 
 func sameLevel(_ a: Double, _ b: Double) -> Bool { abs(a - b) < RISE * 0.7 }

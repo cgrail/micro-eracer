@@ -67,6 +67,9 @@ happens. Everything before 1.0 is in the git history.
 - Beside the board at the end of a Race (under it on a screen standing up), a card tallies who won the most Races in
   the last 20 minutes, Bots included: "Chris 3", "🤖 Sparky 2", the top five. The room keeps the wins while it runs and
   sends their winners (`winners`); an Offline Race keeps its own. The watch's small board leaves it out.
+- The Charging Station is glue: an E-Car that drives into its bay is held to a crawl at once (harder than braking) and
+  crawls through it at a quarter of its top speed instead of nearly half, so a stop there costs about 2.5 s instead of
+  half a second, and fills the battery about full. Clients now speak protocol 5.
 
 ### Start screen
 

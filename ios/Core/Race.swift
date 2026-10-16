@@ -198,8 +198,7 @@ final class RaceSim {
             let t = s.car.rb.translation
             let locked = !live || time < s.lockedUntil || isRecharging(s)
             let input = isStranded(s) || isRecharging(s) ? HALT : locked ? NO_INPUT : botInput(self, s)
-            let pit = inStation(track, s.progress.idx, t.x, t.z) ? PIT_SPEED : 1
-            driveCar(world, s.car, input, live ? catchUp(self, s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(track, t.x, t.y, t.z))
+            driveCar(world, s.car, input, live ? catchUp(self, s) * limpScale(s.energy) * s.pace : 1, inPuddle(track, t.x, t.y, t.z), live && inStation(track, s.progress.idx, t.x, t.z))
             if !locked && canAct(s) { combat.botTurn(s) }
         }
         world.step()

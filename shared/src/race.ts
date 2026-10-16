@@ -10,7 +10,7 @@ import { RECHARGE_TIME, leadPace, rechargeLength, updateBatteries } from './ener
 export { BATTERY_CHARGE, RECHARGE_TIME } from './energy.ts';
 import { Combat, type HitKind, type ItemKind } from './combat.ts';
 import {
-  type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, PIT_SPEED, TRACKS, buildTrack, gridPose, inPuddle, inStation, lapOf, nearestSample,
+  type Pose, type Progress, type Track, FALL_Y, HALF_WIDTH, TRACKS, buildTrack, gridPose, inPuddle, inStation, lapOf, nearestSample,
   sameLevel, poseAt, resetToCheckpoint, startProgress, updateProgress, freeSpot,
 } from './track.ts';
 
@@ -220,8 +220,7 @@ export class RaceSim {
       const t = s.car.rb.translation();
       const locked = !live || this.time < s.lockedUntil || this.isRecharging(s);
       const input = this.isStranded(s) || this.isRecharging(s) ? HALT : locked ? NO_INPUT : botInput(this, s);
-      const pit = inStation(this.track, s.progress.idx, t) ? PIT_SPEED : 1;
-      driveCar(this.world, s.car, input, live ? catchUp(this, s) * limpScale(s.energy) * pit * s.pace : 1, inPuddle(this.track, t));
+      driveCar(this.world, s.car, input, live ? catchUp(this, s) * limpScale(s.energy) * s.pace : 1, inPuddle(this.track, t), live && inStation(this.track, s.progress.idx, t));
       if (!locked && this.canAct(s)) this.combat.botTurn(s);
     }
     this.world.step();

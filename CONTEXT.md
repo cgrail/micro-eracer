@@ -95,7 +95,7 @@ A pickup that instantly adds Energy; Batteries keep appearing just ahead of Race
 _Avoid_: Power-up, coin, item
 
 **Charging Station**:
-A bay beside the road on the last straights before the finish line where an E-Car charges quickly while it drives through, under a speed limit; a detour that costs time, for a Racer who can't find a Battery.
+A bay beside the road on the last straights before the finish line where an E-Car charges quickly while it crawls through, held to a low speed limit as if by glue; a detour that costs time, for a Racer who can't find a Battery.
 _Avoid_: Pit stop, gas station, charger
 
 **Stranded**:

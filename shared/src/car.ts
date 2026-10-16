@@ -1,5 +1,5 @@
 import { DT, RigidBody, World } from './physics.ts';
-import { type Pose, type Track, right } from './track.ts';
+import { type Pose, type Track, PIT_SPEED, right } from './track.ts';
 
 export type BodyKind = 'roadster' | 'suv' | 'microbus' | 'pickup' | 'semi';
 export const BODY_KINDS: BodyKind[] = ['roadster', 'suv', 'microbus', 'pickup', 'semi'];
@@ -23,6 +23,8 @@ export { DT };
 /** Half width and height of every body; the length is per Body. */
 export const HALF = { x: 0.9, y: 0.45 };
 const BRAKE = 30, REVERSE_MAX = 6, DRIFT_IN = 4, DRIFT_OUT = 2.5;
+/** How hard the Charging Station holds an E-Car over its limit back to it, harder than the brakes: it is glue. */
+const GLUE = 40;
 
 /** `hold`: brake to a halt and then stay put, even on a ramp (Stranded or being Recharged). */
 export interface Input { throttle: number; steer: number; hold?: boolean }
@@ -65,17 +67,17 @@ const LIMP_BELOW = 25;
 export const limpScale = (energy: number) => (energy >= LIMP_BELOW ? 1 : 0.5 + (0.5 * Math.max(0, energy)) / LIMP_BELOW);
 
 /** Arcade driving: we own the velocity in the car's plane; the physics does gravity and collisions. `wet` = in a Puddle. */
-export function driveCar(world: World, car: Car, input: Input, speedScale = 1, wet = false) {
+export function driveCar(world: World, car: Car, input: Input, speedScale = 1, wet = false, pit = false) {
   // the body stays level, so on a ramp it rides on one edge, higher above the road under its middle
   // only the road counts as ground: on another E-Car's roof it can't drive, and gets put down beside it (`unstack`)
   if (!world.onRoad(car.rb, HALF.y + 0.9)) return;
-  handleCar(car, input, speedScale, wet);
+  handleCar(car, input, speedScale, wet, pit);
 }
 
 /** How the E-Car handles on the ground: speed, grip, Drifts and spins. The Practice Ground, flat everywhere, needs only this. */
-export function handleCar(car: Car, input: Input, speedScale = 1, wet = false) {
+export function handleCar(car: Car, input: Input, speedScale = 1, wet = false, pit = false) {
   const { rb } = car;
-  const p = BODIES[car.kind], maxSpeed = p.maxSpeed * speedScale;
+  const p = BODIES[car.kind], maxSpeed = p.maxSpeed * speedScale * (pit ? PIT_SPEED : 1);
   const yaw = rb.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), r = right(fx, fz);
   const v = rb.linvel();
   let fs = v.x * fx + v.z * fz, ls = v.x * r.x + v.z * r.z;
@@ -86,7 +88,8 @@ export function handleCar(car: Car, input: Input, speedScale = 1, wet = false) {
   else if (input.throttle < 0) fs += (fs > 0.5 ? BRAKE : p.accel * 0.5) * input.throttle * DT;
   else fs *= 1 - 0.8 * DT;
   if (wet) fs *= 1 - 1.2 * DT;
-  fs = clamp(fs, -REVERSE_MAX, Math.max(maxSpeed, fs - 10 * DT));
+  // over its limit an E-Car coasts down to it; in the Charging Station it is stuck to it at once
+  fs = clamp(fs, -REVERSE_MAX, Math.max(maxSpeed, fs - (pit ? GLUE : 10) * DT));
 
   car.drifting = Math.abs(ls) > (car.drifting ? DRIFT_OUT : DRIFT_IN);
   const spinning = Math.abs(car.spin) > 0.3;

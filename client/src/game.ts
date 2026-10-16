@@ -8,7 +8,7 @@ import { GOODIES_FROM } from '../../shared/src/combat.ts';
 import type { World } from '../../shared/src/physics.ts';
 import type { RaceEvent } from '../../shared/src/race.ts';
 import {
-  type Progress, type Track, type TrackDef, FALL_Y, PIT_SPEED, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
+  type Progress, type Track, type TrackDef, FALL_Y, TRACKS, buildTrack, inPuddle, inStation, nearestSample, resetToCheckpoint, right, startProgress,
   updateProgress,
 } from '../../shared/src/track.ts';
 import type { Sound } from './audio.ts';
@@ -263,12 +263,12 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
       const t = own.view.car.rb.translation();
       const locked = state.phase === 'grid' || clock < own.lockedUntil || me.mode !== DRIVING;
       const input = me.mode !== DRIVING ? HALT : locked ? NO_INPUT : controls.drive();
-      // the Charging Station has a speed limit; a chime says it's charging
+      // the Charging Station holds the E-Car to its speed limit like glue; a chime says it's charging
       const pit = inStation(track, own.progress.idx, t);
       if (pit && !inPit) sound.battery();
       inPit = pit;
       // the server slows a Leader who is far ahead (`pace`, in percent)
-      driveCar(world, own.view.car, input, limpScale(me.energy) * (pit ? PIT_SPEED : 1) * ((me.pace || 100) / 100), inPuddle(track, t));
+      driveCar(world, own.view.car, input, limpScale(me.energy) * ((me.pace || 100) / 100), inPuddle(track, t), pit);
       // pushing on but hardly moving for a moment means stuck (nose on a wall, after a spin): touch gets its reverse button
       const v = own.view.car.rb.linvel(), yaw = own.view.car.rb.yaw, forward = v.x * Math.sin(yaw) + v.z * Math.cos(yaw);
       stuckFor = !locked && forward < 1 ? stuckFor + DT : 0;
