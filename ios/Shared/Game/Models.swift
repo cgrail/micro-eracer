@@ -44,6 +44,30 @@ private let LOOKS: [BodyKind: (axles: [Double], roof: Double, build: Build)] = [
     ] }),
 ]
 
+/// The headlights' beams, named "beams": a cone from each lamp down onto the road ahead, fading out along it (cars.ts `beams`).
+private func beams(_ length: Double) -> SCNNode {
+    var verts: [SCNVector3] = [], colors: [SIMD4<Float>] = []
+    let seg = 12
+    for x in [0.6, -0.6] { for i in 0..<seg {
+        func ring(_ k: Int) -> SCNVector3 { let a = Double(k) / Double(seg) * 2 * .pi; return SCNVector3(x * 1.2 + cos(a) * 1.3, -0.3 + sin(a) * 1.3, length + 6) }
+        verts += [SCNVector3(x, 0.08, length + 0.1), ring(i), ring(i + 1)]
+        colors += [SIMD4(1, 1, 1, 0.35), SIMD4(1, 1, 1, 0), SIMD4(1, 1, 1, 0)]
+    } }
+    let colorData = colors.withUnsafeBufferPointer { Data(buffer: $0) }
+    let colorSource = SCNGeometrySource(data: colorData, semantic: .color, vectorCount: colors.count, usesFloatComponents: true,
+                                        componentsPerVector: 4, bytesPerComponent: 4, dataOffset: 0, dataStride: 16)
+    let g = SCNGeometry(sources: [SCNGeometrySource(vertices: verts), colorSource],
+                        elements: [SCNGeometryElement(indices: Array(0..<Int32(verts.count)), primitiveType: .triangles)])
+    let m = glow(0xfff6b0)
+    m.isDoubleSided = true; m.writesToDepthBuffer = false; m.blendMode = .alpha
+    g.materials = [m]
+    let n = SCNNode(geometry: g)
+    n.name = "beams"
+    // drawn after the road and the E-Cars, as it writes no depth
+    n.renderingOrder = 5
+    return n
+}
+
 /// A generic look-alike of the Body, facing +z, origin at the physics body's centre.
 func makeCar(_ kind: BodyKind, _ hex: Int) -> CarModel {
     let paint = toon(hex), glass = toon(0x1d2b45), white = toon(0xfafafa), tyre = toon(0x1a1a1a), rim = toon(0xc9ced6), lamp = toon(0xfff6b0, outline: false)
@@ -51,6 +75,7 @@ func makeCar(_ kind: BodyKind, _ hex: Int) -> CarModel {
     let g = group(look.build(paint, glass, white, lamp))
     g.addChildNode(sph(0.2, lamp, 0.6, 0.08, length + 0.08))
     g.addChildNode(sph(0.2, lamp, -0.6, 0.08, length + 0.08))
+    g.addChildNode(beams(length))
     // red warning light on the roof, flashing while the battery runs low
     let z = kind == .semi ? 1.6 : 0
     let halo = sph(0.9, glow(0xff3030, opacity: 0.35), 0, look.roof + 0.15, z, 12)

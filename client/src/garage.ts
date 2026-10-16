@@ -29,6 +29,8 @@ export function createGarage(canvas: HTMLCanvasElement, stats: HTMLElement) {
   camera.position.set(0, 2.7, 6.9);
   camera.lookAt(0, 0, 0);
   const cars = new Map(BODY_KINDS.map((k) => [k, makeCar(k, 0x2f9bff)]));
+  // the headlights' beams would sweep right across the little picture
+  for (const car of cars.values()) car.getObjectByName('beams')!.visible = false;
   const turntable = new THREE.Group().add(...cars.values());
   turntable.rotation.y = 0.6;
   scene.add(turntable);

@@ -279,6 +279,8 @@ final class Garage: NSObject, ObservableObject, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(SCNNode().with { $0.light = ambient })
         scene.rootNode.addChildNode(sunNode)
         for k in BODY_KINDS { let car = makeCar(k, 0x2f9bff).node; cars[k] = car; turntable.addChildNode(car) }
+        // the headlights' beams would sweep right across the little picture
+        for car in cars.values { car.childNode(withName: "beams", recursively: false)?.isHidden = true }
         turntable.eulerAngles.y = 0.6
         scene.rootNode.addChildNode(turntable)
     }

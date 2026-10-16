@@ -48,12 +48,27 @@ const LOOKS: Record<BodyKind, { axles: number[]; roof: number; build: (paint: Ma
   },
 };
 
+/** The headlights' beams, named `beams`: a cone from each lamp down onto the road ahead, fading out along it (one mesh,
+ * one draw call, no outline). Faded by alpha rather than added on, so they show on the turntable's see-through canvas too. */
+function beams(length: number) {
+  const pos: number[] = [], rgba: number[] = [], seg = 12;
+  for (const x of [0.6, -0.6]) for (let i = 0; i < seg; i++) {
+    const ring = (k: number) => { const a = (k / seg) * Math.PI * 2; return [x * 1.2 + Math.cos(a) * 1.3, -0.3 + Math.sin(a) * 1.3, length + 6]; };
+    pos.push(x, 0.08, length + 0.1, ...ring(i), ...ring(i + 1));
+    rgba.push(1, 1, 1, 0.35, 1, 1, 1, 0, 1, 1, 1, 0);
+  }
+  const geo = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)).setAttribute('color', new THREE.Float32BufferAttribute(rgba, 4));
+  const mat = new THREE.MeshBasicMaterial({ color: 0xfff6b0, vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  mat.userData.outlineParameters = { visible: false };
+  return Object.assign(new THREE.Mesh(geo, mat), { name: 'beams' });
+}
+
 /** A generic look-alike of the Body, facing +z, origin at the physics body's centre. */
 export function makeCar(kind: BodyKind, color: number): THREE.Group {
   const paint = toon(color), glass = toon(0x1d2b45), white = toon(0xfafafa), tyre = toon(0x1a1a1a), rim = toon(0xc9ced6), lamp = toon(0xfff6b0, { outline: false });
   const look = LOOKS[kind], length = BODIES[kind].length;
   const g = new THREE.Group().add(...look.build(paint, glass, white, lamp));
-  g.add(sph(0.2, lamp, 0.6, 0.08, length + 0.08), sph(0.2, lamp, -0.6, 0.08, length + 0.08));
+  g.add(sph(0.2, lamp, 0.6, 0.08, length + 0.08), sph(0.2, lamp, -0.6, 0.08, length + 0.08), beams(length));
   // red warning light on the roof, flashing while the battery runs low
   const lampOn = new THREE.MeshBasicMaterial({ color: 0xff2020 });
   const z = kind === 'semi' ? 1.6 : 0;

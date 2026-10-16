@@ -91,6 +91,8 @@ happens. Everything before 1.0 is in the git history.
 
 - The SUV, the Microbus and the Pickup have a windscreen and a rear window, and the Semi's windscreen no longer
   flickers.
+- The headlights shine: a pale yellow beam from each lamp onto the road ahead, fading out along it. The turntable on
+  the start screen leaves them off.
 
 ### Online
 
