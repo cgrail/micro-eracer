@@ -208,8 +208,9 @@ test('a Bot low on Energy pulls into the Charging Station, is stuck to its speed
   const sim = new RaceSim('desk');
   sim.phase = 'racing';
   const { n } = sim.track, [bot, ...others] = sim.seats;
-  // alone on the last straights, with a fifth of a battery left
-  others.forEach((s, i) => teleport(s.car, poseAt(sim.track, 60 + i * 15)));
+  // alone on the last straights, with a fifth of a battery left; the others parked, or they lap round into the bay and bump it
+  const park = () => others.forEach((s, i) => teleport(s.car, poseAt(sim.track, 60 + i * 15)));
+  park();
   const pose = poseAt(sim.track, n - 50);
   teleport(bot.car, pose, Math.sin(pose.yaw) * 15, Math.cos(pose.yaw) * 15);
   bot.progress = startProgress(sim.track, n - 50);
@@ -217,6 +218,7 @@ test('a Bot low on Energy pulls into the Charging Station, is stuck to its speed
   let inBay = 0, fastest = 0;
   for (let t = 0; t < 10 && bot.progress.u < 0; t += DT) {
     sim.step(DT);
+    park();
     // a Battery on the way would charge it enough to skip the station
     sim.batteries = [];
     inBay = inStation(sim.track, bot.progress.idx, bot.car.rb.translation()) ? inBay + DT : inBay;
