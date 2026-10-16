@@ -87,6 +87,11 @@ happens. Everything before 1.0 is in the git history.
 - The wire: Races are joined in the `race2` room, which takes the picked Track as `track`, for a Race the join starts. The `race` room is left to apps
   from before the picker and only races the first four Tracks, which they know.
 
+### Look
+
+- The SUV, the Microbus and the Pickup have a windscreen and a rear window, and the Semi's windscreen no longer
+  flickers.
+
 ### Online
 
 - The game and the server check that they still race together. Every browser and app tells the server which version of

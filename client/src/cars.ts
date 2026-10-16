@@ -3,7 +3,8 @@ import { BODIES, type BodyKind } from '../../shared/src/car.ts';
 import { cyl, group, mesh, rbox, sph, toon } from './toon.ts';
 
 type Mat = THREE.Material;
-/** Each Body's look: the bodywork, where its axles sit and how high its roof is (for the warning light). */
+/** Each Body's look: the bodywork, where its axles sit and how high its roof is (for the warning light). The glass band
+ * stands a little proud of its cab all round, so the windscreen shows (flush, it flickers). */
 const LOOKS: Record<BodyKind, { axles: number[]; roof: number; build: (paint: Mat, glass: Mat, white: Mat, lamp: Mat) => THREE.Object3D[] }> = {
   // a low generic Roadster
   roadster: {
@@ -17,7 +18,7 @@ const LOOKS: Record<BodyKind, { axles: number[]; roof: number; build: (paint: Ma
   suv: {
     axles: [1.25, -1.25], roof: 1.05,
     build: (paint, glass, white) => [
-      rbox(1.95, 0.72, 3.9, 0.3, paint, 0, 0, 0), rbox(1.82, 0.62, 2.5, 0.32, paint, 0, 0.6, -0.25), rbox(1.86, 0.36, 2.3, 0.12, glass, 0, 0.64, -0.25),
+      rbox(1.95, 0.72, 3.9, 0.3, paint, 0, 0, 0), rbox(1.82, 0.62, 2.5, 0.32, paint, 0, 0.6, -0.25), rbox(1.86, 0.36, 2.6, 0.12, glass, 0, 0.64, -0.25),
       rbox(1.5, 0.08, 1.6, 0.03, white, 0, 0.95, -0.3),
     ],
   },
@@ -25,7 +26,7 @@ const LOOKS: Record<BodyKind, { axles: number[]; roof: number; build: (paint: Ma
   microbus: {
     axles: [1.2, -1.2], roof: 1.3,
     build: (paint, glass, white) => [
-      rbox(1.9, 0.8, 3.7, 0.3, paint, 0, -0.02, 0), rbox(1.85, 0.95, 3.3, 0.35, white, 0, 0.78, -0.12), rbox(1.92, 0.42, 2.9, 0.15, glass, 0, 0.86, -0.15),
+      rbox(1.9, 0.8, 3.7, 0.3, paint, 0, -0.02, 0), rbox(1.85, 0.95, 3.3, 0.35, white, 0, 0.78, -0.12), rbox(1.92, 0.42, 3.4, 0.15, glass, 0, 0.86, -0.12),
       rbox(1.2, 0.5, 0.2, 0.1, paint, 0, 0.32, 1.85),
     ],
   },
@@ -33,7 +34,7 @@ const LOOKS: Record<BodyKind, { axles: number[]; roof: number; build: (paint: Ma
   pickup: {
     axles: [1.45, -1.35], roof: 1.05,
     build: (paint, glass, _white, lamp) => [
-      rbox(2, 0.72, 4.3, 0.22, paint, 0, -0.02, 0), rbox(1.9, 0.68, 1.6, 0.22, paint, 0, 0.62, 0.35), rbox(1.94, 0.34, 1.4, 0.1, glass, 0, 0.7, 0.35),
+      rbox(2, 0.72, 4.3, 0.22, paint, 0, -0.02, 0), rbox(1.9, 0.68, 1.6, 0.22, paint, 0, 0.62, 0.35), rbox(1.94, 0.34, 1.7, 0.1, glass, 0, 0.7, 0.35),
       rbox(1.7, 0.1, 1.9, 0.05, toon(0x2b2f36), 0, 0.36, -1.1), rbox(1.8, 0.1, 0.08, 0.04, lamp, 0, 0.24, 2.16),
     ],
   },
@@ -41,7 +42,7 @@ const LOOKS: Record<BodyKind, { axles: number[]; roof: number; build: (paint: Ma
   semi: {
     axles: [1.7, -0.6, -1.7], roof: 1.45,
     build: (paint, glass, white) => [
-      rbox(1.95, 1.25, 1.5, 0.3, paint, 0, 0.35, 1.6), rbox(1.98, 0.45, 0.6, 0.1, glass, 0, 0.62, 2.05),
+      rbox(1.95, 1.25, 1.5, 0.3, paint, 0, 0.35, 1.6), rbox(1.98, 0.45, 0.7, 0.1, glass, 0, 0.62, 2.05),
       rbox(1.95, 1.55, 3.2, 0.15, white, 0, 0.55, -0.8), rbox(1.99, 0.3, 3, 0.05, paint, 0, 0.3, -0.8),
     ],
   },

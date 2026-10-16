@@ -1,7 +1,7 @@
 # Todo
 
 [x] when i finish a track, it should automatically start the next
-[ ] the cars don't have front windows (suv, microbus, pickup ) and for the semi there is a flickering issue with front window
+[x] the cars don't have front windows (suv, microbus, pickup ) and for the semi there is a flickering issue with front window
 [ ] if the cars have light, they should shine. you should see some light beam or ray or something like that
 [ ] in web allow track selection and starting a race via keyboard. show current selection
 [ ] add visual car and track selection for apple watch
