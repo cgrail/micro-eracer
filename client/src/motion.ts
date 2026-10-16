@@ -29,15 +29,19 @@ export interface CarView {
 
 export const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
-/** The chase camera behind `target`, easing after it; `last` is where the target was the frame before. */
-export function chase(camera: THREE.PerspectiveCamera, target: THREE.Object3D, last: THREE.Vector3, dt: number) {
-  const p = target.position, fx = Math.sin(target.rotation.y), fz = Math.cos(target.rotation.y);
+/**
+ * The chase camera behind `target`, easing after it; `last` is where the target was the frame before. Above `ground` (where
+ * the target rides the road) it stays at that height, so a jump lifts the E-Car in view rather than the camera with it.
+ */
+export function chase(camera: THREE.PerspectiveCamera, target: THREE.Object3D, last: THREE.Vector3, dt: number, ground = Infinity) {
+  const fx = Math.sin(target.rotation.y), fz = Math.cos(target.rotation.y);
+  const p = { x: target.position.x, y: Math.min(target.position.y, ground), z: target.position.z };
   // portrait phones see little sideways, so look down more steeply
   const [back, up] = camera.aspect < 1 ? [9, 24] : [13, 14];
   // a far jump (a new Race) cuts instead of flying the camera across the Track
-  const k = last.distanceTo(p) > 25 ? 1 : 1 - Math.exp(-dt * 4), c = camera.position;
+  const k = last.distanceTo(target.position) > 25 ? 1 : 1 - Math.exp(-dt * 4), c = camera.position;
   c.set(c.x + (p.x - fx * back - c.x) * k, c.y + (p.y + up - c.y) * k, c.z + (p.z - fz * back - c.z) * k);
-  last.copy(p);
+  last.copy(target.position);
   camera.lookAt(p.x + fx * 3, p.y, p.z + fz * 3);
 }
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -66,24 +70,28 @@ export function glide(views: CarView[], dt: number) {
  * Puts the model where the E-Car is drawn. The bodies stay level, so on a ramp the model is tilted along the road from its tail
  * to its nose (eased) and set down as low as it goes with no part of its underside in the road: where the slope changes
  * under it (the top of a climb, the foot of a descent) it rests on its middle, not sunk in at one end. In the air it
- * levels out and follows the body. `i` is the sample the E-Car is on.
+ * follows the body, its nose along the flight. `i` is the sample the E-Car is on.
  */
 export function place(v: CarView, track: Track, i: number, p: { x: number; y: number; z: number }, yaw: number, dt: number) {
   v.roadY = track.samples[i].y;
   const fx = Math.sin(yaw), fz = Math.cos(yaw), length = BODIES[v.kind].length;
   const roads = (x: number, z: number) => [-1, -0.5, 0, 0.5, 1].flatMap((k) => {
-    const a = k * length, road = roadAt(track, i, x + fx * a, z + fz * a);
+    // how far along the ground its ends reach, tilted as it is
+    const a = (k * length) / Math.hypot(1, v.tilt), road = roadAt(track, i, x + fx * a, z + fz * a);
     return road ? [{ a, y: road.y }] : [];
   });
   const under = roads(p.x, p.z), highest = (rs: { y: number }[]) => Math.max(...rs.map((r) => r.y));
   // the body rests on the highest road under it; well above that it is in the air
   const top = highest(under), first = under[0], last = under[under.length - 1];
   // the others' height eases in late, which would sink them into a ramp while climbing it: while the server has one on
-  // the road, it rides the road here (`p` is its `shown` pose)
-  if (!v.mine && under.length && v.target.y - HALF.y - highest(roads(v.target.x, v.target.z)) < 0.3) p.y = top + HALF.y;
-  const slope = under.length > 1 && p.y - HALF.y - top < 0.3 ? (last.y - first.y) / (last.a - first.a) : 0;
+  // the road, it rides the road here (`p` is its `shown` pose); up a kicker it never lags below it, even once flying
+  if (!v.mine && under.length) p.y = v.target.y - HALF.y - highest(roads(v.target.x, v.target.z)) < 0.3 ? top + HALF.y : Math.max(p.y, top + HALF.y);
+  // in the air the nose follows the flight: up off a kicker, down into the landing
+  const air = p.y - HALF.y - top, vel = v.car.rb.linvel();
+  const slope = air >= 0.3 ? vel.y / Math.max(5, Math.hypot(vel.x, vel.z)) : under.length > 1 ? (last.y - first.y) / (last.a - first.a) : 0;
   v.tilt += (clamp(slope, -0.4, 0.4) - v.tilt) * (1 - Math.exp(-dt * 12));
-  const drop = under.length ? Math.max(...under.map((r) => r.y - v.tilt * r.a)) - top : 0;
+  // tilted, it is raised so no end sinks into the road; flying clear of it, it needn't be
+  const lift = under.length ? Math.max(...under.map((r) => r.y - v.tilt * r.a)) - top : 0, drop = lift > 0 ? Math.max(0, lift - Math.max(0, air)) : lift;
   v.mesh.position.set(p.x, p.y + drop, p.z);
   v.mesh.rotation.set(-Math.atan(v.tilt), yaw, 0, 'YXZ');
 }

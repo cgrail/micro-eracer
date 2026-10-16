@@ -115,7 +115,7 @@ export const HALF_WIDTH = 4.5;
 export const FALL_Y = -2.5;
 /** Height of a ramp, so a bridge clears the road it crosses. */
 export const RISE = 3.5;
-const KICK = 1.2, KICK_LEN = 10, WINDOW = 25;
+const KICK = 1.8, KICK_LEN = 10, WINDOW = 25;
 /** How far apart two E-Cars' middles must be for a reset not to land one on the other (the Semi is 4.8 m long). */
 const CLEAR = 5;
 /** The Charging Station: a bay this wide on the right of the last straights, from BAY_FROM to BAY_TO samples before the finish line. */

@@ -158,7 +158,7 @@ let HALF_WIDTH = 4.5
 let FALL_Y = -2.5
 /// Height of a ramp, so a bridge clears the road it crosses.
 let RISE = 3.5
-private let KICK = 1.2, KICK_LEN = 10, WINDOW = 25
+private let KICK = 1.8, KICK_LEN = 10, WINDOW = 25
 /// How far apart two E-Cars' middles must be for a reset not to land one on the other.
 private let CLEAR = 5.0
 let BAY_WIDTH = 5.0

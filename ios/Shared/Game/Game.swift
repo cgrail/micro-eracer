@@ -162,7 +162,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
     /// The chase camera behind our E-Car (before we have one, behind the first).
     private func follow(_ dt: Double) {
         guard let target = own?.view ?? views.compactMap({ $0 }).first else { return }
-        chase(cameraNode, target.model.node.simdPosition, target.yaw, aspect, &lastTarget, dt)
+        chase(cameraNode, target.model.node.simdPosition, target.yaw, aspect, &lastTarget, dt, ground: Float(target.roadY + HALF.y + 0.5))
         if shake > 0 {
             shake = max(0, shake - dt)
             cameraNode.simdPosition += SIMD3(Float.random(in: -0.5..<0.5) * Float(shake) * 1.5, Float.random(in: -0.5..<0.5) * Float(shake) * 1.5, 0)

@@ -4,7 +4,7 @@ import Foundation
 // joins, and decides whether the app may still race there; an app it no longer races with is asked to update.
 
 /// The same as `PROTOCOL` in version.ts (`testProtocolMatchesTheTypeScript` compares them): bumped together, in one commit.
-let PROTOCOL = 3
+let PROTOCOL = 4
 
 /// The same as `APP_STORE` in version.ts (`testProtocolMatchesTheTypeScript` compares them): the app's page on the App Store,
 /// which the update dialog opens when the server names none.

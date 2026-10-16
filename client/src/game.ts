@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import {
-  type Car, DT, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
+  type Car, DT, HALF, NO_INPUT, createCar, createTrackWorld, driveCar, HALT, limpScale, setKinematicPose,
   teleport,
 } from '../../shared/src/car.ts';
 import { GOODIES_FROM } from '../../shared/src/combat.ts';
@@ -376,9 +376,9 @@ export function startGame(room: RaceLink, controls: Controls, hud: Hud, sound: S
     animate(dt, now / 1000);
     for (const p of allParticles) p.update(dt);
     look?.update(now / 1000);
-    const target = own?.view.mesh ?? views[0]?.mesh;
+    const followed = own?.view ?? views[0], target = followed?.mesh;
     if (target) {
-      chase(camera, target, lastTarget, dt);
+      chase(camera, target, lastTarget, dt, followed.roadY + HALF.y + 0.5);
       if (shake > 0) {
         shake = Math.max(0, shake - dt);
         camera.position.x += (Math.random() - 0.5) * shake * 1.5;

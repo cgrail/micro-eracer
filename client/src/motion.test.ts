@@ -5,14 +5,14 @@ import { roadAt } from '../../shared/src/collide.ts';
 import { TRACKS, buildTrack, nearestSample, poseAt, right, startProgress, updateProgress } from '../../shared/src/track.ts';
 import { type CarView, glide, place } from './motion.ts';
 
-test('a model never sinks into the road, over the top of a climb or at the foot of a descent, in any browser', () => {
-  for (const def of TRACKS.filter((t) => /[UD]/.test(t.pieces))) {
+test('a model never sinks into the road, over the top of a climb, at the foot of a descent or landing a jump, in any browser', () => {
+  for (const def of TRACKS.filter((t) => /[UD]/.test(t.pieces) || t.id === 'desk')) {
     const track = buildTrack(def);
     for (const kind of BODY_KINDS) for (const mine of [true, false]) {
       const world = createTrackWorld(track), car = createCar(world, kind, poseAt(track, 0), true), progress = startProgress(track, 0);
       const drawn = { y: 0, pitch: 0 };
       const view = {
-        kind, tilt: 0, roadY: 0, mine, target: { ...poseAt(track, 0), vx: 0, vz: 0, at: 0 }, shown: poseAt(track, 0),
+        kind, car, tilt: 0, roadY: 0, mine, target: { ...poseAt(track, 0), vx: 0, vz: 0, at: 0 }, shown: poseAt(track, 0),
         mesh: { position: { set: (_x: number, y: number) => (drawn.y = y) }, rotation: { set: (x: number) => (drawn.pitch = -x) } },
       } as unknown as CarView;
       let sunk = 0;

@@ -32,16 +32,18 @@ final class CarView {
 private func smooth(_ k: Double) -> Double { k * k * (3 - 2 * k) }
 
 /// The chase camera behind an E-Car drawn at `at`, turned to `yaw`, easing after it; `last` is where it was the frame before.
-func chase(_ camera: SCNNode, _ at: SIMD3<Float>, _ yaw: Double, _ aspect: Double, _ last: inout SIMD3<Float>, _ dt: Double) {
-    let fx = Float(sin(yaw)), fz = Float(cos(yaw))
+/// Above `ground` (where the target rides the road) it stays at that height, so a jump lifts the E-Car in view rather than the
+/// camera with it.
+func chase(_ camera: SCNNode, _ target: SIMD3<Float>, _ yaw: Double, _ aspect: Double, _ last: inout SIMD3<Float>, _ dt: Double, ground: Float = .infinity) {
+    let fx = Float(sin(yaw)), fz = Float(cos(yaw)), at = SIMD3(target.x, min(target.y, ground), target.z)
     // portrait phones see little sideways, so look down more steeply
     let (back, up): (Float, Float) = aspect < 1 ? (9, 24) : (13, 14)
     let desired = SIMD3(at.x - fx * back, at.y + up, at.z - fz * back)
     // a far jump (a new Race) cuts instead of flying the camera across the Track
-    if simd_distance(last, at) > 25 { camera.simdPosition = desired } else {
+    if simd_distance(last, target) > 25 { camera.simdPosition = desired } else {
         camera.simdPosition += (desired - camera.simdPosition) * Float(1 - exp(-dt * 4))
     }
-    last = at
+    last = target
     // world up, as three.js's lookAt: SceneKit's one-argument look(at:) keeps the camera's own up, so the horizon rolls as it turns
     camera.simdLook(at: SIMD3(at.x + fx * 3, at.y, at.z + fz * 3), up: [0, 1, 0], localFront: [0, 0, -1])
 }
@@ -69,18 +71,24 @@ func place(_ v: CarView, _ track: Track, _ i: Int, _ at: Vec3, _ yaw: Double, _ 
     let fx = sin(yaw), fz = cos(yaw), length = v.kind.spec.length
     let roads = { (x: Double, z: Double) -> [(a: Double, y: Double)] in
         [-1, -0.5, 0, 0.5, 1].compactMap { k in
-            let a = k * length
+            // how far along the ground its ends reach, tilted as it is
+            let a = k * length / hypot(1, v.tilt)
             return roadAt(track, i, x + fx * a, z + fz * a).map { (a, $0.y) }
         }
     }
     let under = roads(p.x, p.z)
     let top = under.map(\.y).max() ?? -.infinity
     // the others' height eases in late, which would sink them into a ramp while climbing it: while the server has one on
-    // the road, it rides the road here
-    if !v.mine && !under.isEmpty && v.target.y - HALF.y - (roads(v.target.x, v.target.z).map(\.y).max() ?? -.infinity) < 0.3 { p.y = top + HALF.y }
-    let slope = under.count > 1 && p.y - HALF.y - top < 0.3 ? (under.last!.y - under.first!.y) / (under.last!.a - under.first!.a) : 0
+    // the road, it rides the road here; up a kicker it never lags below it, even once flying
+    if !v.mine && !under.isEmpty {
+        p.y = v.target.y - HALF.y - (roads(v.target.x, v.target.z).map(\.y).max() ?? -.infinity) < 0.3 ? top + HALF.y : max(p.y, top + HALF.y)
+    }
+    // in the air the nose follows the flight: up off a kicker, down into the landing
+    let air = p.y - HALF.y - top, vel = v.car.rb.linvel
+    let slope = air >= 0.3 ? vel.y / max(5, hypot(vel.x, vel.z)) : under.count > 1 ? (under.last!.y - under.first!.y) / (under.last!.a - under.first!.a) : 0
     v.tilt += (clamp(slope, -0.4, 0.4) - v.tilt) * (1 - exp(-dt * 12))
-    let drop = under.isEmpty ? 0 : under.map { $0.y - v.tilt * $0.a }.max()! - top
+    // tilted, it is raised so no end sinks into the road; flying clear of it, it needn't be
+    let lift = under.isEmpty ? 0 : under.map { $0.y - v.tilt * $0.a }.max()! - top, drop = lift > 0 ? max(0, lift - max(0, air)) : lift
     v.model.node.position = SCNVector3(p.x, p.y + drop, p.z)
     v.yaw = yaw
     setYawPitch(v.model.node, yaw: yaw, pitch: -atan(v.tilt))

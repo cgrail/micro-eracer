@@ -55,6 +55,9 @@ happens. Everything before 1.0 is in the git history.
   out in front the Charging Station is the only way to keep going. The Leader now runs dry about once a Race.
 - A lighter E-Car barely moves a heavier one when it Rams it: a Roadster shoves a Semi about a tenth as hard as before
   and a Microbus a fifth, and neither skids or swings round from it. Heavier into lighter is as hard as ever.
+- Jumps fly: the kicker is half as tall again, so an E-Car flies about 3 m up and 1.3 s instead of 2 m and 1 s; its nose
+  follows the flight, up off the lip and down into the landing; and the camera stays down at the road while it flies,
+  so you see it lift off.
 
 ### Start screen
 
