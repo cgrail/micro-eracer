@@ -5,8 +5,8 @@ import SwiftUI
 
 /// How the thumb steers: by dragging, or by holding left or right of the pad's middle.
 enum Steering: String, CaseIterable { case slider, buttons }
-/// Which bottom corner the steering pad, with the action button above it, sits in.
-enum PadSide: String, CaseIterable { case left, right }
+/// Where the steering pad, with the action button above it, sits: a bottom corner, or the middle of the bottom edge.
+enum PadSide: String, CaseIterable { case left, middle, right }
 
 private let STEER_DEAD = 6.0, STEER_FULL = 100.0
 /// Drag distance (points) to steering: a small dead zone, then gentle near the middle for small corrections, full lock at STEER_FULL.
@@ -28,22 +28,26 @@ struct TouchControls: View {
 
     var body: some View {
         GeometryReader { box in
-            let w = box.size.width * 0.45, h = max(88, box.size.height * 0.28), left = side == .left
-            ZStack(alignment: left ? .bottomLeading : .bottomTrailing) {
+            let w = box.size.width * 0.45, h = max(88, box.size.height * 0.28)
+            let middle = side == .left ? 16 + w / 2 : side == .right ? box.size.width - 16 - w / 2 : box.size.width / 2
+            let edge: Edge.Set = side == .left ? .leading : side == .right ? .trailing : []
+            ZStack(alignment: side == .left ? .bottomLeading : side == .right ? .bottomTrailing : .bottom) {
                 // the whole screen steers but for the buttons on it; the pad's middle (in the window) splits left from right
-                Touch(onTouch: steer(middle: box.frame(in: .global).minX + (left ? 16 + w / 2 : box.size.width - 16 - w / 2))).ignoresSafeArea()
+                Touch(onTouch: steer(middle: box.frame(in: .global).minX + middle)).ignoresSafeArea()
                     .accessibilityLabel(steering == .buttons ? "Steer: hold left or right" : "Steer: drag left or right")
                 pad(width: w, height: h).allowsHitTesting(false)
-                    .padding(left ? .leading : .trailing, 16).padding(.bottom, 16)
+                    .padding(edge, 16).padding(.bottom, 16)
                 HoldButton(label: action, fill: Color(hex: 0xffc81e, opacity: 0.85), ink: Color(hex: 0x111111), size: CGSize(width: 108, height: 108), radius: 54) { controls.setFiring($0) }
                     // nothing to use: an Item Box will fill it
                     .opacity(action.isEmpty ? 0.45 : 1)
                     .frame(width: w)
-                    .padding(left ? .leading : .trailing, 16).padding(.bottom, 16 + h + 16)
+                    .padding(edge, 16).padding(.bottom, 16 + h + 16)
                 if showBack {
                     HoldButton(label: "◀\u{FE0E} Back", fill: Color(hex: 0xff4d4d, opacity: 0.85), ink: .white, size: CGSize(width: 96, height: 56), radius: 14) { controls.setReversing($0) }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: left ? .bottomTrailing : .bottomLeading)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: side == .right ? .bottomLeading : .bottomTrailing)
                         .padding(24)
+                        // beside a pad in the middle: above its height, clear of it on a phone standing up
+                        .padding(.bottom, side == .middle ? h + 8 : 0)
                 }
             }
         }

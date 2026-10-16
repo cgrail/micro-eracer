@@ -42,13 +42,15 @@ struct PracticeView: View {
                     done
                 }
             }
-            HStack(alignment: .bottom, spacing: 12) {
+            // Steering and Pad one above the other, as Pad's three don't fit beside Steering on a phone standing up
+            (low ? AnyLayout(HStackLayout(alignment: .bottom, spacing: 12)) : AnyLayout(VStackLayout(alignment: .leading, spacing: 6))) {
                 choice("Steering") {
                     pick(model.steering == .slider, "Slider", "drag left or right") { model.steering = .slider }
                     pick(model.steering == .buttons, "Buttons", "hold left or right") { model.steering = .buttons }
                 }
                 choice("Pad") {
                     pick(model.side == .left, "Left", "for the left thumb") { model.side = .left }
+                    pick(model.side == .middle, "Middle", "for either thumb") { model.side = .middle }
                     pick(model.side == .right, "Right", "for the right thumb") { model.side = .right }
                 }
                 if low { done }
@@ -83,7 +85,7 @@ struct PracticeView: View {
         }
     }
 
-    /// One of two choices; the hint is for VoiceOver, as the browsers keep it in a tooltip.
+    /// One of the choices; the hint is for VoiceOver, as the browsers keep it in a tooltip.
     private func pick(_ on: Bool, _ title: String, _ hint: String, _ choose: @escaping () -> Void) -> some View {
         Button(action: choose) {
             Text(bangers: title, size: 18)

@@ -40,9 +40,9 @@ function steerCurve(dx: number) {
 /** How the thumb steers on touch: by dragging, or by holding left or right of the pad's middle. */
 export type Steering = 'slider' | 'buttons';
 export const STEERINGS: readonly Steering[] = ['slider', 'buttons'];
-/** Which bottom corner the steering pad, with the action button above it, sits in on touch. */
-export type PadSide = 'left' | 'right';
-export const PAD_SIDES: readonly PadSide[] = ['left', 'right'];
+/** Where the steering pad, with the action button above it, sits on touch: a bottom corner, or the middle of the bottom edge. */
+export type PadSide = 'left' | 'middle' | 'right';
+export const PAD_SIDES: readonly PadSide[] = ['left', 'middle', 'right'];
 
 export interface Controls {
   drive(): Input;

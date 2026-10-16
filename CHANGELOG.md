@@ -204,6 +204,9 @@ happens. Everything before 1.0 is in the git history.
 - The action button sits right above the steering pad, and Back, while the E-Car is stuck, in the other bottom corner.
   Pad puts the steering pad, with the action button, in the bottom-left or the bottom-right corner, and is remembered
   like the rest.
+- Pad has a third choice, Middle: the steering pad, with the action button, in the middle of the bottom edge, for either
+  thumb. Back, while the E-Car is stuck, then sits in the bottom-right corner above the pad's height, and on the Practice
+  Ground Pad sits under Steering instead of beside it.
 - Steering and Pad are set on the Practice Ground: Controls on the start screen (on phones and tablets, and in
   the app), which says how they are set, opens it. The picked Body drives on an endless lawn with streets painted on it,
   crossroads and zebra crossings, and nothing to bump into, under the same touch controls as in a Race, with Steering and

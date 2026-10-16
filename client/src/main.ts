@@ -155,10 +155,10 @@ let steering: Steering = STEERINGS.find((s) => s === load('steer')) ?? 'buttons'
 const steerButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-steer]')];
 const showSteering = () => { steerButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.steer === steering))); controls.setSteering(steering); showControls(); };
 steerButtons.forEach((b) => b.addEventListener('click', () => { steering = b.dataset.steer as Steering; save('steer', steering); showSteering(); }));
-// the pad, with the action button above it, in the bottom-left or the bottom-right corner
+// the pad, with the action button above it, in the bottom-left corner, the middle of the bottom edge or the bottom-right corner
 let side: PadSide = PAD_SIDES.find((s) => s === load('side')) ?? 'left';
 const sideButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-side]')];
-const showSide = () => { sideButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === side))); touch.classList.toggle('right', side === 'right'); showControls(); };
+const showSide = () => { sideButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === side))); touch.classList.toggle('right', side === 'right'); touch.classList.toggle('middle', side === 'middle'); showControls(); };
 sideButtons.forEach((b) => b.addEventListener('click', () => { side = b.dataset.side as PadSide; save('side', side); showSide(); }));
 $('controls').hidden = !isTouch;
 showSteering();
