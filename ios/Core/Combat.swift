@@ -160,8 +160,9 @@ final class Combat {
     /// Bots use Items right away when they make sense and fire a Zap at whoever is lined up ahead. A Player in the lead is
     /// everyone's target: Bots with a Zap up to 45 m behind aim at them in a 45° cone and, all together, fire about once a second.
     func botTurn(_ s: Seat) {
-        if s.item == .shield || (s.item == .missile && s.position > 1) { useItem(s) }
-        if s.item == .mine && sim.seats.contains(where: { $0 !== s && s.progress.u - $0.progress.u > 2 && s.progress.u - $0.progress.u < 20 }) { useItem(s) }
+        // a Missile homes in on the Racer one Position ahead, a Mine is for whoever is just behind: kept for prey
+        if s.item == .shield || (s.item == .missile && sim.seats.contains { $0.position == s.position - 1 && isPrey(sim, $0) }) { useItem(s) }
+        if s.item == .mine && sim.seats.contains(where: { $0 !== s && isPrey(sim, $0) && s.progress.u - $0.progress.u > 2 && s.progress.u - $0.progress.u < 20 }) { useItem(s) }
         if s.item != .zap || !sim.botsAttack() || sim.time < s.nextShotAt { return }
         let p = pose(s), r = right(p.fx, p.fz)
         // within `range` ahead and at most `slack` metres plus `cone` per metre ahead to the side
@@ -177,8 +178,8 @@ final class Combat {
             s.nextShotAt = sim.time + 1
             return
         }
-        let target = sim.seats.first { ahead($0, 25, 1.2, 0) }
-        // Bots save their Shots mostly for the Players, so the action happens around them
+        let target = sim.seats.first { isPrey(sim, $0) && ahead($0, 25, 1.2, 0) }
+        // Bots save their Shots for the Players, so the action happens around them; alone, mostly for later
         guard let target, !target.owner.isEmpty || Double.random(in: 0..<1) >= 0.7 else { s.nextShotAt = sim.time + 0.5; return }
         useItem(s)
         s.nextShotAt = sim.time + 1.5 + Double.random(in: 0..<2)

@@ -1,3 +1,4 @@
+import { isPrey } from './bots.ts';
 import { BODIES } from './car.ts';
 import type { RaceSim, Seat } from './race.ts';
 import { right, sameLevel } from './track.ts';
@@ -157,8 +158,9 @@ export class Combat {
    */
   botTurn(s: Seat) {
     const { sim } = this;
-    if (s.item === 'shield' || (s.item === 'missile' && s.position > 1)) this.useItem(s);
-    if (s.item === 'mine' && sim.seats.some((o) => o !== s && s.progress.u - o.progress.u > 2 && s.progress.u - o.progress.u < 20)) this.useItem(s);
+    // a Missile homes in on the Racer one Position ahead, a Mine is for whoever is just behind: kept for prey
+    if (s.item === 'shield' || (s.item === 'missile' && sim.seats.some((o) => o.position === s.position - 1 && isPrey(sim, o)))) this.useItem(s);
+    if (s.item === 'mine' && sim.seats.some((o) => o !== s && isPrey(sim, o) && s.progress.u - o.progress.u > 2 && s.progress.u - o.progress.u < 20)) this.useItem(s);
     if (s.item !== 'zap' || !sim.botsAttack() || sim.time < s.nextShotAt) return;
     const { x, z, fx, fz } = this.pose(s), r = right(fx, fz);
     // within `range` ahead and at most `slack` metres plus `cone` per metre ahead to the side
@@ -174,8 +176,8 @@ export class Combat {
       s.nextShotAt = sim.time + 1;
       return;
     }
-    const target = sim.seats.find((o) => ahead(o, 25, 1.2));
-    // Bots save their Shots mostly for the Players, so the action happens around them
+    const target = sim.seats.find((o) => isPrey(sim, o) && ahead(o, 25, 1.2));
+    // Bots save their Shots for the Players, so the action happens around them; alone, mostly for later
     if (!target || (!target.owner && Math.random() < 0.7)) { s.nextShotAt = sim.time + 0.5; return; }
     this.useItem(s);
     s.nextShotAt = sim.time + 1.5 + Math.random() * 2;

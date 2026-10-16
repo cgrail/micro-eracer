@@ -4,7 +4,7 @@ import { DT, MAX_ENERGY, NO_INPUT, createCar, createTrackWorld, driveCar, telepo
 import { GOODIES_FROM, ZAP_SHOTS } from './combat.ts';
 import { give, ramResponse, shove } from './contact.ts';
 import { batteryRank } from './energy.ts';
-import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, STRANDED_TIME } from './race.ts';
+import { FIRST_GRID_TIME, MAX_SEATS, RECHARGE_TIME, RaceSim, SEATS, type Seat, STRANDED_TIME } from './race.ts';
 import {
   RISE, TRACKS, buildTrack, gridPose, inStation, lapOf, nearestSample, poseAt, resetToCheckpoint, startProgress, updateProgress,
 } from './track.ts';
@@ -232,6 +232,29 @@ test('Bots keep shooting at a Player in the lead', () => {
     sim.events = [];
   }
   assert.ok(shots >= 2 && hits >= 1, `${shots} Shots, ${hits} Hits`);
+});
+
+test('with a Player in the Race, Bots shoot and drop Mines for them, not for each other', () => {
+  const sim = new RaceSim('kitchen');
+  sim.phase = 'racing';
+  sim.startedAt = -10;
+  const player = sim.join('p', 'Player', 'roadster')!, [bot, other] = sim.seats.filter((s) => !s.owner);
+  // `bot` on the first straight with `who` lined up 12 m ahead, or 10 m behind; everyone else far away
+  const lineUp = (who: Seat, gap: number) => sim.seats.forEach((s, i) => {
+    s.position = s === bot ? 2 : i + 3;
+    teleport(s.car, poseAt(sim.track, s === bot ? 30 : s === who ? 30 + gap : 150 + i * 12));
+    s.progress = startProgress(sim.track, s === bot ? 30 : s === who ? 30 + gap : 150 + i * 12);
+  });
+  const shoots = (who: Seat) => {
+    lineUp(who, 12);
+    Object.assign(bot, { item: 'zap', ammo: 5, nextShotAt: 0 });
+    sim.events = [];
+    for (let i = 0; i < 20; i++) { sim.time += 0.1; sim.combat.botTurn(bot); }
+    return sim.events.some((e) => e.t === 'shot');
+  };
+  assert.ok(shoots(player) && !shoots(other));
+  const drops = (who: Seat) => { lineUp(who, -10); Object.assign(bot, { item: 'mine' }); sim.combat.botTurn(bot); return !bot.item; };
+  assert.ok(drops(player) && !drops(other));
 });
 
 test('a Player taking over a Bot is announced, and only Bots wear the robot', () => {

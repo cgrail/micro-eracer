@@ -28,7 +28,7 @@ Run dry and you're Stranded: the world turns black and white until a drone arriv
 
 Low on Energy and no Battery in sight? The Charging Station is a bay beside the last straights before the finish line: drive through it to charge fast, but it has a speed limit, so it's a detour.
 
-Bots have names that start with 🤖 and grey name tags; Players' tags are gold. When you join, you take over a Bot's E-Car where it is, and everyone sees who took over whom. Bots make up a field of eight; once every Bot has been taken over, the next Players join behind the last Racer with E-Cars of their own, up to 20 in one Race, and each new Race is everyone racing plus Bots to make eight.
+Bots have names that start with 🤖 and grey name tags; Players' tags are gold. When you join, you take over a Bot's E-Car where it is, and everyone sees who took over whom. Bots make up a field of eight; once every Bot has been taken over, the next Players join behind the last Racer with E-Cars of their own, up to 20 in one Race, and each new Race is everyone racing plus Bots to make eight. Bots go for the Players: they Ram, shoot and drop Mines at you, not at each other, and steer round each other on the way.
 
 Ram someone from the side and they slide away, swinging round if you catch their nose or tail; a heavier Body shoves harder and gets shoved less, and a Roadster hardly moves a Microbus or a Semi at all.
 
