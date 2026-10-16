@@ -121,9 +121,10 @@ for (const def of TRACKS) {
       sim.seats.forEach((s, i) => { if (s.progress.u < before[i] - 3) fallOffs++; });
     }
     assert.equal(sim.results.length, 8, 'Race should end within 4 minutes');
+    assert.ok(sim.finishers >= 1 && sim.finishers <= 8, 'the results should count who finished');
     assert.ok(sim.stats.pickups > 0, 'Bots should pick up Batteries');
     const st = sim.stats;
-    console.log(`${def.id}: ${sim.time.toFixed(1)}s, ${fallOffs} Fall-offs, ${st.pickups} Batteries, ${st.recharges} Recharges (${st.leaderRecharges} of the Leader), ${st.rams} Rams, ${st.hits} Hits`);
+    console.log(`${def.id}: ${sim.time.toFixed(1)}s, ${sim.finishers} finished, ${fallOffs} Fall-offs, ${st.pickups} Batteries, ${st.recharges} Recharges (${st.leaderRecharges} of the Leader), ${st.rams} Rams, ${st.hits} Hits`);
   });
 }
 

@@ -85,7 +85,7 @@ struct HUDView: View {
         VStack(alignment: .leading, spacing: 2) {
             if !hud.title.isEmpty { Text(bangers: hud.title, size: size + 6) }
             ForEach(Array(hud.board.enumerated()), id: \.offset) { i, name in
-                Text(bangers: "\(i + 1). \(name)", size: size).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
+                hud.standing(i, name, size: size).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
             }
         }
         .foregroundColor(Color(hex: 0x1b1410))

@@ -28,7 +28,7 @@ final class RaceRoomState: SchemaRef, @unchecked Sendable {
     var state: RaceState {
         let trackId = view.string("trackId") ?? "", track = refOf("track", TrackSchema.self)?.def
         return RaceState(phase: Phase(rawValue: view.string("phase") ?? "") ?? .grid, timer: view["timer"], trackId: trackId,
-                         cars: arrayOf("cars", CarSchema.self).values.map(\.state), results: arrayOf("results", String.self).values,
+                         cars: arrayOf("cars", CarSchema.self).values.map(\.state), results: arrayOf("results", String.self).values, finishers: Int(view["finishers"]),
                          batteries: arrayOf("batteries", SpotSchema.self).values.map(\.spot), bolts: arrayOf("bolts", SpotSchema.self).values.map(\.bolt),
                          mines: arrayOf("mines", SpotSchema.self).values.map(\.spot), boxes: arrayOf("boxes", Bool.self).values,
                          track: track?.id == trackId ? track : nil)

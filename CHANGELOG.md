@@ -62,6 +62,8 @@ happens. Everything before 1.0 is in the git history.
   are any in the Race, and only the Bot nearest behind a Player goes for them while the others keep their lanes. They
   keep wider lanes, steer round a Bot in their way and lift off behind a slower one, so they pile into each other less.
   Over 40 Races Bots now Hit each other half as often and the Player about half as often again.
+- The board after a Race lists those still racing when it ended as not finished, without a place, below the ones who
+  finished; until now everyone got a place as if they had finished. The room sends how many finished (`finishers`).
 
 ### Start screen
 

@@ -101,6 +101,7 @@ export class RaceSim {
   /** When the current Race left the grid; Bots hold off attacking for a moment after the start. */
   startedAt = Infinity;
   results: string[] = [];
+  finishers = 0; // how many of the `results` finished; the rest were still racing when it ended
   combat!: Combat;
   events: RaceEvent[] = [];
   /** Counters for tests and tuning. */
@@ -277,7 +278,7 @@ export class RaceSim {
     this.timer -= dt;
     if (this.timer > 0) return;
     if (this.phase === 'grid') { this.phase = 'racing'; this.startedAt = this.time; }
-    else { this.results = ranked.map((s) => s.name); this.newRace(GRID_TIME); }
+    else { this.results = ranked.map((s) => s.name); this.finishers = ranked.filter((s) => s.finished).length; this.newRace(GRID_TIME); }
   }
 
   lap = (s: Seat) => clamp(lapOf(this.track, s.progress), 1, LAPS);

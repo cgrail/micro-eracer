@@ -32,6 +32,7 @@ final class RaceTests: XCTestCase {
             var t = 0.0
             while t < 240 && sim.results.isEmpty { sim.step(DT); t += DT }
             XCTAssertEqual(sim.results.count, SEATS, "\(def.id): the Race should end within 4 minutes")
+            XCTAssert((1...SEATS).contains(sim.finishers), "\(def.id): the results should count who finished")
             XCTAssertGreaterThan(sim.stats.pickups, 0, "\(def.id): Bots should pick up Batteries")
             let st = sim.stats
             print("\(def.id): \(String(format: "%.1f", sim.time))s, \(st.pickups) Batteries, \(st.recharges) Recharges (\(st.leaderRecharges) of the Leader), \(st.rams) Rams, \(st.hits) Hits")

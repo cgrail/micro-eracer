@@ -291,7 +291,7 @@ struct WatchHUD: View {
                 VStack(alignment: .leading, spacing: 0) {
                     if !hud.title.isEmpty { Text(bangers: hud.title, size: 15) }
                     ForEach(Array(hud.board.prefix(4).enumerated()), id: \.offset) { i, name in
-                        Text(bangers: "\(i + 1). \(name)", size: 13).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
+                        hud.standing(i, name, size: 13).foregroundColor(name == hud.me ? Color(hex: 0x2f9bff) : Color(hex: 0x1b1410))
                     }
                 }
                 .foregroundColor(Color(hex: 0x1b1410)).padding(6)

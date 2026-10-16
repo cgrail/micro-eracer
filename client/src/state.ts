@@ -13,7 +13,7 @@ export interface List<T> { length: number; forEach(cb: (item: T, i: number) => v
 /** The Race's Track as the room sends it (`TrackDef`); empty from a server from before it sent one. */
 export interface TrackState { id: string; name: string; theme: string; pieces: string; puddles: List<number>; items: List<number> }
 export interface RaceState {
-  phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>;
+  phase: Phase; timer: number; trackId: string; cars: List<CarState>; results: List<string>; finishers: number;
   batteries: List<Spot>; bolts: List<BoltState>; mines: List<Spot>; boxes: List<boolean>; track?: TrackState;
 }
 

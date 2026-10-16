@@ -83,6 +83,7 @@ final class RaceSim {
     /// When the current Race left the grid; Bots hold off attacking for a moment after the start.
     private(set) var startedAt = Double.infinity
     private(set) var results: [String] = []
+    private(set) var finishers = 0 // how many of the `results` finished; the rest were still racing when it ended
     private(set) var combat: Combat!
     var events: [RaceEvent] = []
     /// Counters for tests and tuning.
@@ -254,7 +255,7 @@ final class RaceSim {
         if phase == .racing { return }
         timer -= dt
         if timer > 0 { return }
-        if phase == .grid { phase = .racing; startedAt = time } else { results = ranked.map { $0.name }; newRace(GRID_TIME) }
+        if phase == .grid { phase = .racing; startedAt = time } else { results = ranked.map { $0.name }; finishers = ranked.filter(\.finished).count; newRace(GRID_TIME) }
     }
 
     func lap(_ s: Seat) -> Int { Int(clamp(Double(lapOf(track, s.progress)), 1, Double(LAPS))) }

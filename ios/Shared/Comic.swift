@@ -18,6 +18,14 @@ extension Text {
     }
 }
 
+extension HudState {
+    /// A line of the board: "1. Name", or after a Race, for those who were still racing when it ended, "Name not finished".
+    func standing(_ i: Int, _ name: String, size: CGFloat) -> Text {
+        i < finishers ? Text(bangers: "\(i + 1). \(name)", size: size)
+            : Text(bangers: name, size: size) + Text(bangers: " not finished", size: size * 0.6).foregroundColor(Color(hex: 0x1b1410, opacity: 0.6))
+    }
+}
+
 /// Comic lettering: Bangers, outlined in ink with a hard shadow.
 struct Comic: View {
     let text: String, size: CGFloat

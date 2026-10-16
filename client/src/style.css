@@ -173,6 +173,8 @@ dialog .go:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--
 /* while the others are still racing, the standings sit out of the way under the Lap counter */
 #results.live { top: max(124px, calc(env(safe-area-inset-top) + 116px)); right: 16px; left: auto; transform: rotate(1deg); padding: 8px 14px 8px 36px; font-size: 18px; }
 #results .me { color: var(--accent); }
+#results .dnf { list-style: none; }
+#results .dnf::after { content: 'not finished'; margin-left: 0.4em; font-size: 0.6em; opacity: 0.6; }
 #results.over { font-size: 26px; box-shadow: 5px 5px 0 #111, 0 0 0 100vmax rgb(0 0 0 / 0.4); }
 #results.over::before { content: attr(data-title); display: block; margin: 0 0 6px -28px; font-size: 32px; }
 /* the big message and the news stay bright above the dimmed screen */

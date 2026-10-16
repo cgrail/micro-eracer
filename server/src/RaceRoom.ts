@@ -30,6 +30,8 @@ const RaceState = schema({
   cars: t.array(CarState), results: t.array('string'), batteries: t.array(BatteryState),
   bolts: t.array(BoltState), mines: t.array(MineState), boxes: t.array('boolean'),
   track: t.ref(TrackState),
+  // how many of the `results` finished; the rest were still racing when it ended
+  finishers: t.uint8(),
 }, 'RaceState');
 type RaceState = SchemaType<typeof RaceState>;
 
@@ -108,6 +110,7 @@ export class RaceRoom extends Room<{ state: RaceState }> {
       this.list();
     }
     if (state.results.join() !== sim.results.join()) { state.results.clear(); state.results.push(...sim.results); }
+    state.finishers = sim.finishers;
     if (state.batteries.map((b) => b.id).join() !== sim.batteries.map((b) => b.id).join()) {
       state.batteries.clear();
       state.batteries.push(...sim.batteries.map(({ id, x, y, z }) => Object.assign(new BatteryState(), { id, x, y, z })));

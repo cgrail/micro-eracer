@@ -70,18 +70,25 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
         state.cars.forEach((c) => { if (c.finished) done.push(c); });
         board.push(...done.sort((a, b) => a.position - b.position).map((c) => c.name));
       }
+      // after a Race, those who were still racing when it ended are listed as not finished
+      const finishers = state.phase === 'grid' ? state.finishers : board.length;
       // finished (or on the grid after a Race) it's the end: the board moves to the middle under a title and the rest dims;
       // while we're still racing it waits in the corner, out of the way
       const over = state.phase === 'grid' ? names.length > 0 : state.phase === 'finishing' && !!me?.finished;
       // finished, the title counts down to the next Race
       const title = !over ? '' : state.phase === 'grid' ? '🏁 Race over' : `🏁 Next race in ${left}`;
       if (hud.results.dataset.title !== title) hud.results.dataset.title = title;
-      const shown = `${state.phase}:${over}:${board.join('\n')}`;
+      const shown = `${state.phase}:${over}:${finishers}:${board.join('\n')}`;
       if (shown !== lastResults) {
         lastResults = shown;
         hud.results.classList.toggle('live', state.phase === 'finishing' && !over);
         hud.results.classList.toggle('over', over);
-        hud.results.replaceChildren(...board.map((n) => Object.assign(document.createElement('li'), { textContent: n, className: n === me?.name ? 'me' : '' })));
+        hud.results.replaceChildren(...board.map((n, i) => {
+          const li = Object.assign(document.createElement('li'), { textContent: n });
+          li.classList.toggle('me', n === me?.name);
+          li.classList.toggle('dnf', i >= finishers);
+          return li;
+        }));
       }
     },
 
