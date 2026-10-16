@@ -12,7 +12,9 @@ struct Popup: Identifiable, Equatable { let id: Int; let text: String; let gain:
 /// What the HUD shows, worked out on the game's thread (`HudFeed`) and handed to SwiftUI when it changes.
 struct HudState: Equatable {
     enum Board { case hidden, live, over }
-    var pos = "", lap = "", msg = "", news = "", item = "", action = ""
+    var pos = "", lap = "", news = "", item = "", action = ""
+    /// The big message in the middle: until the game first hands over its HUD, the Race is still loading.
+    var msg = "Loading…"
     var energy = 100, danger = false, showBack = false, offline = false
     var board: [String] = [], me = "", boardMode = Board.hidden, title = ""
     var popups: [Popup] = []

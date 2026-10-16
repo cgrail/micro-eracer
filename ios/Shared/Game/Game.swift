@@ -34,6 +34,8 @@ final class Game: NSObject, SCNSceneRendererDelegate {
     let fire = Particles(0xffa424, 300, gravity: -4, grow: 1.5), soot = Particles(0x55565c, 200, gravity: 1.5, grow: 2.5)
     private var acc = 0.0, last = -1.0, ownBefore = Vec3(x: 1e9, y: 0, z: 0), ownBeforeYaw = 0.0, lastTarget = SIMD3<Float>(0, -1e6, 0)
     private var lastHud = HudState(), gone = false
+    /// The Track has been on screen: its first frame (building it, compiling its shaders) takes seconds on a first start.
+    private var drawn = false
     /// Held for a whole frame, so `stop` (on the main thread) never leaves the room in the middle of one.
     private let frameLock = NSLock()
     var now = 0.0
@@ -77,7 +79,7 @@ final class Game: NSObject, SCNSceneRendererDelegate {
         if let s = link.takeState() { onState(s) }
         for e in link.takeEvents() { onEvent(e) }
         if link.status == .left { gone = true; sound.silenceLoops(); DispatchQueue.main.async(execute: left); return }
-        status = link.status == .reconnecting ? "Reconnecting…" : ""
+        status = !drawn ? "Loading…" : link.status == .reconnecting ? "Reconnecting…" : ""
         acc += dt
         while acc >= DT {
             if let own { ownBefore = own.view.car.rb.translation; ownBeforeYaw = own.view.car.rb.yaw }
@@ -90,6 +92,10 @@ final class Game: NSObject, SCNSceneRendererDelegate {
             let hud = feed.update(time, state, me, status, showBack: stuckFor > 0.8 && !controls.usesPad)
             if hud != lastHud { lastHud = hud; DispatchQueue.main.async { [publish] in publish(hud) } }
         }
+    }
+
+    func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+        if look != nil { drawn = true }
     }
 
     /// One physics step of our own E-Car, 60 times a second.

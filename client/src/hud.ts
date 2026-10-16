@@ -30,7 +30,8 @@ export function createHud(hud: Hud, sound: Sound, view: HTMLElement) {
   return {
     /** `me` is our own E-Car; `status` a connection message that wins over everything else. */
     update(now: number, state: RaceState | undefined, me: CarState | undefined, status: string, track: Track | undefined) {
-      if (!state) return;
+      // before the room's first state: the Track built from it is drawn before the next update replaces this
+      if (!state) { if (lastMsg !== 'Loading…') hud.msg.textContent = lastMsg = 'Loading…'; return; }
       drawMap(track, state, me);
       if (lastPhase === 'grid' && state.phase === 'racing') { goUntil = now + 1000; sound.countdown(true); }
       lastPhase = state.phase;
