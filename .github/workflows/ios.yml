@@ -1,7 +1,6 @@
 # The apps' checks from CLAUDE.md: `swift test` (ios/Core against the TypeScript: the physics fixture, the Track data, the
 # songs, a headless Race on every Track) and the iPhone app, with the watch app inside it, built for the simulator with no
-# warnings. The project is on Xcode 27, and the watch app targets watchOS 26.6, past the newest SDK on macos-26, hence the
-# xcode-27 image.
+# warnings. The project is on Xcode 27, hence the xcode-27 image.
 name: iOS
 
 on:

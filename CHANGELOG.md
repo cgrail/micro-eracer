@@ -168,6 +168,7 @@ happens. Everything before 1.0 is in the git history.
 - **An Apple Watch app**, inside the iPhone app and also on its own: the same game in an Offline Race against 7 Bots.
   The watch can't race online (watchOS has no build of the Colyseus SDK and allows web sockets only to audio-streaming
   apps).
+- It runs on watchOS 10 and later (an Apple Watch Series 4 or newer), not only the newest watchOS.
 - The Digital Crown is a steering wheel that clicks into six notches and stays where it is left: the two in the middle
   straight on (so it's easy to land on straight coming back from a turn), then turned up a little left and full lock
   left, turned down the same to the right. Steering straight, the E-Car lines itself up with the road (gently, so a
