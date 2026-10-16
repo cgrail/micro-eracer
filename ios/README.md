@@ -82,7 +82,7 @@ Names of types, functions and constants match the TypeScript, so a grep finds bo
 | `Shared/Audio/Synth.swift`, `Sound.swift`, `Songs.swift` | `client/src/audio.ts`, `songs.ts` |
 | `Shared/HudFeed.swift`, `MicroERacer/UI/HUD.swift`, the watch's `WatchHUD` | `client/src/hud.ts` |
 | `Shared/Controls.swift`, `MicroERacer/UI/TouchControls.swift`, `MicroERacer/Pads.swift` | `client/src/input.ts` (touch, and the keys on an iPad's keyboard; `Pads.swift` adds game controllers) |
-| `MicroERacer/UI/StartView.swift`, `TrackPick.swift`, `Backdrop.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts`, `trackmap.ts`, and `#backdrop` behind it in `style.css` |
+| `MicroERacer/UI/StartView.swift`, `TrackPick.swift`, `MenuKeys.swift`, `Backdrop.swift` | the start form in `client/index.html`, `main.ts`, `garage.ts`, `trackmap.ts`, and `#backdrop` behind it in `style.css` |
 | `Shared/Game/Pictures.swift` | `garage.ts` and `createCourse` in `trackmap.ts`: the Body's turntable and the Track from above, on the phone's and the watch's start screens |
 | `MicroERacer/Practice.swift`, `UI/PracticeView.swift` | `client/src/practice.ts`, and the Practice Ground's settings (`#practice`) in `client/index.html` and `main.ts` |
 | `MicroERacer/AppModel.swift` | `client/src/main.ts` |

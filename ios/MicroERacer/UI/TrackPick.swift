@@ -60,12 +60,15 @@ struct CourseView: UIViewRepresentable {
 
 /// ◀ or ▶ that steps once when pressed and keeps stepping, faster and faster, while held.
 struct RepeatStepper: View {
-    let arrow: String, label: String, ink: Color, step: () -> Void
+    let arrow: String, label: String, ink: Color
+    /// Where the keyboard is on its picker (MenuKeys), as the browsers light its arrows.
+    var lit = false
+    let step: () -> Void
     @State private var timer: Timer?
 
     var body: some View {
         Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44)
-            .background(RoundedRectangle(cornerRadius: 12).fill(timer == nil ? Color.clear : Color(hex: 0x2f9bff)))
+            .background(RoundedRectangle(cornerRadius: 12).fill(timer == nil && !lit ? Color.clear : Color(hex: 0x2f9bff)))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0)

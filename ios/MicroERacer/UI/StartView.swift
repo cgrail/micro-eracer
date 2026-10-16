@@ -21,6 +21,8 @@ struct StartView: View {
     /// The About page, behind the i by the title.
     @State private var about = false
     @FocusState private var naming: Bool
+    /// Where an iPad's hardware keyboard is on the form.
+    @StateObject private var keys = MenuKeys()
 
     private var paper: Color { scheme == .dark ? Color(hex: 0x2f2620) : Color(hex: 0xfffdf6) }
     private var ink: Color { scheme == .dark ? Color(hex: 0xfff6e6) : Color(hex: 0x1b1410) }
@@ -45,7 +47,19 @@ struct StartView: View {
         // the keyboard covers the bottom while the name is typed, rather than squashing the form
         .ignoresSafeArea(.keyboard)
         .background(Backdrop())
-        .onAppear { garage.show(model.body, whirl: false); course.show(picked) }
+        .onAppear {
+            garage.show(model.body, whirl: false)
+            course.show(picked)
+            keys.step = { stop, by in if stop == .body { step(by) } else if model.running == nil { stepTrack(by) } }
+            keys.play = { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
+            keys.start()
+        }
+        .onDisappear { keys.stop() }
+        // the keyboard on the Name is typing in it, and typing there puts the keyboard on it
+        .onChange(of: keys.at) { naming = $0 == .name }
+        .onChange(of: naming) { if $0 && keys.at != nil { keys.at = .name } }
+        .onChange(of: about) { keys.paused = $0 || model.askUpdate }
+        .onChange(of: model.askUpdate) { keys.paused = $0 || about }
         // while the form is up, the Race a join would take: its Track replaces the picker, as only the first Player picks one
         .task { while !Task.isCancelled { await model.askRace(); try? await Task.sleep(nanoseconds: 5_000_000_000) } }
         #if DEBUG
@@ -62,17 +76,24 @@ struct StartView: View {
             if wide {
                 VStack(spacing: 8) {
                     title(centred: true)
-                    nameField.frame(maxWidth: 380)
+                    nameField.keyMark(keys.at == .name).frame(maxWidth: 380)
                     HStack(alignment: .top, spacing: 20) {
-                        bodyPick(pic)
+                        bodyPick(pic).keyMark(keys.at == .body)
                         // a line between the Body and the Track, like the one under the Track's name
-                        VStack(alignment: .leading, spacing: 8) { trackPick(pic); controlsButton }
+                        VStack(alignment: .leading, spacing: 8) { trackPick(pic).keyMark(keys.at == .track); controlsButton }
                             .padding(.leading, 20).overlay(alignment: .leading) { Rectangle().fill(ink.opacity(0.5)).frame(width: 2) }
                     }
-                    playButton.frame(maxWidth: 380)
+                    playButton.keyMark(keys.at == .play).frame(maxWidth: 380)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 8) { title(centred: false); nameField; bodyPick(pic); trackPick(pic); controlsButton; playButton }
+                VStack(alignment: .leading, spacing: 8) {
+                    title(centred: false)
+                    nameField.keyMark(keys.at == .name)
+                    bodyPick(pic).keyMark(keys.at == .body)
+                    trackPick(pic).keyMark(keys.at == .track)
+                    controlsButton
+                    playButton.keyMark(keys.at == .play)
+                }
             }
         }
         .foregroundColor(ink)
@@ -114,9 +135,9 @@ struct StartView: View {
     private func bodyPick(_ pic: CGFloat) -> some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
-                stepper("◀\u{FE0E}", label: "Previous Body") { step(-1) }
+                stepper("◀\u{FE0E}", label: "Previous Body", lit: keys.at == .body) { step(-1) }
                 TurntableView(garage: garage).frame(height: pic).frame(maxWidth: .infinity)
-                stepper("▶\u{FE0E}", label: "Next Body") { step(1) }
+                stepper("▶\u{FE0E}", label: "Next Body", lit: keys.at == .body) { step(1) }
             }
             Text(bangers: BODY_NAMES[model.body]!, size: 24)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible())], spacing: 4) {
@@ -139,13 +160,13 @@ struct StartView: View {
         let def = picked, facts = trackFacts(def, of: model.tracks.count), running = model.running
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
-                RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink) { stepTrack(-1) }.locked(running != nil)
+                RepeatStepper(arrow: "◀\u{FE0E}", label: "Previous Track", ink: ink, lit: keys.at == .track) { stepTrack(-1) }.locked(running != nil)
                 CourseView(course: course).frame(height: pic).frame(maxWidth: .infinity)
                     // any Track: a question mark in the picture's place
                     .overlay { if def == nil { Color(hex: 0x2f9bff).overlay(Text(bangers: "?", size: pic * 0.8).foregroundColor(Color(hex: 0xffd60a)).offset(y: pic * 0.06)) } }
                     .clipShape(RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
                     .accessibilityHidden(true)
-                RepeatStepper(arrow: "▶\u{FE0E}", label: "Next Track", ink: ink) { stepTrack(1) }.locked(running != nil)
+                RepeatStepper(arrow: "▶\u{FE0E}", label: "Next Track", ink: ink, lit: keys.at == .track) { stepTrack(1) }.locked(running != nil)
             }
             if let running, let def {
                 Text(bangers: def.name, size: 24).lineLimit(1).minimumScaleFactor(0.6)
@@ -252,8 +273,13 @@ struct StartView: View {
 
     private func label(_ text: String) -> some View { Text(bangers: text, size: 18).kerning(0.5) }
 
-    private func stepper(_ arrow: String, label: String, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) { Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44).overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3)) }
+    /// `lit` where the keyboard is on its picker, as the browsers light its arrows.
+    private func stepper(_ arrow: String, label: String, lit: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44)
+                .background(RoundedRectangle(cornerRadius: 12).fill(lit ? Color(hex: 0x2f9bff) : .clear))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
+        }
             .accessibilityLabel(label)
     }
 

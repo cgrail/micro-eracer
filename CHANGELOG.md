@@ -133,6 +133,9 @@ happens. Everything before 1.0 is in the git history.
 
 ### iPhone and iPad
 
+- With a hardware keyboard, the start screen works as the browsers' does: ↓ and ↑ go from the Name to the Body, the
+  Track and Play and back, ← and → step through the Bodies or the Tracks, Return plays, and where the keys are is
+  outlined, a picker's arrows lit. It starts on the Track once a keyboard is there; without one nothing changes.
 - **A native app for iPhone and iPad** ([ios/](ios/)), in Swift with SceneKit. It joins the same Races on the same server
   as the browsers (`wss://micro.grails.de`, the same rooms), so phones and browsers race each other, and falls back
   to an Offline Race against the Bots when the server can't be reached within 5 seconds, as the browser does.
