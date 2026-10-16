@@ -116,7 +116,7 @@ struct StartView: View {
         HStack(spacing: 10) {
             label("Name")
             TextField("", text: $model.name)
-                .font(.system(size: 18)).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
+                .font(.system(size: 18)).foregroundColor(keys.at == .name ? Color(hex: 0x1b1410) : ink).textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.go)
                 // Return plays, as Enter submits the browsers' start form
                 .onSubmit { if !model.joining && !model.name.trimmingCharacters(in: .whitespaces).isEmpty { Task { await model.play() } } }
                 .onChange(of: model.name) { if $0.count > 16 { model.name = String($0.prefix(16)) } }
@@ -128,9 +128,9 @@ struct StartView: View {
                     if !now && model.name.trimmingCharacters(in: .whitespaces).isEmpty { model.name = madeUp }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                // where the keyboard is, the field glows, as in the browsers
-                .background { if keys.at == .name { KeyGlow(corner: 10, past: 0) } }
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
+                // where the keyboard is, the field flashes from pale yellow to yellow in a thicker edge, as in the browsers
+                .background { if keys.at == .name { KeyGlow(from: 1, to: 0, corner: 10, past: 0).background(RoundedRectangle(cornerRadius: 10).fill(Color(hex: 0xfff3b0))) } }
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: keys.at == .name ? 5 : 3))
         }
     }
 
@@ -253,10 +253,10 @@ struct StartView: View {
         VStack(alignment: .leading, spacing: 4) {
             Button { Task { await model.play() } } label: {
                 Text(bangers: model.outdated ? "Play offline" : model.running != nil ? "Join the Race" : "Play", size: 30).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
-                    // where the keyboard is, it flashes orange, as in the browsers
+                    // where the keyboard is, it flashes orange in a thicker edge, as in the browsers
                     .background { if keys.at == .play { KeyGlow(color: Color(hex: 0xff9f1c), from: 1, to: 0, corner: 12, past: 0) } }
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: keys.at == .play ? 5 : 3))
                     .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))
                     .padding(.trailing, 5)
             }

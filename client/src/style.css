@@ -121,12 +121,14 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 /* where the keyboard is on the start form: ↑ ↓ or Tab move it, and ← → step the picker it is on, whose arrows light up.
    Like a game menu's cursor: a yellow glow behind it (past a picker's edges) that brightens and fades back */
 @property --slot { syntax: '<color>'; inherits: false; initial-value: transparent; }
-#start .pick:focus-visible, #name:focus-visible { --slot: rgba(255, 214, 10, 0.25); outline: none; background: var(--slot); animation: slot 0.7s ease-in-out infinite alternate; }
-#start .pick:focus-visible { border-radius: 12px; box-shadow: 0 0 0 7px var(--slot); }
+#start .pick:focus-visible { --slot: rgba(255, 214, 10, 0.25); outline: none; border-radius: 12px; background: var(--slot); box-shadow: 0 0 0 7px var(--slot);
+  animation: slot 0.7s ease-in-out infinite alternate; }
 @keyframes slot { to { --slot: rgba(255, 214, 10, 0.5); } }
-/* Play, yellow already, flashes orange instead */
-#play:focus-visible { outline: none; background: #ff9f1c; animation: flash 0.7s ease-in-out infinite alternate; }
-@keyframes flash { from { background: var(--yellow); } }
+/* the Name field and Play get a thicker ink edge and flash: the field from pale yellow to yellow, Play from yellow to orange */
+#name:focus-visible { --from: #fff3b0; outline: none; background: var(--yellow); color: #1b1410; box-shadow: inset 0 0 0 2px var(--ink); }
+#play:focus-visible { --from: var(--yellow); outline: none; background: #ff9f1c; box-shadow: 5px 5px 0 var(--ink), inset 0 0 0 2px var(--ink); }
+#name:focus-visible, #play:focus-visible { animation: flash 0.7s ease-in-out infinite alternate; }
+@keyframes flash { from { background: var(--from); } }
 @media (prefers-reduced-motion: reduce) { #start .pick:focus-visible, #name:focus-visible, #play:focus-visible { animation: none; } }
 #start .pick:focus-visible .stage button { background: var(--yellow); color: #1b1410; box-shadow: 3px 3px 0 var(--ink); }
 #play:disabled { opacity: 0.6; }

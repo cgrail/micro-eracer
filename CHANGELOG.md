@@ -58,8 +58,9 @@ happens. Everything before 1.0 is in the git history.
   (and the watch, which picks it from a list) does the same. Each start shows a Track picked at random, with its name,
   and Play races it (the watch remembers its pick as `track`).
 - The start form works from the keyboard in the browser: ↓ and ↑ (or Tab) go from the Name to the Body, the Track and
-  Play and back, ← and → step through the Bodies or the Tracks, Enter plays, and where the keys are glows
-  yellow, like a game menu's cursor (Play flashes orange), a picker's arrows lit yellow. On a desktop the Track's picker has the keys from the start.
+  Play and back, ← and → step through the Bodies or the Tracks, Enter plays, and where the keys are shows like a game
+  menu's cursor: a picker glows yellow, its arrows lit, and the Name field or Play flashes in a thicker edge. On a
+  desktop the Track's picker has the keys from the start.
 - After a Race on a picked Track the next Race goes on to the next Track in the list (after the last, the first again),
   instead of racing the same Track once more; online, in an Offline Race and on the watch alike. Any Track still picks
   each next one at random.
@@ -134,8 +135,8 @@ happens. Everything before 1.0 is in the git history.
 ### iPhone and iPad
 
 - With a hardware keyboard, the start screen works as the browsers' does: ↓ and ↑ go from the Name to the Body, the
-  Track and Play and back, ← and → step through the Bodies or the Tracks, Return plays, and where the keys are glows
-  yellow behind as there, a picker's arrows lit yellow. It starts on the Track once a keyboard is there; without one nothing changes.
+  Track and Play and back, ← and → step through the Bodies or the Tracks, Return plays, and where the keys are shows as
+  there. It starts on the Track once a keyboard is there; without one nothing changes.
 - **A native app for iPhone and iPad** ([ios/](ios/)), in Swift with SceneKit. It joins the same Races on the same server
   as the browsers (`wss://micro.grails.de`, the same rooms), so phones and browsers race each other, and falls back
   to an Offline Race against the Bots when the server can't be reached within 5 seconds, as the browser does.
