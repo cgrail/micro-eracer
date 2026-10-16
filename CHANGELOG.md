@@ -191,6 +191,8 @@ happens. Everything before 1.0 is in the git history.
   The watch can't race online (watchOS has no build of the Colyseus SDK and allows web sockets only to audio-streaming
   apps).
 - It runs on watchOS 10 and later (an Apple Watch Series 4 or newer), not only the newest watchOS.
+- The watch's start screen shows what you pick, as the phone's does: the Body turning on its turntable and the Track in
+  3D from above (a question mark for Any Track), each between ◀ and ▶, with the list of them all right under it.
 - The Digital Crown is a steering wheel that clicks into six notches and stays where it is left: the two in the middle
   straight on (so it's easy to land on straight coming back from a turn), then turned up a little left and full lock
   left, turned down the same to the right. Steering straight, the E-Car lines itself up with the road (gently, so a

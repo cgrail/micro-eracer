@@ -259,46 +259,6 @@ struct StartView: View {
 
 }
 
-/// The turntable: the picked Body turning slowly, with a quick whirl on each pick.
-final class Garage: NSObject, ObservableObject, SCNSceneRendererDelegate {
-    let scene = SCNScene(), camera = SCNNode(), turntable = SCNNode()
-    private var cars: [BodyKind: SCNNode] = [:], speed = 0.0, last = -1.0
-    private let still = UIAccessibility.isReduceMotionEnabled
-
-    override init() {
-        super.init()
-        camera.camera = SCNCamera()
-        camera.camera!.fieldOfView = 30
-        // close enough that the Body fills its picture, with room for the Semi side on
-        camera.position = SCNVector3(0, 2.7, 6.9)
-        camera.look(at: SCNVector3(0, 0, 0))
-        scene.rootNode.addChildNode(camera)
-        let ambient = SCNLight(); ambient.type = .ambient; ambient.intensity = 560
-        let sun = SCNLight(); sun.type = .directional; sun.intensity = 760
-        let sunNode = SCNNode(); sunNode.light = sun; sunNode.position = SCNVector3(4, 8, 3); sunNode.look(at: SCNVector3(0, 0, 0))
-        scene.rootNode.addChildNode(SCNNode().with { $0.light = ambient })
-        scene.rootNode.addChildNode(sunNode)
-        for k in BODY_KINDS { let car = makeCar(k, 0x2f9bff).node; cars[k] = car; turntable.addChildNode(car) }
-        // the headlights' beams would sweep right across the little picture
-        for car in cars.values { car.childNode(withName: "beams", recursively: false)?.isHidden = true }
-        turntable.eulerAngles.y = 0.6
-        scene.rootNode.addChildNode(turntable)
-    }
-
-    func show(_ kind: BodyKind, whirl: Bool) {
-        for (k, car) in cars { car.isHidden = k != kind }
-        if whirl && !still { speed = 9 }
-    }
-
-    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        let dt = last < 0 ? 0 : min(0.1, time - last)
-        last = time
-        // settling into a slow turn
-        speed += ((still ? 0 : 0.8) - speed) * min(1, 3 * dt)
-        turntable.eulerAngles.y += Float(speed * dt)
-    }
-}
-
 private struct TurntableView: UIViewRepresentable {
     let garage: Garage
     func makeUIView(context: Context) -> SCNView {

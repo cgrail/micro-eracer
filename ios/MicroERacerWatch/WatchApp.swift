@@ -88,6 +88,9 @@ private let BODY_NAMES: [BodyKind: String] = [.roadster: "Roadster", .suv: "SUV"
 struct WatchStartView: View {
     @ObservedObject var model: WatchModel
     @State private var racing = false
+    @StateObject private var garage = Garage()
+    @StateObject private var course = Course()
+    private var picked: TrackDef? { TRACKS.first { $0.id == model.track } }
 
     var body: some View {
         NavigationStack {
@@ -95,8 +98,22 @@ struct WatchStartView: View {
             List {
                 Comic(text: "Micro E-Racer", size: 24, fill: Color(hex: 0xffd60a)).listRowBackground(Color.clear)
                 TextField("Name", text: $model.name)
+                // the Body on its turntable and the Track from above, as on the phone; each Picker under its picture lists them
+                // all. Not drawn while racing, which needs the watch's every frame
+                WatchPick(what: "Body", step: stepBody) {
+                    if !racing { SceneView(scene: garage.scene, pointOfView: garage.camera, options: [.rendersContinuously], preferredFramesPerSecond: 30, antialiasingMode: .none, delegate: garage) }
+                }
                 Picker("Body", selection: $model.body) {
                     ForEach(BODY_KINDS, id: \.self) { Text(BODY_NAMES[$0]!).tag($0) }
+                }
+                WatchPick(what: "Track", step: stepTrack) {
+                    // any Track: a question mark in the picture's place
+                    if picked == nil { Color(hex: 0x2f9bff).overlay(Text(bangers: "?", size: 54).foregroundColor(Color(hex: 0xffd60a))) } else if !racing {
+                        GeometryReader { box in
+                            SceneView(scene: course.scene, pointOfView: course.camera, options: [.rendersContinuously], preferredFramesPerSecond: 30, antialiasingMode: .none, delegate: course)
+                                .onAppear { course.aspect = box.size.height > 0 ? box.size.width / box.size.height : 1 }
+                        }
+                    }
                 }
                 Picker("Track", selection: $model.track) {
                     Text("Any Track").tag("")
@@ -109,6 +126,13 @@ struct WatchStartView: View {
                 .buttonStyle(.borderedProminent).tint(Color(hex: 0xffd60a)).listRowBackground(Color.clear)
                 Text("Steer with the Crown, or touch the left or right of the screen. The button top right uses your Item. Offline: you and the Bots.").font(.footnote).foregroundColor(.secondary).listRowBackground(Color.clear)
             }
+            .onAppear {
+                garage.scene.background.contents = color(0x2a2118)
+                garage.show(model.body, whirl: false)
+                course.show(picked)
+            }
+            .onChange(of: model.body) { _, body in garage.show(body, whirl: true) }
+            .onChange(of: model.track) { _, _ in course.show(picked) }
             .navigationDestination(isPresented: $racing) {
                 if let game = model.game { WatchRaceView(model: model, game: game) }
             }
@@ -120,6 +144,36 @@ struct WatchStartView: View {
                 }
             }
         }
+    }
+
+    private func stepBody(_ by: Int) {
+        let all = BODY_KINDS, i = all.firstIndex(of: model.body)!
+        model.body = all[(i + by + all.count) % all.count]
+    }
+
+    private func stepTrack(_ by: Int) {
+        let ids = [""] + TRACKS.map(\.id), i = ids.firstIndex(of: model.track) ?? 0
+        model.track = ids[(i + by + ids.count) % ids.count]
+    }
+}
+
+/// A picture between ◀ and ▶, as the phone's start screen picks the Body and the Track.
+private struct WatchPick<Picture: View>: View {
+    let what: String, step: (Int) -> Void
+    @ViewBuilder let picture: () -> Picture
+
+    var body: some View {
+        HStack(spacing: 2) {
+            arrow("◀\u{FE0E}", "Previous \(what)", -1)
+            picture().frame(height: 70).frame(maxWidth: .infinity).clipShape(RoundedRectangle(cornerRadius: 8)).accessibilityHidden(true)
+            arrow("▶\u{FE0E}", "Next \(what)", 1)
+        }
+        .listRowBackground(Color.clear)
+    }
+
+    private func arrow(_ text: String, _ label: String, _ by: Int) -> some View {
+        Button { step(by) } label: { Text(text).font(.system(size: 18)).frame(width: 28, height: 44) }
+            .buttonStyle(.plain).accessibilityLabel(label)
     }
 }
 
