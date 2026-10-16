@@ -38,6 +38,11 @@ final class RaceTests: XCTestCase {
         }
     }
 
+    func testAPickedTrackGoesOnToTheNextInTheList() {
+        let ids = TRACKS.map(\.id), sim = RaceSim(trackId: ids[ids.count - 2], ordered: true)
+        for want in [ids[ids.count - 1], ids[0], ids[1]] { sim.newRace(FIRST_GRID_TIME); XCTAssertEqual(sim.track.def.id, want) }
+    }
+
     func testAnEmptyECarIsStrandedThenRecharged() {
         let sim = RaceSim(trackId: "kitchen")
         while sim.phase == .grid { sim.step(DT) }

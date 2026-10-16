@@ -92,15 +92,19 @@ final class RaceSim {
 
     /// The Tracks the next Races are picked from, a different one each time while there is more than one.
     let pool: [String]
+    /// Each next Race on the pool's next Track (a picked Track goes on through the list), else on one at random.
+    let ordered: Bool
 
-    init(trackId: String? = nil, pool: [String] = TRACKS.map(\.id)) {
+    init(trackId: String? = nil, pool: [String] = TRACKS.map(\.id), ordered: Bool = false) {
         self.pool = pool
+        self.ordered = ordered
         newRace(FIRST_GRID_TIME, trackId)
     }
 
     func newRace(_ gridTime: Double, _ trackId: String? = nil) {
-        let pool = TRACKS.filter { self.pool.contains($0.id) }, others = pool.filter { $0.id != track?.def.id }
-        let def = TRACKS.first { $0.id == trackId } ?? others.randomElement() ?? pool.first ?? TRACKS[0]
+        let pool = TRACKS.filter { self.pool.contains($0.id) }, at = pool.firstIndex { $0.id == track?.def.id } ?? -1
+        let next = pool.isEmpty ? nil : pool[(at + 1) % pool.count]
+        let def = TRACKS.first { $0.id == trackId } ?? (ordered ? next : pool.filter { $0.id != track?.def.id }.randomElement()) ?? pool.first ?? TRACKS[0]
         track = buildTrack(def)
         world = createTrackWorld(track)
         combat = Combat(self)

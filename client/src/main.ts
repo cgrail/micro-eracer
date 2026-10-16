@@ -49,7 +49,7 @@ $('next-body').addEventListener('click', () => stepBody(1));
 showBody();
 garage.run(true);
 
-// the Track: any (''), a new one every Race, or one picked, raced again and again; each visit starts on one at random. Only
+// the Track: any (''), a new one every Race, or one picked, raced first and then the next ones in turn; each visit starts on one at random. Only
 // the first Player picks: while a Race is running online (`running`), the form shows its Track instead and Play joins it.
 // The Tracks to pick from are the server's once it has said which it races (`setTracks`), so one it added or changed is
 // there too; until then, and for an Offline Race, the ones this game came with

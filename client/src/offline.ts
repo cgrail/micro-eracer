@@ -7,8 +7,8 @@ const ME = 'offline';
 
 /** An Offline Race: the server's RaceSim run in this browser, against Bots, behind the same interface as the online room. */
 export function offlineRace(name: string, body: BodyKind, track?: string): RaceLink {
-  // a picked Track again and again, or a different one each Race
-  const sim = track ? new RaceSim(track, [track]) : new RaceSim();
+  // a picked Track and then the next ones in the list, or a different one at random each Race
+  const sim = new RaceSim(track, undefined, !!track);
   sim.join(ME, name.slice(0, 16) || 'Player', body);
   const seat = () => sim.seats.find((s) => s.owner === ME)!;
   let onState: (s: RaceState) => void = () => {}, onEvents: (list: RaceEvent[]) => void = () => {};

@@ -7,7 +7,7 @@ A multiplayer 3D racing web game in the spirit of Micro Machines, played with el
 ### Racing
 
 **Race**:
-A lap race of eight E-Cars on one Track. The first Racer to finish the last Lap wins, the Race ends 5 seconds later, and the next Race starts 3 seconds after that: on another Track picked at random, or on the same Track again where its first Player picked it.
+A lap race of eight E-Cars on one Track. The first Racer to finish the last Lap wins, the Race ends 5 seconds later, and the next Race starts 3 seconds after that: on another Track picked at random, or, where its first Player picked the Track, on the next one in the list.
 _Avoid_: Match, round, game
 
 **Seat**:

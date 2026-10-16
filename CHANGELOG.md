@@ -57,6 +57,9 @@ happens. Everything before 1.0 is in the git history.
   Track is raced again and again. Online, only the first Player in a Race picks (see Online). An Offline Race
   (and the watch, which picks it from a list) does the same. Each start shows a Track picked at random, with its name,
   and Play races it (the watch remembers its pick as `track`).
+- After a Race on a picked Track the next Race goes on to the next Track in the list (after the last, the first again),
+  instead of racing the same Track once more; online, in an Offline Race and on the watch alike. Any Track still picks
+  each next one at random.
 - The picked Track's picture is the Track itself in 3D, with its scenery, landmarks, rivers and bridges, seen from above
   and turning slowly like the Body on its turntable, starting from behind the start line with a whirl as each Track comes
   up. Any Track keeps its question mark.

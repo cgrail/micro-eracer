@@ -124,7 +124,7 @@ test('Batteries are plentiful at the back and scarce at the front', () => {
   assert.ok(back > 2 * front, `Batteries by Position: ${byPosition}`);
 });
 
-test('a Race goes on to another Track from its pool, or to its one Track again', () => {
+test('a Race goes on to another Track from its pool, or after a picked one to the next in the list', () => {
   const sim = new RaceSim(undefined, ['kitchen', 'garden']);
   assert.ok(['kitchen', 'garden'].includes(sim.track.def.id));
   for (let i = 0; i < 4; i++) {
@@ -132,9 +132,8 @@ test('a Race goes on to another Track from its pool, or to its one Track again',
     sim.newRace(FIRST_GRID_TIME);
     assert.ok(['kitchen', 'garden'].includes(sim.track.def.id) && sim.track.def.id !== was, `${was} then ${sim.track.def.id}`);
   }
-  const one = new RaceSim('paris-eiffel', ['paris-eiffel']);
-  one.newRace(FIRST_GRID_TIME);
-  assert.equal(one.track.def.id, 'paris-eiffel');
+  const ids = TRACKS.map((t) => t.id), picked = new RaceSim(ids.at(-2), undefined, true);
+  for (const want of [ids.at(-1), ids[0], ids[1]]) { picked.newRace(FIRST_GRID_TIME); assert.equal(picked.track.def.id, want); }
 });
 
 // the slowest Body against the quickest: if the Semi can beat Roadsters, the Bodies in between can too

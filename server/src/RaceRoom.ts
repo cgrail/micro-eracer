@@ -48,13 +48,13 @@ export class RaceRoom extends Room<{ state: RaceState }> {
     return true;
   }
 
-  /** `track`: the one Track the first Player picked, raced again and again; `classic`: only the Tracks apps from before the
-   * picker know. */
+  /** `track`: the Track the first Player picked, raced first and then followed by the next ones in the list; `classic`: only
+   * the Tracks apps from before the picker know. */
   onCreate(options: { track?: unknown; classic?: boolean }) {
     const picked = TRACKS.find((t) => t.id === options?.track)?.id;
-    const pool = picked ? [picked] : options?.classic ? CLASSIC_TRACKS : TRACKS.map((t) => t.id);
+    const pool = options?.classic ? CLASSIC_TRACKS : TRACKS.map((t) => t.id);
     // TRACK=garden picks the first Race's Track, handy while working on one
-    this.sim = new RaceSim(picked ?? (pool.includes(process.env.TRACK ?? '') ? process.env.TRACK : undefined), pool);
+    this.sim = new RaceSim(picked ?? (pool.includes(process.env.TRACK ?? '') ? process.env.TRACK : undefined), pool, !!picked);
     // DRAIN_SCALE=10 makes batteries run dry fast, for trying out Stranded and the Recharge
     this.sim.drainScale = Number(process.env.DRAIN_SCALE) || 1;
     // 30 updates a second (the default is 20), so the other E-Cars need less guessing between them

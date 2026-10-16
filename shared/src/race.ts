@@ -110,15 +110,17 @@ export class RaceSim {
 
   /** The Tracks the next Races are picked from, a different one each time while there is more than one. */
   pool: string[];
-
-  constructor(trackId?: string, pool = TRACKS.map((t) => t.id)) {
+  /** `ordered`: each next Race on the pool's next Track (a picked Track goes on through the list), else on one at random. */
+  constructor(trackId?: string, pool = TRACKS.map((t) => t.id), private ordered = false) {
     this.pool = pool;
     this.newRace(FIRST_GRID_TIME, trackId);
   }
 
   newRace(gridTime: number, trackId?: string) {
-    const pool = TRACKS.filter((t) => this.pool.includes(t.id)), others = pool.filter((t) => t.id !== this.track?.def.id);
-    const def = TRACKS.find((t) => t.id === trackId) ?? (others.length ? others[Math.floor(Math.random() * others.length)] : pool[0] ?? TRACKS[0]);
+    const pool = TRACKS.filter((t) => this.pool.includes(t.id)), at = pool.findIndex((t) => t.id === this.track?.def.id);
+    const others = pool.filter((_, i) => i !== at);
+    const def = TRACKS.find((t) => t.id === trackId)
+      ?? (this.ordered ? pool[(at + 1) % pool.length] : others[Math.floor(Math.random() * others.length)]) ?? pool[0] ?? TRACKS[0];
     this.track = buildTrack(def);
     this.world = createTrackWorld(this.track);
     this.combat = new Combat(this);
