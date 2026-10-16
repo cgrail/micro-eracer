@@ -45,8 +45,22 @@ final class MenuKeys: ObservableObject {
 }
 
 extension View {
-    /// Outlined where the keyboard is, as the browsers outline the picker their keys work on.
+    /// The picker where the keyboard is, as the browsers mark it: a yellow glow behind it, past its edges.
     func keyMark(_ on: Bool) -> some View {
-        overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(hex: 0x2f9bff), lineWidth: 3).padding(-6).opacity(on ? 1 : 0))
+        background { if on { KeyGlow() } }
+    }
+}
+
+/// Where the keyboard is: a colour that goes `from` one opacity `to` another and back, like a game menu's cursor (and stays
+/// at `from` with Reduce Motion on); only while it is there, so the start screen idles.
+struct KeyGlow: View {
+    var color = Color(hex: 0xffd60a), from = 0.25, to = 0.5, corner: CGFloat = 18, past: CGFloat = 7
+    @State private var glow = false
+    @Environment(\.accessibilityReduceMotion) private var still
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: corner).fill(color.opacity(glow ? to : from)).padding(-past)
+            .animation(.easeInOut(duration: 0.7).repeatForever(), value: glow)
+            .onAppear { glow = !still }
     }
 }

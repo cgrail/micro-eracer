@@ -67,8 +67,8 @@ struct RepeatStepper: View {
     @State private var timer: Timer?
 
     var body: some View {
-        Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44)
-            .background(RoundedRectangle(cornerRadius: 12).fill(timer == nil && !lit ? Color.clear : Color(hex: 0x2f9bff)))
+        Text(arrow).font(.system(size: 22)).foregroundColor(lit ? Color(hex: 0x1b1410) : ink).frame(width: 48, height: 44)
+            .background(RoundedRectangle(cornerRadius: 12).fill(lit ? Color(hex: 0xffd60a) : timer == nil ? Color.clear : Color(hex: 0x2f9bff)))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0)

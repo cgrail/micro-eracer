@@ -76,23 +76,23 @@ struct StartView: View {
             if wide {
                 VStack(spacing: 8) {
                     title(centred: true)
-                    nameField.keyMark(keys.at == .name).frame(maxWidth: 380)
+                    nameField.frame(maxWidth: 380)
                     HStack(alignment: .top, spacing: 20) {
                         bodyPick(pic).keyMark(keys.at == .body)
                         // a line between the Body and the Track, like the one under the Track's name
                         VStack(alignment: .leading, spacing: 8) { trackPick(pic).keyMark(keys.at == .track); controlsButton }
                             .padding(.leading, 20).overlay(alignment: .leading) { Rectangle().fill(ink.opacity(0.5)).frame(width: 2) }
                     }
-                    playButton.keyMark(keys.at == .play).frame(maxWidth: 380)
+                    playButton.frame(maxWidth: 380)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     title(centred: false)
-                    nameField.keyMark(keys.at == .name)
+                    nameField
                     bodyPick(pic).keyMark(keys.at == .body)
                     trackPick(pic).keyMark(keys.at == .track)
                     controlsButton
-                    playButton.keyMark(keys.at == .play)
+                    playButton
                 }
             }
         }
@@ -127,7 +127,10 @@ struct StartView: View {
                     if now && model.name == madeUp { model.name = "" }
                     if !now && model.name.trimmingCharacters(in: .whitespaces).isEmpty { model.name = madeUp }
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                // where the keyboard is, the field glows, as in the browsers
+                .background { if keys.at == .name { KeyGlow(corner: 10, past: 0) } }
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(ink, lineWidth: 3))
         }
     }
 
@@ -250,6 +253,8 @@ struct StartView: View {
         VStack(alignment: .leading, spacing: 4) {
             Button { Task { await model.play() } } label: {
                 Text(bangers: model.outdated ? "Play offline" : model.running != nil ? "Join the Race" : "Play", size: 30).foregroundColor(Color(hex: 0x1b1410)).frame(maxWidth: .infinity).padding(.vertical, 8)
+                    // where the keyboard is, it flashes orange, as in the browsers
+                    .background { if keys.at == .play { KeyGlow(color: Color(hex: 0xff9f1c), from: 1, to: 0, corner: 12, past: 0) } }
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: 0xffd60a)))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
                     .background(RoundedRectangle(cornerRadius: 12).fill(ink).offset(x: 5, y: 5))
@@ -276,8 +281,8 @@ struct StartView: View {
     /// `lit` where the keyboard is on its picker, as the browsers light its arrows.
     private func stepper(_ arrow: String, label: String, lit: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(arrow).font(.system(size: 22)).frame(width: 48, height: 44)
-                .background(RoundedRectangle(cornerRadius: 12).fill(lit ? Color(hex: 0x2f9bff) : .clear))
+            Text(arrow).font(.system(size: 22)).foregroundColor(lit ? Color(hex: 0x1b1410) : ink).frame(width: 48, height: 44)
+                .background(RoundedRectangle(cornerRadius: 12).fill(lit ? Color(hex: 0xffd60a) : .clear))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink, lineWidth: 3))
         }
             .accessibilityLabel(label)

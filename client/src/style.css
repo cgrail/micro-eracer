@@ -118,9 +118,17 @@ button { font: 22px var(--comic); letter-spacing: 0.5px; padding: 10px 16px; bor
 /* Play and Controls leave room for their shadows, so they don't stick out past the rows above */
 #play { margin-right: 5px; background: var(--yellow); font-size: 30px; padding: 8px 16px; box-shadow: 5px 5px 0 var(--ink); }
 #play:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
-/* where the keyboard is on the start form: ↑ ↓ or Tab move it, and ← → step the outlined picker, whose arrows light up */
-#start .pick:focus-visible, #play:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; border-radius: 12px; }
-#start .pick:focus-visible .stage button { background: var(--accent); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
+/* where the keyboard is on the start form: ↑ ↓ or Tab move it, and ← → step the picker it is on, whose arrows light up.
+   Like a game menu's cursor: a yellow glow behind it (past a picker's edges) that brightens and fades back */
+@property --slot { syntax: '<color>'; inherits: false; initial-value: transparent; }
+#start .pick:focus-visible, #name:focus-visible { --slot: rgba(255, 214, 10, 0.25); outline: none; background: var(--slot); animation: slot 0.7s ease-in-out infinite alternate; }
+#start .pick:focus-visible { border-radius: 12px; box-shadow: 0 0 0 7px var(--slot); }
+@keyframes slot { to { --slot: rgba(255, 214, 10, 0.5); } }
+/* Play, yellow already, flashes orange instead */
+#play:focus-visible { outline: none; background: #ff9f1c; animation: flash 0.7s ease-in-out infinite alternate; }
+@keyframes flash { from { background: var(--yellow); } }
+@media (prefers-reduced-motion: reduce) { #start .pick:focus-visible, #name:focus-visible, #play:focus-visible { animation: none; } }
+#start .pick:focus-visible .stage button { background: var(--yellow); color: #1b1410; box-shadow: 3px 3px 0 var(--ink); }
 #play:disabled { opacity: 0.6; }
 #error { margin: 0; color: #e5383b; font-weight: 600; }
 #error:empty { display: none; }
